@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/React-18.0+-61DAFB.svg" alt="React">
   <img src="https://img.shields.io/badge/FastAPI-0.104+-009688.svg" alt="FastAPI">
   <img src="https://img.shields.io/badge/PyTorch-2.1+-EE4C2C.svg" alt="PyTorch">
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
+  <img src="https://img.shields.io/badge/License-Proprietary-red.svg" alt="License">
   <img src="https://img.shields.io/badge/Build-Passing-brightgreen.svg" alt="Build">
   <img src="https://img.shields.io/badge/Coverage-95%25-brightgreen.svg" alt="Coverage">
 </p>
@@ -374,10 +374,24 @@ pre-commit install
 
 ## 📄 라이센스
 
-이 프로젝트는 MIT 라이센스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+이 프로젝트는 **독점 라이센스(Proprietary License)** 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+
+### 🚨 중요한 라이센스 제한사항
+
+- **읽기 전용**: 소스코드는 개인 학습 목적으로만 열람 가능합니다
+- **복사 금지**: 코드의 복사, 수정, 배포가 엄격히 금지됩니다
+- **상업적 이용 금지**: 영리 목적 사용이 불가능합니다
+- **연구 목적 금지**: 학술 연구나 논문 작성에 사용할 수 없습니다
+- **AI 학습 금지**: 다른 AI 모델 훈련에 사용할 수 없습니다
+
+### 라이센스 문의
+
+라이센스 범위를 벗어난 사용에 대한 문의사항은 다음으로 연락하세요:
+- **이메일**: legal@fragrance-ai.com
 
 ### 사용된 오픈소스 라이센스
 
+본 프로젝트는 다음 오픈소스 라이브러리들을 사용합니다 (각각의 라이센스에 따라 사용됨):
 - Transformers (Apache 2.0)
 - FastAPI (MIT)
 - ChromaDB (Apache 2.0)
