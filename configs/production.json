@@ -1,0 +1,152 @@
+{
+  "app": {
+    "name": "Fragrance AI Production",
+    "version": "0.1.0",
+    "debug": false,
+    "environment": "production"
+  },
+  "database": {
+    "url": "${DATABASE_URL}",
+    "echo": false,
+    "pool_size": 20,
+    "max_overflow": 30,
+    "pool_recycle": 3600,
+    "pool_pre_ping": true
+  },
+  "redis": {
+    "url": "${REDIS_URL}",
+    "decode_responses": true,
+    "health_check_interval": 30,
+    "socket_keepalive": true,
+    "socket_keepalive_options": {}
+  },
+  "vector_db": {
+    "provider": "chroma",
+    "host": "${CHROMA_HOST}",
+    "port": 8000,
+    "collection_prefix": "prod_",
+    "persist_directory": "/data/chroma_prod",
+    "auth_token": "${CHROMA_AUTH_TOKEN}"
+  },
+  "models": {
+    "embedding": {
+      "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+      "max_length": 512,
+      "batch_size": 64,
+      "device": "cuda",
+      "model_cache_dir": "/models/embedding"
+    },
+    "generation": {
+      "model_name": "${GENERATION_MODEL_NAME}",
+      "max_length": 1024,
+      "temperature": 0.7,
+      "top_p": 0.9,
+      "device": "cuda",
+      "use_4bit": true,
+      "use_8bit": false,
+      "model_cache_dir": "/models/generation"
+    }
+  },
+  "api": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "reload": false,
+    "workers": 4,
+    "log_level": "info",
+    "cors_origins": ["${FRONTEND_URL}"],
+    "cors_allow_credentials": true,
+    "cors_allow_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "cors_allow_headers": ["*"],
+    "max_request_size": 10485760,
+    "timeout": 300
+  },
+  "security": {
+    "secret_key": "${SECRET_KEY}",
+    "algorithm": "HS256",
+    "access_token_expire_minutes": 60,
+    "rate_limit": {
+      "enabled": true,
+      "requests_per_minute": 100,
+      "requests_per_hour": 5000,
+      "burst_size": 200
+    },
+    "api_key_required": true,
+    "https_only": true
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s - %(pathname)s:%(lineno)d",
+    "file": "/logs/fragrance_ai.log",
+    "max_bytes": 104857600,
+    "backup_count": 10,
+    "json_format": true,
+    "structured_logging": true
+  },
+  "training": {
+    "data_dir": "/data/training",
+    "checkpoint_dir": "/models/checkpoints",
+    "tensorboard_dir": "/logs/tensorboard",
+    "wandb": {
+      "enabled": true,
+      "project": "fragrance-ai-prod",
+      "entity": "${WANDB_ENTITY}",
+      "api_key": "${WANDB_API_KEY}"
+    },
+    "distributed": {
+      "enabled": false,
+      "backend": "nccl",
+      "world_size": 1
+    }
+  },
+  "evaluation": {
+    "data_dir": "/data/evaluation",
+    "results_dir": "/results/evaluation",
+    "benchmark_models": [
+      "sentence-transformers/all-MiniLM-L6-v2",
+      "openai/text-embedding-ada-002"
+    ],
+    "automated_evaluation": true,
+    "evaluation_schedule": "0 2 * * *"
+  },
+  "cache": {
+    "ttl_seconds": 7200,
+    "max_size": 10000,
+    "search_cache_ttl": 3600,
+    "generation_cache_ttl": 7200,
+    "distributed_cache": true
+  },
+  "monitoring": {
+    "enabled": true,
+    "metrics_port": 9090,
+    "health_check_enabled": true,
+    "performance_monitoring": true,
+    "alerting": {
+      "enabled": true,
+      "webhook_url": "${ALERT_WEBHOOK_URL}",
+      "slack_channel": "${SLACK_CHANNEL}"
+    },
+    "prometheus": {
+      "enabled": true,
+      "port": 9090,
+      "path": "/metrics"
+    }
+  },
+  "celery": {
+    "broker_url": "${CELERY_BROKER_URL}",
+    "result_backend": "${CELERY_RESULT_BACKEND}",
+    "task_serializer": "json",
+    "accept_content": ["json"],
+    "result_serializer": "json",
+    "timezone": "UTC",
+    "enable_utc": true,
+    "worker_prefetch_multiplier": 1,
+    "task_acks_late": true
+  },
+  "backup": {
+    "enabled": true,
+    "schedule": "0 3 * * *",
+    "retention_days": 30,
+    "s3_bucket": "${BACKUP_S3_BUCKET}",
+    "encryption": true
+  }
+}

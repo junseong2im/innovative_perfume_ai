@@ -1,0 +1,98 @@
+{
+  "app": {
+    "name": "Fragrance AI Development",
+    "version": "0.1.0-dev",
+    "debug": true,
+    "environment": "development"
+  },
+  "database": {
+    "url": "sqlite:///./fragrance_ai_dev.db",
+    "echo": true,
+    "pool_size": 5,
+    "max_overflow": 10
+  },
+  "redis": {
+    "url": "redis://localhost:6379/0",
+    "decode_responses": true,
+    "health_check_interval": 30
+  },
+  "vector_db": {
+    "provider": "chroma",
+    "host": "localhost",
+    "port": 8000,
+    "collection_prefix": "dev_",
+    "persist_directory": "./data/chroma_dev"
+  },
+  "models": {
+    "embedding": {
+      "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+      "max_length": 512,
+      "batch_size": 32,
+      "device": "auto"
+    },
+    "generation": {
+      "model_name": "microsoft/DialoGPT-medium",
+      "max_length": 1024,
+      "temperature": 0.7,
+      "top_p": 0.9,
+      "device": "auto",
+      "use_4bit": false,
+      "use_8bit": false
+    }
+  },
+  "api": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "reload": true,
+    "workers": 1,
+    "log_level": "debug",
+    "cors_origins": ["http://localhost:3000", "http://localhost:8080"],
+    "cors_allow_credentials": true,
+    "cors_allow_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "cors_allow_headers": ["*"]
+  },
+  "security": {
+    "secret_key": "dev-secret-key-change-in-production",
+    "algorithm": "HS256",
+    "access_token_expire_minutes": 1440,
+    "rate_limit": {
+      "enabled": true,
+      "requests_per_minute": 60,
+      "requests_per_hour": 1000
+    }
+  },
+  "logging": {
+    "level": "DEBUG",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file": "./logs/fragrance_ai_dev.log",
+    "max_bytes": 10485760,
+    "backup_count": 5
+  },
+  "training": {
+    "data_dir": "./data/training",
+    "checkpoint_dir": "./checkpoints",
+    "tensorboard_dir": "./tensorboard",
+    "wandb": {
+      "enabled": false,
+      "project": "fragrance-ai-dev",
+      "entity": null
+    }
+  },
+  "evaluation": {
+    "data_dir": "./data/evaluation",
+    "results_dir": "./evaluation_results",
+    "benchmark_models": []
+  },
+  "cache": {
+    "ttl_seconds": 3600,
+    "max_size": 1000,
+    "search_cache_ttl": 1800,
+    "generation_cache_ttl": 3600
+  },
+  "monitoring": {
+    "enabled": true,
+    "metrics_port": 9090,
+    "health_check_enabled": true,
+    "performance_monitoring": true
+  }
+}
