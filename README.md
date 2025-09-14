@@ -387,7 +387,7 @@ pre-commit install
 ### 라이센스 문의
 
 라이센스 범위를 벗어난 사용에 대한 문의사항은 다음으로 연락하세요:
-- **이메일**: legal@fragrance-ai.com
+- 이메일: junseong2im@gmail.com
 
 ### 사용된 오픈소스 라이센스
 
@@ -401,7 +401,7 @@ pre-commit install
 
 - **이슈 리포팅**: [GitHub Issues](https://github.com/junseong2im/innovative_perfume_ai/issues)
 - **기능 요청**: [GitHub Discussions](https://github.com/junseong2im/innovative_perfume_ai/discussions)
-- **이메일**: support@fragrance-ai.com
+- **이메일**: junseong2im@gmail.com
 
 ## 🌟 감사의 말
 
