@@ -1,4 +1,4 @@
-# Fragrance AI: Advanced Perfume Recommendation & Recipe Generation System
+# 🌟 Fragrance AI: Master Perfumer-grade AI System
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.9+-blue.svg" alt="Python">
@@ -24,6 +24,7 @@
   <a href="#contributing">Contributing</a>
 </p>
 
+<<<<<<< HEAD
 ## 프로젝트 개요
 
 Fragrance AI는 최신 AI 기술을 활용하여 향수 레시피를 자동 생성하고, 의미 기반 검색을 제공하는 혁신적인 시스템입니다. 한국어에 특화된 AI 모델과 향수 전문 도메인 지식을 결합하여 창의적이고 실현 가능한 향수 레시피를 생성합니다.
@@ -38,6 +39,22 @@ Fragrance AI는 최신 AI 기술을 활용하여 향수 레시피를 자동 생�
 - **하이브리드 검색**: 벡터 검색과 전통적 필터링의 결합
 
 ## 시스템 아키텍처
+=======
+##  프로젝트 개요
+
+Fragrance AI는 최신 AI 기술을 활용하여 향수 레시피를 자동 생성하고, 의미 기반 검색을 제공하는 혁신적인 시스템입니다. 한국어에 특화된 AI 모델과 향수 전문 도메인 지식을 결합하여 창의적이고 실현 가능한 향수 레시피를 생성합니다.
+
+###  주요 기능
+
+- ** AI 향수 레시피 생성**: 창의적이고 실현 가능한 향수 조합 자동 생성
+- ** 의미 기반 검색**: 자연어로 원하는 향수 특성 검색
+- ** 품질 평가 시스템**: AI 기반 레시피 품질 자동 평가
+- ** RESTful API**: 확장 가능한 웹 API 제공
+- ** 실시간 모니터링**: 시스템 성능 및 사용량 모니터링
+- ** 하이브리드 검색**: 벡터 검색과 전통적 필터링의 결합
+
+##  시스템 아키텍처
+>>>>>>> 6c5eb034c6cecbc2835682d45e8e1ed0b68ba33f
 
 ```mermaid
 graph TB
@@ -59,7 +76,11 @@ graph TB
     C --> M
 ```
 
+<<<<<<< HEAD
 ## 빠른 시작
+=======
+##  빠른 시작
+>>>>>>> 6c5eb034c6cecbc2835682d45e8e1ed0b68ba33f
 
 ### 사전 요구사항
 
@@ -108,7 +129,11 @@ alembic upgrade head
 uvicorn fragrance_ai.api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+<<<<<<< HEAD
 ## API 사용법
+=======
+##  API 사용법
+>>>>>>> 6c5eb034c6cecbc2835682d45e8e1ed0b68ba33f
 
 ### 의미 검색 API
 
@@ -160,7 +185,11 @@ response = requests.post("http://localhost:8000/api/v1/generate/batch", json={
 })
 ```
 
+<<<<<<< HEAD
 ## 모델 훈련
+=======
+##  모델 훈련
+>>>>>>> 6c5eb034c6cecbc2835682d45e8e1ed0b68ba33f
 
 ### 임베딩 모델 훈련
 
@@ -187,7 +216,11 @@ python scripts/train_model.py \
     --batch-size 4
 ```
 
+<<<<<<< HEAD
 ## 모델 평가
+=======
+##  모델 평가
+>>>>>>> 6c5eb034c6cecbc2835682d45e8e1ed0b68ba33f
 
 ```bash
 # 임베딩 모델 평가
@@ -204,7 +237,11 @@ python scripts/evaluate_model.py \
     --health-check
 ```
 
+<<<<<<< HEAD
 ## 배포
+=======
+##  배포
+>>>>>>> 6c5eb034c6cecbc2835682d45e8e1ed0b68ba33f
 
 ### 개발 환경 배포
 
@@ -228,7 +265,11 @@ helm install fragrance-ai ./helm/fragrance-ai \
     --values values.production.yaml
 ```
 
+<<<<<<< HEAD
 ## 프로젝트 구조
+=======
+##  프로젝트 구조
+>>>>>>> 6c5eb034c6cecbc2835682d45e8e1ed0b68ba33f
 
 ```
 fragrance_ai/
@@ -266,7 +307,11 @@ fragrance_ai/
 └── requirements.txt             # Python 의존성
 ```
 
+<<<<<<< HEAD
 ## 개발 환경 설정
+=======
+##  개발 환경 설정
+>>>>>>> 6c5eb034c6cecbc2835682d45e8e1ed0b68ba33f
 
 ### 코드 품질 도구
 
@@ -304,7 +349,11 @@ pip install pre-commit
 pre-commit install
 ```
 
+<<<<<<< HEAD
 ## 모니터링 및 로깅
+=======
+##  모니터링 및 로깅
+>>>>>>> 6c5eb034c6cecbc2835682d45e8e1ed0b68ba33f
 
 ### 접속 정보
 
@@ -321,7 +370,11 @@ pre-commit install
 - 캐시 히트율
 - 에러율 및 가용성
 
+<<<<<<< HEAD
 ## 기여하기
+=======
+##  기여하기
+>>>>>>> 6c5eb034c6cecbc2835682d45e8e1ed0b68ba33f
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
@@ -336,7 +389,11 @@ pre-commit install
 - 테스트: 새로운 기능에 대한 테스트 코드 필수
 - 문서화: 공개 API에 대한 docstring 필수
 
+<<<<<<< HEAD
 ## 성능 벤치마크
+=======
+##  성능 벤치마크
+>>>>>>> 6c5eb034c6cecbc2835682d45e8e1ed0b68ba33f
 
 ### 시스템 요구사항
 
@@ -354,7 +411,11 @@ pre-commit install
 - **동시 사용자**: 1000+ concurrent users
 - **처리량**: 10,000+ requests/hour
 
+<<<<<<< HEAD
 ## 보안
+=======
+##  보안
+>>>>>>> 6c5eb034c6cecbc2835682d45e8e1ed0b68ba33f
 
 ### 보안 기능
 
@@ -372,11 +433,19 @@ pre-commit install
 - 로그 민감정보 마스킹
 - 보안 헤더 설정
 
+<<<<<<< HEAD
 ## 라이센스
 
 이 프로젝트는 **독점 라이센스(Proprietary License)** 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
 
 ### 중요한 라이센스 제한사항
+=======
+##  라이센스
+
+이 프로젝트는 **독점 라이센스(Proprietary License)** 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+
+###  중요한 라이센스 제한사항
+>>>>>>> 6c5eb034c6cecbc2835682d45e8e1ed0b68ba33f
 
 - **읽기 전용**: 소스코드는 개인 학습 목적으로만 열람 가능합니다
 - **복사 금지**: 코드의 복사, 수정, 배포가 엄격히 금지됩니다
@@ -387,7 +456,7 @@ pre-commit install
 ### 라이센스 문의
 
 라이센스 범위를 벗어난 사용에 대한 문의사항은 다음으로 연락하세요:
-- **이메일**: legal@fragrance-ai.com
+- 이메일: junseong2im@gmail.com
 
 ### 사용된 오픈소스 라이센스
 
@@ -397,21 +466,33 @@ pre-commit install
 - ChromaDB (Apache 2.0)
 - Sentence-Transformers (Apache 2.0)
 
+<<<<<<< HEAD
 ## 지원 및 문의
+=======
+##  지원 및 문의
+>>>>>>> 6c5eb034c6cecbc2835682d45e8e1ed0b68ba33f
 
 - **이슈 리포팅**: [GitHub Issues](https://github.com/junseong2im/innovative_perfume_ai/issues)
 - **기능 요청**: [GitHub Discussions](https://github.com/junseong2im/innovative_perfume_ai/discussions)
-- **이메일**: support@fragrance-ai.com
+- **이메일**: junseong2im@gmail.com
 
+<<<<<<< HEAD
 ## 감사의 말
+=======
+##  감사의 말
+>>>>>>> 6c5eb034c6cecbc2835682d45e8e1ed0b68ba33f
 
 이 프로젝트는 다음 오픈소스 프로젝트들의 도움을 받았습니다:
 
 - [Hugging Face Transformers](https://github.com/huggingface/transformers)
 - [FastAPI](https://github.com/tiangolo/fastapi)
 - [ChromaDB](https://github.com/chroma-core/chroma)
+<<<<<<< HEAD
 - [Sentence-Transformers](https://github.com/UKPLab/sentence-transformers)
 
 ---
 
 **Fragrance AI** - *창의적인 향수 레시피의 새로운 가능성을 열어갑니다*
+=======
+- [Sentence-
+>>>>>>> 6c5eb034c6cecbc2835682d45e8e1ed0b68ba33f
