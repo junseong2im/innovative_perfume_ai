@@ -10,7 +10,8 @@
       "Bash(python -m pytest tests/ --collect-only)",
       "Bash(alembic revision:*)",
       "Bash(pip install:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(git fetch:*)"
     ],
     "deny": [],
     "ask": []
