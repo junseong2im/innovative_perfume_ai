@@ -1,0 +1,138 @@
+[
+  {
+    "name": "로맨틱 로즈",
+    "fragrance_family": "floral",
+    "notes": {
+      "top": ["베르가못", "레몬", "핑크 페퍼"],
+      "middle": ["불가리안 로즈", "피오니", "자스민"],
+      "base": ["화이트 머스크", "세다우드", "앰버"]
+    },
+    "intensity": "moderate",
+    "gender": "feminine",
+    "season": ["spring", "summer"],
+    "mood": ["romantic", "elegant"],
+    "description": "우아하고 로맨틱한 장미 향이 돋보이는 클래식한 플로럴 향수",
+    "tags": ["로즈", "플로럴", "로맨틱", "우아함"],
+    "rating": 4.5,
+    "price_range": "premium"
+  },
+  {
+    "name": "시트러스 프레시",
+    "fragrance_family": "citrus",
+    "notes": {
+      "top": ["그레이프프루트", "라임", "베르가못"],
+      "middle": ["네롤리", "오렌지 블라썸", "제라늄"],
+      "base": ["화이트 머스크", "세다우드"]
+    },
+    "intensity": "light",
+    "gender": "unisex",
+    "season": ["spring", "summer"],
+    "mood": ["fresh", "energetic", "casual"],
+    "description": "상쾌하고 에너지 넘치는 시트러스 향의 데일리 향수",
+    "tags": ["시트러스", "상쾌함", "활력", "데일리"],
+    "rating": 4.2,
+    "price_range": "affordable"
+  },
+  {
+    "name": "우디 앰버",
+    "fragrance_family": "woody",
+    "notes": {
+      "top": ["카르다몸", "블랙 페퍼", "베르가못"],
+      "middle": ["세다우드", "로즈우드", "바이올렛"],
+      "base": ["앰버", "바닐라", "머스크", "파촐리"]
+    },
+    "intensity": "strong",
+    "gender": "masculine",
+    "season": ["fall", "winter"],
+    "mood": ["sophisticated", "mysterious", "confident"],
+    "description": "깊고 신비로운 우디 앰버 향의 시그니처 향수",
+    "tags": ["우디", "앰버", "신비로움", "남성적"],
+    "rating": 4.7,
+    "price_range": "luxury"
+  },
+  {
+    "name": "오리엔탈 스파이스",
+    "fragrance_family": "oriental",
+    "notes": {
+      "top": ["계피", "정향", "오렌지"],
+      "middle": ["로즈", "자스민", "일랑일랑"],
+      "base": ["바닐라", "앰버", "우드", "머스크"]
+    },
+    "intensity": "strong",
+    "gender": "feminine",
+    "season": ["fall", "winter"],
+    "mood": ["exotic", "sensual", "warm"],
+    "description": "이국적이고 관능적인 오리엔탈 스파이스 향수",
+    "tags": ["오리엔탈", "스파이스", "관능적", "이국적"],
+    "rating": 4.3,
+    "price_range": "premium"
+  },
+  {
+    "name": "아쿠아 마린",
+    "fragrance_family": "aquatic",
+    "notes": {
+      "top": ["바다 소금", "오존", "레몬"],
+      "middle": ["연꽃", "물 백합", "프리지아"],
+      "base": ["드리프트우드", "앰버그리스", "머스크"]
+    },
+    "intensity": "moderate",
+    "gender": "unisex",
+    "season": ["spring", "summer"],
+    "mood": ["fresh", "clean", "peaceful"],
+    "description": "바다의 청량함과 평온함을 담은 아쿠아틱 향수",
+    "tags": ["아쿠아틱", "바다", "청량함", "평온"],
+    "rating": 4.1,
+    "price_range": "mid-range"
+  },
+  {
+    "name": "그린 가든",
+    "fragrance_family": "green",
+    "notes": {
+      "top": ["그린 리브스", "바질", "민트"],
+      "middle": ["제라늄", "라벤더", "로즈마리"],
+      "base": ["베티버", "모스", "화이트 머스크"]
+    },
+    "intensity": "light",
+    "gender": "unisex",
+    "season": ["spring", "summer"],
+    "mood": ["natural", "fresh", "calming"],
+    "description": "자연의 생명력과 신선함이 느껴지는 그린 향수",
+    "tags": ["그린", "자연", "신선함", "힐링"],
+    "rating": 4.0,
+    "price_range": "mid-range"
+  },
+  {
+    "name": "달콤한 바닐라",
+    "fragrance_family": "gourmand",
+    "notes": {
+      "top": ["바닐라", "카라멜", "베르가못"],
+      "middle": ["헬리오트로프", "오렌지 블라썸", "로즈"],
+      "base": ["톤카빈", "벤조인", "머스크"]
+    },
+    "intensity": "moderate",
+    "gender": "feminine",
+    "season": ["fall", "winter"],
+    "mood": ["sweet", "cozy", "comforting"],
+    "description": "달콤하고 따뜻한 바닐라 향의 컴포팅 향수",
+    "tags": ["바닐라", "달콤함", "따뜻함", "위로"],
+    "rating": 4.4,
+    "price_range": "affordable"
+  },
+  {
+    "name": "쿨 민트",
+    "fragrance_family": "aromatic",
+    "notes": {
+      "top": ["페퍼민트", "유칼립투스", "레몬"],
+      "middle": ["라벤더", "로즈마리", "세이지"],
+      "base": ["베티버", "세다우드", "톤카빈"]
+    },
+    "intensity": "moderate",
+    "gender": "masculine",
+    "season": ["spring", "summer"],
+    "mood": ["cool", "invigorating", "professional"],
+    "description": "시원하고 상쾌한 민트 향의 프로페셔널 향수",
+    "tags": ["민트", "시원함", "상쾌함", "비즈니스"],
+    "rating": 4.2,
+    "price_range": "mid-range"
+  }
+]

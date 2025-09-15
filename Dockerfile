@@ -29,8 +29,8 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 # Set working directory
 WORKDIR /app
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
+# Copy requirements first for better build caching
+COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Development stage
@@ -40,8 +40,15 @@ FROM base as development
 COPY requirements-dev.txt .
 RUN pip install --no-cache-dir -r requirements-dev.txt
 
-# Copy source code
-COPY . .
+# Copy source code selectively
+COPY fragrance_ai/ ./fragrance_ai/
+COPY scripts/ ./scripts/
+COPY data/initial/ ./data/initial/
+COPY migrations/ ./migrations/
+COPY *.py ./
+COPY *.md ./
+COPY docker-compose*.yml ./
+COPY .env.example ./.env.example
 
 # Change ownership to appuser
 RUN chown -R appuser:appuser /app
@@ -57,8 +64,14 @@ CMD ["uvicorn", "fragrance_ai.api.main:app", "--host", "0.0.0.0", "--port", "800
 # Production stage
 FROM base as production
 
-# Copy source code
-COPY . .
+# Copy source code selectively for production
+COPY fragrance_ai/ ./fragrance_ai/
+COPY scripts/production/ ./scripts/production/
+COPY data/initial/ ./data/initial/
+COPY migrations/ ./migrations/
+COPY setup.py pyproject.toml ./
+COPY README.md ./
+COPY docker-compose.prod.yml ./
 
 # Install production dependencies only
 RUN pip install --no-cache-dir -e .
@@ -94,8 +107,11 @@ RUN pip install --no-cache-dir \
     optuna \
     ray[tune]
 
-# Copy source code
-COPY . .
+# Copy training-specific files
+COPY fragrance_ai/ ./fragrance_ai/
+COPY scripts/training/ ./scripts/training/
+COPY data/ ./data/
+COPY configs/ ./configs/
 
 # Create directories for training
 RUN mkdir -p /app/data/training /app/checkpoints /app/tensorboard /app/logs && \
@@ -113,8 +129,11 @@ FROM base as evaluation
 COPY requirements.txt requirements-eval.txt ./
 RUN pip install --no-cache-dir -r requirements.txt -r requirements-eval.txt
 
-# Copy source code
-COPY . .
+# Copy evaluation-specific files
+COPY fragrance_ai/ ./fragrance_ai/
+COPY scripts/evaluation/ ./scripts/evaluation/
+COPY data/test/ ./data/test/
+COPY tests/ ./tests/
 
 # Create directories for evaluation
 RUN mkdir -p /app/data/evaluation /app/evaluation_results /app/logs && \

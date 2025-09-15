@@ -352,12 +352,18 @@ class AdvancedCacheManager:
             logger.warning(f"Redis set error for key {key}: {e}")
     
     def _calculate_size(self, value: Any) -> int:
-        """값의 크기 계산 (바이트)"""
+        """값의 크기 계산 (바이트) - 개선된 버전"""
         try:
+            # First try pickle for accurate size
             return len(pickle.dumps(value))
-        except:
-            # 직렬화 불가능한 경우 추정값 반환
-            return len(str(value)) * 2  # 대략적인 추정
+        except (pickle.PicklingError, TypeError):
+            try:
+                # Use sys.getsizeof as fallback for better accuracy
+                import sys
+                return sys.getsizeof(value)
+            except:
+                # Last resort: string length estimation
+                return len(str(value)) * 2
     
     def _record_hit(self, response_time: float):
         """Cache hit 기록"""

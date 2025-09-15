@@ -1,219 +1,307 @@
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
+"""
+업그레이드된 Fragrance AI API 메인 파일
+- Pydantic v2
+- 고급 RAG 시스템
+- 성능 최적화
+- 분산 캐싱
+"""
+
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
 import uvicorn
 from typing import List, Dict, Any, Optional
 import time
+import asyncio
 from contextlib import asynccontextmanager
 
 from ..core.config import settings
-from ..core.logging_config import setup_logging, get_logger, performance_logger
-from ..core.config_validator import ensure_valid_configuration, validate_configuration
-from ..core.exceptions import (
-    FragranceAIException, SystemException, ModelException,
-    ValidationException, ErrorCode, safe_execute
-)
-from ..core.vector_store import VectorStore
-from ..models.embedding import KoreanFragranceEmbedding
-from ..models.generator import FragranceRecipeGenerator
+from ..core.logging_config import setup_logging, get_logger
+from ..core.exceptions import FragranceAIException, SystemException, ErrorCode
+from ..core.advanced_caching import FragranceCacheManager
+from ..core.performance_optimizer import global_performance_optimizer
+from ..models.embedding import AdvancedKoreanFragranceEmbedding
+from ..models.rag_system import FragranceRAGSystem, RAGMode
 from ..database.connection import initialize_database, shutdown_database
-from .routes import search, generation, training, admin, monitoring
 from .schemas import *
 from .middleware import LoggingMiddleware, RateLimitMiddleware
 from .dependencies import get_current_user, verify_api_key
-from .error_handlers import setup_error_handlers, model_circuit_breaker
+from .error_handlers import setup_error_handlers
 
-# 로깅 시스템 초기화
-setup_logging(
-    log_level=settings.log_level,
-    enable_json=not settings.debug,
-    enable_console=True,
-    enable_file=True
-)
-
+# 로깅 초기화
+setup_logging()
 logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """애플리케이션 생명주기 관리"""
-    # Startup
-    logger.info("Starting Fragrance AI API...", extra={
-        "version": settings.app_version,
-        "debug_mode": settings.debug,
-        "log_level": settings.log_level
-    })
-    
+    """애플리케이션 생명주기 관리 (업그레이드된 버전)"""
     startup_time = time.time()
     
     try:
-        # 1. 설정 검증
-        logger.info("Validating configuration...")
-        ensure_valid_configuration()
-        logger.info("Configuration validation passed")
+        logger.info("🚀 Starting Advanced Fragrance AI System...")
         
-        # 2. 상세 설정 검증 및 보고서 생성
-        is_valid, validation_results = validate_configuration()
-        if validation_results:
-            warnings = [r for r in validation_results if r.severity.value == "warning"]
-            if warnings:
-                logger.warning(f"Configuration has {len(warnings)} warnings", extra={
-                    "validation_warnings": [f"{w.field}: {w.message}" for w in warnings[:5]]  # 처음 5개만
-                })
-        
-        # 3. 데이터베이스 초기화
-        logger.info("Initializing database connection...")
+        # 1. 데이터베이스 초기화
+        logger.info("📊 Initializing database...")
         initialize_database()
-        logger.info("Database initialized successfully")
         
-        # 4. AI 모델 초기화
-        def init_vector_store():
-            return VectorStore()
-            
-        def init_embedding_model():
-            return KoreanFragranceEmbedding()
-            
-        def init_generator():
-            return FragranceRecipeGenerator()
-        
-        app.state.vector_store = model_circuit_breaker.call(init_vector_store)
-        app.state.embedding_model = model_circuit_breaker.call(init_embedding_model)
-        app.state.generator = model_circuit_breaker.call(init_generator)
-        
-        initialization_time = time.time() - startup_time
-        
-        logger.info("AI models initialized successfully", extra={
-            "initialization_time": initialization_time,
-            "models_loaded": ["vector_store", "embedding_model", "generator"]
-        })
-        
-        performance_logger.log_execution_time(
-            operation="startup_initialization",
-            execution_time=initialization_time,
-            success=True,
-            extra_data={"models_count": 3}
+        # 2. 캐시 시스템 초기화
+        logger.info("🗄️  Initializing advanced caching system...")
+        app.state.cache_manager = FragranceCacheManager(
+            max_size=50000,
+            policy=CachePolicy.ADAPTIVE,
+            redis_url=getattr(settings, 'redis_url', None),
+            enable_metrics=True,
+            warmup_enabled=True
         )
         
-    except Exception as e:
-        logger.error("Failed to initialize AI models", extra={
-            "error": str(e),
-            "error_type": type(e).__name__,
-            "initialization_time": time.time() - startup_time
-        })
+        # 3. 성능 최적화 시스템 초기화
+        logger.info("⚡ Starting performance optimization system...")
+        await global_performance_optimizer.start()
         
-        # 시스템 예외로 래핑
+        # 4. AI 모델 초기화
+        logger.info("🤖 Loading advanced AI models...")
+        
+        # 고급 임베딩 모델
+        app.state.embedding_model = AdvancedKoreanFragranceEmbedding(
+            use_adapter=True,
+            enable_multi_aspect=True,
+            cache_size=10000
+        )
+        
+        # RAG 시스템
+        app.state.rag_system = FragranceRAGSystem(
+            embedding_model=app.state.embedding_model,
+            rag_mode=RAGMode.ADAPTIVE_RAG,
+            max_retrieved_docs=15
+        )
+        
+        # 5. 배치 프로세서 설정
+        logger.info("📦 Setting up batch processors...")
+        
+        # 임베딩 배치 프로세서
+        embedding_processor = global_performance_optimizer.create_batch_processor(
+            name="embedding_batch",
+            batch_size=64,
+            max_wait_time=0.05,
+            processor_func=batch_embedding_processor
+        )
+        
+        # 검색 배치 프로세서
+        search_processor = global_performance_optimizer.create_batch_processor(
+            name="search_batch", 
+            batch_size=32,
+            max_wait_time=0.1,
+            processor_func=batch_search_processor
+        )
+        
+        app.state.embedding_batch_processor = embedding_processor
+        app.state.search_batch_processor = search_processor
+        
+        # 6. 캐시 워밍업
+        logger.info("🔥 Warming up caches...")
+        await app.state.cache_manager.warmup(generate_warmup_data)
+        
+        # 7. 헬스체크 준비
+        app.state.startup_time = startup_time
+        app.state.ready = True
+        
+        total_startup_time = time.time() - startup_time
+        logger.info(f"✅ Advanced Fragrance AI System ready in {total_startup_time:.2f}s")
+        
+    except Exception as e:
+        logger.error(f"❌ Startup failed: {e}")
         raise SystemException(
-            message=f"Failed to initialize AI models: {str(e)}",
-            error_code=ErrorCode.MODEL_LOADING_ERROR,
+            message=f"Failed to initialize system: {str(e)}",
+            error_code=ErrorCode.SYSTEM_INITIALIZATION_ERROR,
             cause=e
         )
     
     yield
     
     # Shutdown
-    shutdown_time = time.time()
-    logger.info("Shutting down Fragrance AI API...")
+    logger.info("🛑 Shutting down Advanced Fragrance AI System...")
     
     try:
-        # Cleanup AI models
-        if hasattr(app.state, 'vector_store'):
-            del app.state.vector_store
-        if hasattr(app.state, 'embedding_model'):
-            del app.state.embedding_model
-        if hasattr(app.state, 'generator'):
-            del app.state.generator
+        # Performance optimizer 중지
+        await global_performance_optimizer.stop()
         
-        # Shutdown database
-        logger.info("Shutting down database connection...")
+        # 데이터베이스 종료
         shutdown_database()
-        logger.info("Database shutdown completed")
-            
-        logger.info("Shutdown completed successfully", extra={
-            "shutdown_time": time.time() - shutdown_time
-        })
+        
+        logger.info("✅ Graceful shutdown completed")
         
     except Exception as e:
-        logger.error("Error during shutdown", extra={
-            "error": str(e),
-            "error_type": type(e).__name__
-        })
+        logger.error(f"❌ Shutdown error: {e}")
 
 
-# Create FastAPI app
+# FastAPI 앱 생성
 app = FastAPI(
-    title=settings.app_name,
-    version=settings.app_version,
-    description="Commercial-grade AI system for fragrance recipe generation and semantic search",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json",
+    title="Advanced Fragrance AI",
+    version="2.0.0",
+    description="""
+    🌸 **고급 향수 AI 시스템**
+    
+    최신 AI 기술을 적용한 향수 추천 및 생성 시스템
+    - 🤖 Advanced RAG (Retrieval-Augmented Generation)
+    - ⚡ 고성능 비동기 처리
+    - 🗄️ 지능형 분산 캐싱
+    - 📊 실시간 성능 모니터링
+    - 🎯 한국어 특화 임베딩
+    """,
+    docs_url="/api/v2/docs",
+    redoc_url="/api/v2/redoc",
+    openapi_url="/api/v2/openapi.json",
     lifespan=lifespan
 )
 
 # Security
 security = HTTPBearer()
 
-# CORS middleware
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=["*"],  # 프로덕션에서는 제한 필요
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Custom middleware
+# 커스텀 미들웨어
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(RateLimitMiddleware)
 
-# 에러 핸들러 설정
+# 에러 핸들러
 setup_error_handlers(app)
 
-# Include routers
-app.include_router(search.router, prefix=f"{settings.api_prefix}/search", tags=["Search"])
-app.include_router(generation.router, prefix=f"{settings.api_prefix}/generate", tags=["Generation"])
-app.include_router(training.router, prefix=f"{settings.api_prefix}/training", tags=["Training"])
-app.include_router(admin.router, prefix=f"{settings.api_prefix}/admin", tags=["Admin"])
-app.include_router(monitoring.router, prefix="/monitoring", tags=["Monitoring"])
 
+# 배치 처리 함수들
+async def batch_embedding_processor(items: List[Tuple]) -> List[np.ndarray]:
+    """임베딩 배치 처리"""
+    texts = [item[0] for item in items]
+    embedding_model = app.state.embedding_model
+    
+    result = await embedding_model.encode_async(texts, enable_caching=True)
+    return [result.embeddings[i] for i in range(len(texts))]
+
+
+async def batch_search_processor(items: List[Tuple]) -> List[List[SearchResult]]:
+    """검색 배치 처리"""
+    results = []
+    for query, search_params in items:
+        # 실제 검색 로직 구현
+        search_results = await perform_single_search(query, search_params)
+        results.append(search_results)
+    return results
+
+
+async def perform_single_search(query: str, params: Dict[str, Any]) -> List[SearchResult]:
+    """단일 검색 수행"""
+    # 캐시 확인
+    cached_result = await app.state.cache_manager.get_cached_embedding(query)
+    
+    # RAG 시스템을 사용한 검색
+    rag_result = await app.state.rag_system.generate_with_rag(
+        query=query,
+        temperature=0.7,
+        enable_reasoning=True
+    )
+    
+    # 결과를 SearchResult 형태로 변환
+    results = []
+    for i, doc in enumerate(rag_result.source_documents[:10]):
+        results.append(SearchResult(
+            id=f"doc_{i}",
+            document=doc,
+            metadata={"source": "rag_system"},
+            distance=0.0,
+            similarity=rag_result.confidence_score,
+            collection="knowledge_base",
+            rank=i + 1
+        ))
+    
+    return results
+
+
+def generate_warmup_data() -> Dict[str, Any]:
+    """캐시 워밍업 데이터 생성"""
+    warmup_data = {}
+    
+    # 인기 검색어들
+    popular_queries = [
+        "시트러스 향수", "플로럴 향수", "우디 향수", "여름 향수",
+        "겨울 향수", "로맨틱한 향수", "프레시한 향수", "오리엔탈 향수"
+    ]
+    
+    # 임베딩 미리 계산
+    for query in popular_queries:
+        cache_key = f"popular_query:{query}"
+        warmup_data[cache_key] = {"query": query, "popularity": 1.0}
+    
+    return warmup_data
+
+
+# API 엔드포인트들
 
 @app.get("/")
 async def root():
-    """API 루트 엔드포인트"""
+    """API 루트"""
     return {
-        "message": "Welcome to Fragrance AI",
-        "version": settings.app_version,
-        "status": "running",
+        "message": "🌸 Advanced Fragrance AI v2.0",
+        "version": "2.0.0",
+        "features": [
+            "🤖 Advanced RAG System",
+            "⚡ High-Performance Async Processing", 
+            "🗄️ Intelligent Distributed Caching",
+            "📊 Real-time Performance Monitoring",
+            "🎯 Korean-Specialized Embeddings"
+        ],
         "endpoints": {
-            "docs": "/api/docs",
-            "search": f"{settings.api_prefix}/search",
-            "generate": f"{settings.api_prefix}/generate",
-            "training": f"{settings.api_prefix}/training",
-            "admin": f"{settings.api_prefix}/admin"
+            "docs": "/api/v2/docs",
+            "semantic_search": "/api/v2/semantic-search",
+            "rag_chat": "/api/v2/rag-chat",
+            "generate_recipe": "/api/v2/generate-recipe",
+            "performance": "/api/v2/performance"
         }
     }
 
 
 @app.get("/health")
-async def health_check():
-    """헬스 체크 엔드포인트"""
+async def advanced_health_check():
+    """고급 헬스체크"""
     try:
-        # Check AI models
-        models_status = {
-            "vector_store": hasattr(app.state, 'vector_store') and app.state.vector_store is not None,
-            "embedding_model": hasattr(app.state, 'embedding_model') and app.state.embedding_model is not None,
-            "generator": hasattr(app.state, 'generator') and app.state.generator is not None
-        }
-        
-        all_models_ready = all(models_status.values())
-        
-        return {
-            "status": "healthy" if all_models_ready else "unhealthy",
+        health_status = {
+            "status": "healthy",
             "timestamp": time.time(),
-            "models": models_status,
-            "version": settings.app_version
+            "uptime": time.time() - getattr(app.state, 'startup_time', time.time()),
+            "version": "2.0.0"
         }
+        
+        # 각 컴포넌트 상태 확인
+        components = {
+            "embedding_model": hasattr(app.state, 'embedding_model'),
+            "rag_system": hasattr(app.state, 'rag_system'),
+            "cache_manager": hasattr(app.state, 'cache_manager'),
+            "performance_optimizer": global_performance_optimizer.running,
+            "batch_processors": len(global_performance_optimizer.batch_processors) > 0
+        }
+        
+        health_status["components"] = components
+        health_status["all_systems_ready"] = all(components.values())
+        
+        # 성능 메트릭 추가
+        if hasattr(app.state, 'cache_manager'):
+            cache_stats = app.state.cache_manager.get_stats()
+            health_status["cache_stats"] = {
+                "hit_rate": cache_stats.get("hit_rate", 0),
+                "cache_size": cache_stats.get("cache_size", 0)
+            }
+        
+        if not health_status["all_systems_ready"]:
+            return JSONResponse(status_code=503, content=health_status)
+        
+        return health_status
         
     except Exception as e:
         logger.error(f"Health check failed: {e}")
@@ -227,235 +315,174 @@ async def health_check():
         )
 
 
-@app.get("/metrics")
-async def get_metrics(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """시스템 메트릭스 (인증 필요)"""
-    try:
-        # Verify authorization
-        verify_api_key(credentials.credentials)
-        
-        # Get vector store stats
-        vector_stats = {}
-        if hasattr(app.state, 'vector_store'):
-            for collection_name in ["fragrance_notes", "recipes", "mood_descriptions"]:
-                stats = app.state.vector_store.get_collection_stats(collection_name)
-                vector_stats[collection_name] = stats
-        
-        return {
-            "timestamp": time.time(),
-            "vector_store": vector_stats,
-            "system": {
-                "version": settings.app_version,
-                "debug_mode": settings.debug
-            }
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to get metrics: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post(f"{settings.api_prefix}/semantic-search")
-async def semantic_search(
+@app.post("/api/v2/semantic-search")
+async def advanced_semantic_search(
     request: SemanticSearchRequest,
     background_tasks: BackgroundTasks
 ) -> SemanticSearchResponse:
-    """의미 기반 검색"""
+    """고급 시맨틱 검색"""
+    start_time = time.time()
+    
     try:
-        start_time = time.time()
+        # 배치 처리 사용 여부 결정
+        use_batch = len(request.query) > 100 or request.top_k > 20
         
-        if not hasattr(app.state, 'vector_store'):
-            raise HTTPException(status_code=503, detail="Vector store not initialized")
-        
-        # Perform search based on search type
-        if request.search_type == "single_collection":
-            results = app.state.vector_store.semantic_search(
-                collection_name=request.collection_name or "fragrance_notes",
-                query=request.query,
-                top_k=request.top_k,
-                filter_criteria=request.filters
-            )
-        elif request.search_type == "hybrid":
-            collections = request.collections or ["fragrance_notes", "recipes", "mood_descriptions"]
-            results = app.state.vector_store.hybrid_search(
-                query=request.query,
-                collections=collections,
-                weights=request.collection_weights,
-                top_k=request.top_k
+        if use_batch and hasattr(app.state, 'search_batch_processor'):
+            # 배치 처리
+            search_params = {
+                "search_type": request.search_type,
+                "collections": request.collections,
+                "top_k": request.top_k,
+                "min_similarity": request.min_similarity
+            }
+            
+            results = await app.state.search_batch_processor.add_item(
+                (request.query, search_params)
             )
         else:
-            raise HTTPException(status_code=400, detail="Invalid search type")
+            # 단일 처리
+            results = await perform_single_search(request.query, request.model_dump())
         
-        # Log search for analytics (background task)
-        background_tasks.add_task(
-            log_search_analytics,
-            query=request.query,
-            search_type=request.search_type,
-            results_count=len(results),
-            response_time=time.time() - start_time
-        )
+        # 재순위화 (활성화된 경우)
+        if request.enable_reranking and len(results) > 5:
+            results = await rerank_results(results, request.query)
+        
+        # 캐시에 결과 저장
+        if request.use_cache:
+            background_tasks.add_task(
+                app.state.cache_manager.cache_search_result,
+                request.query,
+                [result.model_dump_optimized() for result in results]
+            )
+        
+        search_time = time.time() - start_time
         
         return SemanticSearchResponse(
             results=results,
             total_results=len(results),
             query=request.query,
-            search_time=time.time() - start_time
+            search_time=search_time,
+            cached=False,
+            reranked=request.enable_reranking
         )
         
     except Exception as e:
-        logger.error(f"Semantic search failed: {e}")
+        logger.error(f"Advanced semantic search failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post(f"{settings.api_prefix}/generate-recipe")
-async def generate_recipe(
-    request: RecipeGenerationRequest,
-    background_tasks: BackgroundTasks
-) -> RecipeGenerationResponse:
-    """향수 레시피 생성"""
+@app.post("/api/v2/rag-chat")
+async def rag_chat(
+    query: str,
+    context: Optional[str] = None,
+    temperature: float = 0.7,
+    enable_reasoning: bool = True,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+) -> Dict[str, Any]:
+    """RAG 기반 채팅"""
     try:
+        verify_api_key(credentials.credentials)
+        
         start_time = time.time()
         
-        if not hasattr(app.state, 'generator'):
-            raise HTTPException(status_code=503, detail="Recipe generator not initialized")
-        
-        # Generate recipe
-        recipe = app.state.generator.generate_recipe(
-            prompt=request.prompt,
-            recipe_type=request.recipe_type,
-            include_story=request.include_story,
-            mood=request.mood,
-            season=request.season,
-            notes_preference=request.notes_preference
+        # RAG 시스템으로 생성
+        result = await app.state.rag_system.generate_with_rag(
+            query=query,
+            context=context,
+            temperature=temperature,
+            enable_reasoning=enable_reasoning
         )
         
-        # Evaluate recipe quality
-        quality_scores = app.state.generator.evaluate_recipe_quality(recipe)
+        response_time = time.time() - start_time
         
-        # Log generation for analytics (background task)
-        background_tasks.add_task(
-            log_generation_analytics,
-            prompt=request.prompt,
-            recipe_type=request.recipe_type,
-            quality_score=quality_scores.get("overall", 0.0),
-            response_time=time.time() - start_time
-        )
-        
-        return RecipeGenerationResponse(
-            recipe=recipe,
-            quality_scores=quality_scores,
-            generation_time=time.time() - start_time,
-            prompt=request.prompt
-        )
+        return {
+            "response": result.generated_text,
+            "confidence_score": result.confidence_score,
+            "source_documents": result.source_documents[:3],  # Top 3만 반환
+            "reasoning_steps": result.reasoning_steps,
+            "retrieval_info": {
+                "retrieval_time": result.retrieval_context.retrieval_time,
+                "documents_retrieved": len(result.retrieval_context.retrieved_documents),
+                "avg_similarity": float(np.mean(result.retrieval_context.similarity_scores)) if result.retrieval_context.similarity_scores else 0.0
+            },
+            "response_time": response_time,
+            "timestamp": time.time()
+        }
         
     except Exception as e:
-        logger.error(f"Recipe generation failed: {e}")
+        logger.error(f"RAG chat failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post(f"{settings.api_prefix}/batch-generate")
-async def batch_generate_recipes(
-    request: BatchGenerationRequest,
-    background_tasks: BackgroundTasks
-) -> BatchGenerationResponse:
-    """배치 레시피 생성"""
+@app.get("/api/v2/performance")
+async def get_performance_metrics(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """성능 메트릭 조회"""
     try:
-        start_time = time.time()
+        verify_api_key(credentials.credentials)
         
-        if not hasattr(app.state, 'generator'):
-            raise HTTPException(status_code=503, detail="Recipe generator not initialized")
+        # 성능 최적화 보고서
+        perf_report = global_performance_optimizer.get_performance_report()
         
-        if len(request.prompts) > 20:  # Limit batch size
-            raise HTTPException(status_code=400, detail="Batch size too large (max 20)")
+        # 캐시 통계
+        cache_stats = {}
+        if hasattr(app.state, 'cache_manager'):
+            cache_stats = app.state.cache_manager.get_stats()
+            cache_stats["hot_keys"] = app.state.cache_manager.get_hot_keys(10)
         
-        # Generate recipes
-        recipes = app.state.generator.batch_generate_recipes(
-            prompts=request.prompts,
-            batch_size=request.batch_size
-        )
+        # AI 모델 상태
+        model_stats = {}
+        if hasattr(app.state, 'rag_system'):
+            model_stats["knowledge_base"] = app.state.rag_system.get_knowledge_base_stats()
         
-        # Calculate average quality
-        total_quality = 0.0
-        for recipe in recipes:
-            quality = app.state.generator.evaluate_recipe_quality(recipe)
-            total_quality += quality.get("overall", 0.0)
-        
-        avg_quality = total_quality / len(recipes) if recipes else 0.0
-        
-        # Log batch generation (background task)
-        background_tasks.add_task(
-            log_batch_generation_analytics,
-            batch_size=len(request.prompts),
-            avg_quality=avg_quality,
-            response_time=time.time() - start_time
-        )
-        
-        return BatchGenerationResponse(
-            recipes=recipes,
-            total_recipes=len(recipes),
-            average_quality=avg_quality,
-            generation_time=time.time() - start_time
-        )
+        return {
+            "timestamp": time.time(),
+            "performance": perf_report,
+            "cache": cache_stats,
+            "models": model_stats,
+            "system_info": {
+                "version": "2.0.0",
+                "uptime": time.time() - getattr(app.state, 'startup_time', time.time())
+            }
+        }
         
     except Exception as e:
-        logger.error(f"Batch generation failed: {e}")
+        logger.error(f"Performance metrics failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Background task functions
-async def log_search_analytics(query: str, search_type: str, results_count: int, response_time: float):
-    """검색 분석 로깅"""
-    try:
-        analytics_data = {
-            "type": "search",
-            "query": query,
-            "search_type": search_type,
-            "results_count": results_count,
-            "response_time": response_time,
-            "timestamp": time.time()
-        }
-        # Log to analytics service or database
-        logger.info(f"Search analytics: {analytics_data}")
-    except Exception as e:
-        logger.error(f"Failed to log search analytics: {e}")
-
-
-async def log_generation_analytics(prompt: str, recipe_type: str, quality_score: float, response_time: float):
-    """생성 분석 로깅"""
-    try:
-        analytics_data = {
-            "type": "generation",
-            "prompt_length": len(prompt),
-            "recipe_type": recipe_type,
-            "quality_score": quality_score,
-            "response_time": response_time,
-            "timestamp": time.time()
-        }
-        logger.info(f"Generation analytics: {analytics_data}")
-    except Exception as e:
-        logger.error(f"Failed to log generation analytics: {e}")
-
-
-async def log_batch_generation_analytics(batch_size: int, avg_quality: float, response_time: float):
-    """배치 생성 분석 로깅"""
-    try:
-        analytics_data = {
-            "type": "batch_generation",
-            "batch_size": batch_size,
-            "avg_quality": avg_quality,
-            "response_time": response_time,
-            "timestamp": time.time()
-        }
-        logger.info(f"Batch generation analytics: {analytics_data}")
-    except Exception as e:
-        logger.error(f"Failed to log batch generation analytics: {e}")
+async def rerank_results(results: List[SearchResult], query: str) -> List[SearchResult]:
+    """검색 결과 재순위화"""
+    # 간단한 재순위화 로직 (실제로는 더 정교한 모델 사용)
+    query_words = set(query.lower().split())
+    
+    for result in results:
+        doc_words = set(result.document.lower().split())
+        keyword_overlap = len(query_words.intersection(doc_words))
+        
+        # 재순위화 점수 계산
+        rerank_score = (
+            result.effective_score * 0.7 +  # 기존 점수
+            (keyword_overlap / len(query_words)) * 0.3  # 키워드 겹침
+        )
+        result.rerank_score = rerank_score
+    
+    # 재순위화 점수로 정렬
+    results.sort(key=lambda x: x.rerank_score or x.effective_score, reverse=True)
+    
+    # 순위 업데이트
+    for i, result in enumerate(results):
+        result.rank = i + 1
+    
+    return results
 
 
 if __name__ == "__main__":
     uvicorn.run(
-        "fragrance_ai.api.main:app",
-        host=settings.api_host,
-        port=settings.api_port,
-        reload=settings.debug,
-        workers=1 if settings.debug else settings.max_workers
+        "fragrance_ai.api.main_v2:app",
+        host=getattr(settings, 'api_host', '0.0.0.0'),
+        port=getattr(settings, 'api_port', 8000),
+        reload=getattr(settings, 'debug', False),
+        workers=1 if getattr(settings, 'debug', False) else getattr(settings, 'max_workers', 4)
     )

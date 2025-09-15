@@ -1,5 +1,6 @@
 from typing import List, Optional
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings
 import os
 
 
@@ -76,10 +77,16 @@ class Settings(BaseSettings):
     # Performance Settings
     max_workers: int = Field(default=4, env="MAX_WORKERS")
     model_cache_size: int = Field(default=2, env="MODEL_CACHE_SIZE")
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+
+    # Celery Settings
+    celery_broker_url: str = Field(default="redis://localhost:6379/1", env="CELERY_BROKER_URL")
+    celery_result_backend: str = Field(default="redis://localhost:6379/2", env="CELERY_RESULT_BACKEND")
+
+    model_config = {
+        "env_file": ".env",
+        "case_sensitive": False,
+        "extra": "ignore"
+    }
 
 
 settings = Settings()
