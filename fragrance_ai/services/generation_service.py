@@ -7,7 +7,7 @@ from datetime import datetime
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
-from ..models.generator import FragranceGenerator
+from ..models.generator import FragranceRecipeGenerator
 from ..core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class GenerationService:
     """향수 레시피 생성을 위한 통합 서비스"""
     
     def __init__(self):
-        self.generator = FragranceGenerator()
+        self.generator = FragranceRecipeGenerator()
         self.generation_cache = {}
         self.cache_ttl = 1800  # 30분
         self.thread_pool = ThreadPoolExecutor(max_workers=4)

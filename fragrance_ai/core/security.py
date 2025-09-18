@@ -3,6 +3,7 @@ import hmac
 import secrets
 import time
 import json
+import os
 from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime, timedelta
 from dataclasses import dataclass
@@ -18,6 +19,7 @@ import re
 import ipaddress
 from collections import defaultdict
 import threading
+import struct
 
 from .config import settings
 from .logging_config import get_logger, performance_logger
@@ -177,34 +179,46 @@ class PasswordValidator:
 
 class EncryptionManager:
     """암호화 관리자"""
-    
+
     def __init__(self):
-        self.master_key = self._derive_master_key()
-        self.fernet = Fernet(self.master_key)
-    
-    def _derive_master_key(self) -> bytes:
-        """마스터 키 유도"""
-        
-        password = settings.secret_key.encode()
-        salt = b"fragrance_ai_salt_2024"  # 실제 환경에서는 더 안전한 방법 사용
-        
+        # 각 암호화마다 다른 키를 생성하므로 초기화 시 마스터키 생성하지 않음
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("EncryptionManager initialized")
+
+    def _derive_key_from_password_and_salt(self, password: bytes, salt: bytes) -> bytes:
+        """비밀번호와 솔트로부터 키 유도"""
+
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
             salt=salt,
             iterations=100000,
         )
-        
+
         key = base64.urlsafe_b64encode(kdf.derive(password))
         return key
-    
+
     def encrypt(self, data: str) -> str:
-        """데이터 암호화"""
-        
+        """데이터 암호화 (랜덤 솔트 사용)"""
+
         try:
-            encrypted_data = self.fernet.encrypt(data.encode())
-            return base64.urlsafe_b64encode(encrypted_data).decode()
-            
+            # 랜덤 솔트 생성 (32바이트)
+            salt = os.urandom(32)
+
+            # 키 유도
+            password = settings.secret_key.encode()
+            key = self._derive_key_from_password_and_salt(password, salt)
+            fernet = Fernet(key)
+
+            # 데이터 암호화
+            encrypted_data = fernet.encrypt(data.encode())
+
+            # 솔트와 암호화된 데이터를 함께 저장
+            # 형식: salt_length(4bytes) + salt + encrypted_data
+            combined_data = struct.pack('I', len(salt)) + salt + encrypted_data
+
+            return base64.urlsafe_b64encode(combined_data).decode()
+
         except Exception as e:
             logger.error(f"Encryption failed: {e}")
             raise SystemException(
@@ -212,15 +226,32 @@ class EncryptionManager:
                 error_code=ErrorCode.SYSTEM_ERROR,
                 cause=e
             )
-    
+
     def decrypt(self, encrypted_data: str) -> str:
-        """데이터 복호화"""
-        
+        """데이터 복호화 (저장된 솔트 사용)"""
+
         try:
-            decoded_data = base64.urlsafe_b64decode(encrypted_data.encode())
-            decrypted_data = self.fernet.decrypt(decoded_data)
+            # Base64 디코딩
+            combined_data = base64.urlsafe_b64decode(encrypted_data.encode())
+
+            # 솔트 길이 추출 (첫 4바이트)
+            salt_length = struct.unpack('I', combined_data[:4])[0]
+
+            # 솔트 추출
+            salt = combined_data[4:4+salt_length]
+
+            # 암호화된 데이터 추출
+            encrypted_part = combined_data[4+salt_length:]
+
+            # 키 유도
+            password = settings.secret_key.encode()
+            key = self._derive_key_from_password_and_salt(password, salt)
+            fernet = Fernet(key)
+
+            # 복호화
+            decrypted_data = fernet.decrypt(encrypted_part)
             return decrypted_data.decode()
-            
+
         except Exception as e:
             logger.error(f"Decryption failed: {e}")
             raise SystemException(

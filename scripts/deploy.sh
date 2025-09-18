@@ -1,8 +1,13 @@
 #!/bin/bash
+set -e
 
-# Fragrance AI 배포 스크립트
+# ==============================================================================
+# Fragrance AI 프로덕션 배포 스크립트 v2.0
+# ==============================================================================
 
-set -e  # 에러 발생 시 스크립트 중단
+VERSION="2.0.0"
+ENVIRONMENT=${1:-production}
+FORCE_REBUILD=${2:-false}
 
 # 색상 정의
 RED='\033[0;31m'
@@ -13,25 +18,23 @@ NC='\033[0m' # No Color
 
 # 로깅 함수
 log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    echo -e "${BLUE}ℹ️  $1${NC}"
 }
 
 log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    echo -e "${GREEN}✅ $1${NC}"
 }
 
 log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    echo -e "${YELLOW}⚠️  $1${NC}"
 }
 
 log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    echo -e "${RED}❌ $1${NC}"
 }
 
 # 기본 설정
-ENVIRONMENT=${1:-production}
-CONFIG_FILE="configs/${ENVIRONMENT}.json"
-DOCKER_COMPOSE_FILE="docker-compose.yml"
+DOCKER_COMPOSE_FILE="docker-compose.prod.yml"
 BACKUP_DIR="backups"
 DEPLOY_LOG="deploy_$(date +%Y%m%d_%H%M%S).log"
 

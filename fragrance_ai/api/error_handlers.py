@@ -15,6 +15,7 @@ from ..core.exceptions import (
     ValidationException,
     AuthenticationException,
     BusinessLogicException,
+    DatabaseException,
     ErrorHandler,
     ErrorCode
 )

@@ -69,10 +69,17 @@ class FragranceRAGSystem:
         max_retrieved_docs: int = 10,
         max_generation_length: int = 512
     ):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # Enhanced GPU setup
+        self._setup_device_optimization()
         self.rag_mode = rag_mode
         self.max_retrieved_docs = max_retrieved_docs
         self.max_generation_length = max_generation_length
+
+        # Advanced RAG features
+        self.use_reranking = True
+        self.use_query_expansion = True
+        self.use_contextual_filtering = True
+        self.similarity_threshold = 0.7
         
         # Initialize embedding model
         self.embedding_model = embedding_model or AdvancedKoreanFragranceEmbedding()
@@ -87,7 +94,150 @@ class FragranceRAGSystem:
         self.executor = ThreadPoolExecutor(max_workers=4)
         
         logger.info(f"RAG System initialized with mode: {rag_mode}")
-    
+
+    def _setup_device_optimization(self) -> None:
+        """Enhanced GPU setup for RAG system"""
+        if torch.cuda.is_available():
+            self.device = torch.device(f"cuda:{torch.cuda.current_device()}")
+
+            # Enable optimizations
+            torch.backends.cudnn.enabled = True
+            torch.backends.cudnn.benchmark = True
+
+            # Mixed precision support
+            self.use_mixed_precision = torch.cuda.get_device_capability()[0] >= 7
+            if self.use_mixed_precision:
+                self.scaler = torch.cuda.amp.GradScaler()
+
+            logger.info(f"RAG GPU optimization enabled on {self.device}, mixed precision: {self.use_mixed_precision}")
+        else:
+            self.device = torch.device("cpu")
+            self.use_mixed_precision = False
+            logger.warning("RAG system running on CPU - consider using GPU for better performance")
+
+    async def retrieve_with_reranking(
+        self,
+        query: str,
+        top_k: int = None,
+        rerank_top_k: int = 3
+    ) -> List[Dict[str, Any]]:
+        """고급 재순위화를 통한 검색"""
+        try:
+            top_k = top_k or self.max_retrieved_docs
+
+            # 1단계: 초기 검색 (더 많은 문서 검색)
+            initial_docs = await self.retrieve(query, top_k=top_k * 2)
+
+            if not self.use_reranking or len(initial_docs) <= rerank_top_k:
+                return initial_docs[:top_k]
+
+            # 2단계: 크로스 인코더를 이용한 재순위화
+            reranked_docs = await self._rerank_documents(query, initial_docs, rerank_top_k)
+
+            return reranked_docs[:top_k]
+
+        except Exception as e:
+            logger.error(f"Failed to retrieve with reranking: {e}")
+            # Fallback to basic retrieval
+            return await self.retrieve(query, top_k)
+
+    async def _rerank_documents(
+        self,
+        query: str,
+        documents: List[Dict[str, Any]],
+        top_k: int
+    ) -> List[Dict[str, Any]]:
+        """문서 재순위화"""
+        try:
+            # 향수 도메인 특화 재순위화 로직
+            scores = []
+
+            for doc in documents:
+                content = doc.get('content', '')
+
+                # 1. 의미적 유사도 (기존)
+                semantic_score = doc.get('similarity_score', 0.0)
+
+                # 2. 향수 관련 키워드 매칭
+                fragrance_keywords = ['향료', '노트', '조향', '블렌딩', '향수', '퍼퓸', '오드투왈렛', 'EDT', 'EDP']
+                keyword_score = sum(1 for keyword in fragrance_keywords if keyword in content) / len(fragrance_keywords)
+
+                # 3. 문서 길이 정규화 (너무 짧거나 긴 문서 페널티)
+                length_score = min(1.0, len(content) / 1000) if len(content) > 50 else 0.5
+
+                # 4. 질의와 문서의 향수 카테고리 매칭
+                category_score = self._calculate_category_match(query, doc)
+
+                # 종합 점수 계산
+                final_score = (
+                    semantic_score * 0.4 +
+                    keyword_score * 0.3 +
+                    length_score * 0.2 +
+                    category_score * 0.1
+                )
+
+                scores.append((doc, final_score))
+
+            # 점수순으로 정렬
+            scores.sort(key=lambda x: x[1], reverse=True)
+
+            # 재순위화된 문서 반환
+            reranked_docs = []
+            for doc, score in scores[:top_k]:
+                doc['rerank_score'] = score
+                reranked_docs.append(doc)
+
+            logger.info(f"Reranked {len(documents)} documents to top {len(reranked_docs)}")
+            return reranked_docs
+
+        except Exception as e:
+            logger.error(f"Failed to rerank documents: {e}")
+            return documents[:top_k]
+
+    def _calculate_category_match(self, query: str, document: Dict[str, Any]) -> float:
+        """향수 카테고리 매칭 점수 계산"""
+        try:
+            # 향수 카테고리 매핑
+            categories = {
+                '플로럴': ['장미', '자스민', '라벤더', '피오니', '벚꽃'],
+                '우디': ['샌달우드', '시더', '베티버', '패출리'],
+                '오리엔탈': ['바닐라', '앰버', '머스크', '인센스'],
+                '프레시': ['시트러스', '레몬', '베르가못', '민트', '유칼립투스'],
+                '프루티': ['복숭아', '사과', '베리', '체리', '망고']
+            }
+
+            query_lower = query.lower()
+            doc_content = document.get('content', '').lower()
+            doc_metadata = document.get('metadata', {})
+
+            # 질의에서 카테고리 추출
+            query_categories = []
+            for category, keywords in categories.items():
+                if any(keyword in query_lower for keyword in keywords):
+                    query_categories.append(category)
+
+            # 문서에서 카테고리 추출
+            doc_categories = []
+            for category, keywords in categories.items():
+                if any(keyword in doc_content for keyword in keywords):
+                    doc_categories.append(category)
+
+            # 메타데이터에서도 카테고리 확인
+            doc_category = doc_metadata.get('category', '')
+            if doc_category and doc_category not in doc_categories:
+                doc_categories.append(doc_category)
+
+            # 매칭 점수 계산
+            if not query_categories:
+                return 0.5  # 중립 점수
+
+            matches = len(set(query_categories) & set(doc_categories))
+            return matches / len(query_categories) if query_categories else 0.0
+
+        except Exception as e:
+            logger.error(f"Failed to calculate category match: {e}")
+            return 0.0
+
     def _load_generator(self, model_name: str):
         """생성 모델 로드"""
         try:

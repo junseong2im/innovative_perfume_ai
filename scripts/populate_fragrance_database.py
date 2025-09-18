@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from fragrance_ai.core.config import settings
-from fragrance_ai.database.models import FragranceIngredient
+from fragrance_ai.database.models import FragranceNote
 from fragrance_ai.database.base import Base
 
 
@@ -109,12 +109,12 @@ def insert_ingredients(session, ingredients: List[Dict[str, Any]]):
     print(f"Inserting {len(ingredients)} ingredients into database...")
 
     # 기존 데이터 확인
-    existing_count = session.query(FragranceIngredient).count()
+    existing_count = session.query(FragranceNote).count()
     if existing_count > 0:
         print(f"Found {existing_count} existing ingredients in database")
         response = input("Do you want to clear existing data? (y/N): ")
         if response.lower() == 'y':
-            session.query(FragranceIngredient).delete()
+            session.query(FragranceNote).delete()
             session.commit()
             print("Existing data cleared")
 
@@ -126,30 +126,24 @@ def insert_ingredients(session, ingredients: List[Dict[str, Any]]):
         batch = ingredients[i:i + batch_size]
 
         try:
-            # FragranceIngredient 객체 생성
+            # FragranceNote 객체 생성
             ingredient_objects = []
             for ingredient_data in batch:
-                ingredient = FragranceIngredient(
+                ingredient = FragranceNote(
                     name=ingredient_data['name'],
-                    english_name=ingredient_data['english_name'],
-                    korean_name=ingredient_data['korean_name'],
-                    category=ingredient_data['category'],
-                    fragrance_family=ingredient_data['fragrance_family'],
-                    note_type=ingredient_data['note_type'],
-                    description=ingredient_data['description'],
-                    origin=ingredient_data['origin'],
-                    cas_number=ingredient_data['cas_number'],
-                    intensity=ingredient_data['intensity'],
-                    longevity=ingredient_data['longevity'],
-                    sillage=ingredient_data['sillage'],
-                    price_range=ingredient_data['price_range'],
-                    safety_rating=ingredient_data['safety_rating'],
-                    allergen_info=ingredient_data['allergen_info'],
-                    blending_guidelines=ingredient_data['blending_guidelines'],
-                    supplier_info=ingredient_data['supplier_info'],
-                    molecular_formula=ingredient_data['molecular_formula'],
-                    created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow()
+                    name_english=ingredient_data.get('english_name', ''),
+                    name_korean=ingredient_data.get('korean_name', ''),
+                    fragrance_family=ingredient_data.get('fragrance_family', 'other'),
+                    note_type=ingredient_data.get('note_type', 'middle'),
+                    description=ingredient_data.get('description', ''),
+                    description_korean=ingredient_data.get('description', ''),
+                    origin=ingredient_data.get('origin', ''),
+                    intensity=ingredient_data.get('intensity', 5.0),
+                    longevity=ingredient_data.get('longevity', 5.0),
+                    sillage=ingredient_data.get('sillage', 5.0),
+                    price_per_ml=float(ingredient_data.get('price_range', '0').replace('moderate', '10').replace('expensive', '50').replace('cheap', '5')) if ingredient_data.get('price_range') else None,
+                    supplier=ingredient_data.get('supplier_info', ''),
+                    search_keywords=f"{ingredient_data['name']} {ingredient_data.get('english_name', '')} {ingredient_data.get('korean_name', '')}"
                 )
                 ingredient_objects.append(ingredient)
 
@@ -173,56 +167,50 @@ def create_database_statistics(session):
     print("\nGenerating database statistics...")
 
     # 총 향료 수
-    total_count = session.query(FragranceIngredient).count()
-    print(f"Total ingredients: {total_count}")
-
-    # 카테고리별 통계
-    category_stats = session.execute(text("""
-        SELECT category, COUNT(*) as count
-        FROM fragrance_ingredients
-        GROUP BY category
-        ORDER BY count DESC
-    """)).fetchall()
-
-    print("\nIngredients by category:")
-    for category, count in category_stats:
-        print(f"  {category}: {count}")
+    total_count = session.query(FragranceNote).count()
+    print(f"Total notes: {total_count}")
 
     # 향료 패밀리별 통계
     family_stats = session.execute(text("""
         SELECT fragrance_family, COUNT(*) as count
-        FROM fragrance_ingredients
+        FROM fragrance_notes
         GROUP BY fragrance_family
         ORDER BY count DESC
     """)).fetchall()
 
-    print("\nIngredients by fragrance family:")
+    print("\nNotes by fragrance family:")
     for family, count in family_stats:
         print(f"  {family}: {count}")
 
     # 노트 타입별 통계
     note_stats = session.execute(text("""
         SELECT note_type, COUNT(*) as count
-        FROM fragrance_ingredients
+        FROM fragrance_notes
         GROUP BY note_type
         ORDER BY count DESC
     """)).fetchall()
 
-    print("\nIngredients by note type:")
+    print("\nNotes by type:")
     for note_type, count in note_stats:
         print(f"  {note_type}: {count}")
 
-    # 가격대별 통계
-    price_stats = session.execute(text("""
-        SELECT price_range, COUNT(*) as count
-        FROM fragrance_ingredients
-        GROUP BY price_range
+    # 강도별 통계
+    intensity_stats = session.execute(text("""
+        SELECT
+            CASE
+                WHEN intensity <= 3 THEN 'Light (1-3)'
+                WHEN intensity <= 7 THEN 'Medium (4-7)'
+                ELSE 'Strong (8-10)'
+            END as intensity_range,
+            COUNT(*) as count
+        FROM fragrance_notes
+        GROUP BY intensity_range
         ORDER BY count DESC
     """)).fetchall()
 
-    print("\nIngredients by price range:")
-    for price_range, count in price_stats:
-        print(f"  {price_range}: {count}")
+    print("\nNotes by intensity:")
+    for intensity_range, count in intensity_stats:
+        print(f"  {intensity_range}: {count}")
 
 
 def main():

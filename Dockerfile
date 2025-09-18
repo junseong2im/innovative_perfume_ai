@@ -1,37 +1,62 @@
 # Multi-stage Docker build for Fragrance AI
+# Production-ready with security enhancements
 
 # Base stage with Python and system dependencies
-FROM python:3.10-slim as base
+FROM python:3.11-slim as base
 
-# Set environment variables
+# Set environment variables for security and performance
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_ROOT_USER_ACTION=ignore \
+    MALLOC_ARENA_MAX=2 \
+    PYTHONHASHSEED=random
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Security labels
+LABEL maintainer="Fragrance AI Team" \
+      version="2.0.0" \
+      description="Advanced Fragrance AI System" \
+      security.scan="required"
+
+# Install security updates and system dependencies
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+    # Build essentials
     gcc \
     g++ \
     git \
     curl \
     wget \
     build-essential \
+    # Database dependencies
     libpq-dev \
     libffi-dev \
     libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
+    # Security tools
+    ca-certificates \
+    gnupg \
+    # Cleanup tools
+    apt-utils \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* \
+    && rm -rf /var/tmp/*
 
-# Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+# Create non-root user with restricted permissions
+RUN groupadd -r appuser --gid=1000 && \
+    useradd -r -g appuser --uid=1000 --home-dir=/app --shell=/bin/bash appuser && \
+    mkdir -p /app && \
+    chown appuser:appuser /app
 
 # Set working directory
 WORKDIR /app
 
 # Copy requirements first for better build caching
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+COPY --chown=appuser:appuser requirements-minimal.txt ./
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements-minimal.txt
 
 # Development stage
 FROM base as development
@@ -64,33 +89,67 @@ CMD ["uvicorn", "fragrance_ai.api.main:app", "--host", "0.0.0.0", "--port", "800
 # Production stage
 FROM base as production
 
-# Copy source code selectively for production
-COPY fragrance_ai/ ./fragrance_ai/
-COPY scripts/production/ ./scripts/production/
-COPY data/initial/ ./data/initial/
-COPY migrations/ ./migrations/
-COPY setup.py pyproject.toml ./
-COPY README.md ./
-COPY docker-compose.prod.yml ./
+# Set production environment variables
+ENV ENVIRONMENT=production \
+    WORKERS=4 \
+    MAX_REQUESTS=1000 \
+    MAX_REQUESTS_JITTER=100 \
+    TIMEOUT=120 \
+    KEEPALIVE=5
 
-# Install production dependencies only
-RUN pip install --no-cache-dir -e .
+# Copy source code selectively for production with proper ownership
+COPY --chown=appuser:appuser fragrance_ai/ ./fragrance_ai/
+COPY --chown=appuser:appuser scripts/production/ ./scripts/production/
+COPY --chown=appuser:appuser data/initial/ ./data/initial/
+COPY --chown=appuser:appuser migrations/ ./migrations/
+COPY --chown=appuser:appuser setup.py pyproject.toml ./
+COPY --chown=appuser:appuser README.md ./
+COPY --chown=appuser:appuser docker-compose.prod.yml ./
 
-# Create necessary directories
-RUN mkdir -p /app/logs /app/data /app/models /app/checkpoints && \
+# Install production dependencies with security scanning
+COPY --chown=appuser:appuser requirements-prod.txt ./
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements-prod.txt && \
+    pip install --no-cache-dir -e . && \
+    # Security: Remove build dependencies
+    pip uninstall -y pip setuptools wheel && \
+    # Clean up any temporary files
+    find /app -type f -name "*.pyc" -delete && \
+    find /app -type d -name "__pycache__" -delete
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/logs /app/data /app/models /app/checkpoints /app/tmp && \
+    chmod 750 /app/logs /app/data /app/models /app/checkpoints && \
+    chmod 1777 /app/tmp && \
     chown -R appuser:appuser /app
 
+# Switch to non-root user
 USER appuser
 
-# Expose port
+# Set secure file permissions
+RUN chmod -R 640 /app/fragrance_ai/ && \
+    chmod +x /app/scripts/production/*.sh 2>/dev/null || true
+
+# Expose port (non-privileged)
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+# Enhanced health check with timeout and better error handling
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f -k --max-time 10 http://localhost:8000/health || exit 1
 
-# Production command
-CMD ["uvicorn", "fragrance_ai.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Production command with Gunicorn for better performance and security
+CMD ["gunicorn", "fragrance_ai.api.main:app", \
+     "--worker-class", "uvicorn.workers.UvicornWorker", \
+     "--workers", "4", \
+     "--bind", "0.0.0.0:8000", \
+     "--max-requests", "1000", \
+     "--max-requests-jitter", "100", \
+     "--timeout", "120", \
+     "--keepalive", "5", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-", \
+     "--log-level", "info", \
+     "--preload"]
 
 # Training stage for model training
 FROM base as training

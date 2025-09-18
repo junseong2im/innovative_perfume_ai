@@ -7,11 +7,12 @@
 """
 
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Request
+import numpy as np
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
 import uvicorn
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import time
 import asyncio
 from contextlib import asynccontextmanager
@@ -19,14 +20,34 @@ from contextlib import asynccontextmanager
 from ..core.config import settings
 from ..core.logging_config import setup_logging, get_logger
 from ..core.exceptions import FragranceAIException, SystemException, ErrorCode
-from ..core.advanced_caching import FragranceCacheManager
+from ..core.advanced_caching import FragranceCacheManager, CachePolicy
 from ..core.performance_optimizer import global_performance_optimizer
+from ..core.error_handling import (
+    global_error_handler,
+    error_context,
+    ErrorCategory,
+    ErrorSeverity,
+    ErrorContext
+)
 from ..models.embedding import AdvancedKoreanFragranceEmbedding
 from ..models.rag_system import FragranceRAGSystem, RAGMode
 from ..database.connection import initialize_database, shutdown_database
-from .schemas import *
+from .schemas import (
+    SemanticSearchRequest,
+    SemanticSearchResponse,
+    SearchResult,
+    RecipeGenerationRequest,
+    RecipeGenerationResponse,
+    BatchGenerationRequest,
+    BatchGenerationResponse,
+    SystemStatus,
+    ErrorResponse
+)
 from .middleware import LoggingMiddleware, RateLimitMiddleware
-from .dependencies import get_current_user, verify_api_key
+from .dependencies import get_current_user, verify_api_key, require_permission
+from .auth import get_current_user as auth_get_current_user, require_access_level
+from .user_auth import router as user_auth_router
+from .external_services import router as external_services_router
 from .error_handlers import setup_error_handlers
 
 # 로깅 초기화
@@ -39,13 +60,17 @@ async def lifespan(app: FastAPI):
     """애플리케이션 생명주기 관리 (업그레이드된 버전)"""
     startup_time = time.time()
     
-    try:
+    async with error_context(
+        category=ErrorCategory.SYSTEM,
+        severity=ErrorSeverity.CRITICAL,
+        attempt_recovery=False
+    ):
         logger.info("🚀 Starting Advanced Fragrance AI System...")
-        
+
         # 1. 데이터베이스 초기화
         logger.info("📊 Initializing database...")
         initialize_database()
-        
+
         # 2. 캐시 시스템 초기화
         logger.info("🗄️  Initializing advanced caching system...")
         app.state.cache_manager = FragranceCacheManager(
@@ -55,31 +80,31 @@ async def lifespan(app: FastAPI):
             enable_metrics=True,
             warmup_enabled=True
         )
-        
+
         # 3. 성능 최적화 시스템 초기화
         logger.info("⚡ Starting performance optimization system...")
         await global_performance_optimizer.start()
-        
+
         # 4. AI 모델 초기화
         logger.info("🤖 Loading advanced AI models...")
-        
+
         # 고급 임베딩 모델
         app.state.embedding_model = AdvancedKoreanFragranceEmbedding(
             use_adapter=True,
             enable_multi_aspect=True,
             cache_size=10000
         )
-        
+
         # RAG 시스템
         app.state.rag_system = FragranceRAGSystem(
             embedding_model=app.state.embedding_model,
             rag_mode=RAGMode.ADAPTIVE_RAG,
             max_retrieved_docs=15
         )
-        
+
         # 5. 배치 프로세서 설정
         logger.info("📦 Setting up batch processors...")
-        
+
         # 임베딩 배치 프로세서
         embedding_processor = global_performance_optimizer.create_batch_processor(
             name="embedding_batch",
@@ -87,36 +112,28 @@ async def lifespan(app: FastAPI):
             max_wait_time=0.05,
             processor_func=batch_embedding_processor
         )
-        
+
         # 검색 배치 프로세서
         search_processor = global_performance_optimizer.create_batch_processor(
-            name="search_batch", 
+            name="search_batch",
             batch_size=32,
             max_wait_time=0.1,
             processor_func=batch_search_processor
         )
-        
+
         app.state.embedding_batch_processor = embedding_processor
         app.state.search_batch_processor = search_processor
-        
+
         # 6. 캐시 워밍업
         logger.info("🔥 Warming up caches...")
         await app.state.cache_manager.warmup(generate_warmup_data)
-        
+
         # 7. 헬스체크 준비
         app.state.startup_time = startup_time
         app.state.ready = True
-        
+
         total_startup_time = time.time() - startup_time
         logger.info(f"✅ Advanced Fragrance AI System ready in {total_startup_time:.2f}s")
-        
-    except Exception as e:
-        logger.error(f"❌ Startup failed: {e}")
-        raise SystemException(
-            message=f"Failed to initialize system: {str(e)}",
-            error_code=ErrorCode.SYSTEM_INITIALIZATION_ERROR,
-            cause=e
-        )
     
     yield
     
@@ -159,13 +176,31 @@ app = FastAPI(
 # Security
 security = HTTPBearer()
 
-# CORS
+# CORS - 프로덕션 보안 설정
+allowed_origins = [
+    "http://localhost:3000",  # 개발용
+    "http://127.0.0.1:3000",  # 개발용
+]
+
+# 프로덕션 환경에서는 환경변수에서 허용 도메인 가져오기
+if hasattr(settings, 'cors_origins') and settings.cors_origins:
+    if isinstance(settings.cors_origins, str):
+        # 문자열인 경우 JSON 파싱
+        import json
+        try:
+            allowed_origins = json.loads(settings.cors_origins)
+        except json.JSONDecodeError:
+            allowed_origins = [settings.cors_origins]
+    else:
+        allowed_origins = settings.cors_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 프로덕션에서는 제한 필요
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    max_age=86400,  # 24시간 캐시
 )
 
 # 커스텀 미들웨어
@@ -174,6 +209,10 @@ app.add_middleware(RateLimitMiddleware)
 
 # 에러 핸들러
 setup_error_handlers(app)
+
+# 라우터 등록
+app.include_router(user_auth_router, prefix="/api/v2")
+app.include_router(external_services_router, prefix="/api/v2")
 
 
 # 배치 처리 함수들
@@ -268,16 +307,30 @@ async def root():
 
 
 @app.get("/health")
-async def advanced_health_check():
+async def advanced_health_check(request: Request):
     """고급 헬스체크"""
-    try:
+    # 에러 컨텍스트 생성
+    error_ctx = ErrorContext(
+        endpoint="/health",
+        method="GET",
+        user_agent=request.headers.get("user-agent"),
+        ip_address=getattr(request.client, 'host', None)
+    )
+
+    async with error_context(
+        category=ErrorCategory.SYSTEM,
+        severity=ErrorSeverity.HIGH,
+        context=error_ctx,
+        attempt_recovery=False,
+        raise_on_error=False
+    ):
         health_status = {
             "status": "healthy",
             "timestamp": time.time(),
             "uptime": time.time() - getattr(app.state, 'startup_time', time.time()),
             "version": "2.0.0"
         }
-        
+
         # 각 컴포넌트 상태 확인
         components = {
             "embedding_model": hasattr(app.state, 'embedding_model'),
@@ -286,10 +339,10 @@ async def advanced_health_check():
             "performance_optimizer": global_performance_optimizer.running,
             "batch_processors": len(global_performance_optimizer.batch_processors) > 0
         }
-        
+
         health_status["components"] = components
         health_status["all_systems_ready"] = all(components.values())
-        
+
         # 성능 메트릭 추가
         if hasattr(app.state, 'cache_manager'):
             cache_stats = app.state.cache_manager.get_stats()
@@ -297,36 +350,48 @@ async def advanced_health_check():
                 "hit_rate": cache_stats.get("hit_rate", 0),
                 "cache_size": cache_stats.get("cache_size", 0)
             }
-        
+
+        # 에러 통계 추가
+        error_stats = global_error_handler.get_error_statistics(hours=1)
+        health_status["error_stats"] = {
+            "total_errors_last_hour": error_stats["total_errors"],
+            "recovery_success_rate": error_stats["recovery_success_rate"],
+            "critical_errors": error_stats["by_severity"].get("critical", 0)
+        }
+
         if not health_status["all_systems_ready"]:
             return JSONResponse(status_code=503, content=health_status)
-        
+
         return health_status
-        
-    except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return JSONResponse(
-            status_code=503,
-            content={
-                "status": "unhealthy",
-                "error": str(e),
-                "timestamp": time.time()
-            }
-        )
 
 
 @app.post("/api/v2/semantic-search")
 async def advanced_semantic_search(
     request: SemanticSearchRequest,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    req: Request
 ) -> SemanticSearchResponse:
     """고급 시맨틱 검색"""
     start_time = time.time()
-    
-    try:
+
+    # 에러 컨텍스트 생성
+    error_ctx = ErrorContext(
+        endpoint="/api/v2/semantic-search",
+        method="POST",
+        user_agent=req.headers.get("user-agent"),
+        ip_address=getattr(req.client, 'host', None),
+        additional_data={"query_length": len(request.query), "top_k": request.top_k}
+    )
+
+    async with error_context(
+        category=ErrorCategory.MODEL_INFERENCE,
+        severity=ErrorSeverity.MEDIUM,
+        context=error_ctx,
+        attempt_recovery=True
+    ):
         # 배치 처리 사용 여부 결정
         use_batch = len(request.query) > 100 or request.top_k > 20
-        
+
         if use_batch and hasattr(app.state, 'search_batch_processor'):
             # 배치 처리
             search_params = {
@@ -335,18 +400,18 @@ async def advanced_semantic_search(
                 "top_k": request.top_k,
                 "min_similarity": request.min_similarity
             }
-            
+
             results = await app.state.search_batch_processor.add_item(
                 (request.query, search_params)
             )
         else:
             # 단일 처리
             results = await perform_single_search(request.query, request.model_dump())
-        
+
         # 재순위화 (활성화된 경우)
         if request.enable_reranking and len(results) > 5:
             results = await rerank_results(results, request.query)
-        
+
         # 캐시에 결과 저장
         if request.use_cache:
             background_tasks.add_task(
@@ -354,9 +419,9 @@ async def advanced_semantic_search(
                 request.query,
                 [result.model_dump_optimized() for result in results]
             )
-        
+
         search_time = time.time() - start_time
-        
+
         return SemanticSearchResponse(
             results=results,
             total_results=len(results),
@@ -365,26 +430,40 @@ async def advanced_semantic_search(
             cached=False,
             reranked=request.enable_reranking
         )
-        
-    except Exception as e:
-        logger.error(f"Advanced semantic search failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/v2/rag-chat")
 async def rag_chat(
+    request: Request,
     query: str,
     context: Optional[str] = None,
     temperature: float = 0.7,
     enable_reasoning: bool = True,
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """RAG 기반 채팅"""
-    try:
-        verify_api_key(credentials.credentials)
-        
-        start_time = time.time()
-        
+    start_time = time.time()
+
+    # 에러 컨텍스트 생성
+    error_ctx = ErrorContext(
+        endpoint="/api/v2/rag-chat",
+        method="POST",
+        user_id=current_user.get("user_id") if current_user else None,
+        user_agent=request.headers.get("user-agent"),
+        ip_address=getattr(request.client, 'host', None),
+        additional_data={
+            "query_length": len(query),
+            "temperature": temperature,
+            "enable_reasoning": enable_reasoning
+        }
+    )
+
+    async with error_context(
+        category=ErrorCategory.MODEL_INFERENCE,
+        severity=ErrorSeverity.MEDIUM,
+        context=error_ctx,
+        attempt_recovery=True
+    ):
         # RAG 시스템으로 생성
         result = await app.state.rag_system.generate_with_rag(
             query=query,
@@ -392,9 +471,9 @@ async def rag_chat(
             temperature=temperature,
             enable_reasoning=enable_reasoning
         )
-        
+
         response_time = time.time() - start_time
-        
+
         return {
             "response": result.generated_text,
             "confidence_score": result.confidence_score,
@@ -408,34 +487,42 @@ async def rag_chat(
             "response_time": response_time,
             "timestamp": time.time()
         }
-        
-    except Exception as e:
-        logger.error(f"RAG chat failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/v2/performance")
 async def get_performance_metrics(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    request: Request,
+    current_user: Dict[str, Any] = Depends(require_permission("system.metrics"))
 ):
     """성능 메트릭 조회"""
-    try:
-        verify_api_key(credentials.credentials)
-        
+    error_ctx = ErrorContext(
+        endpoint="/api/v2/performance",
+        method="GET",
+        user_id=current_user.get("user_id") if current_user else None,
+        user_agent=request.headers.get("user-agent"),
+        ip_address=getattr(request.client, 'host', None)
+    )
+
+    async with error_context(
+        category=ErrorCategory.SYSTEM,
+        severity=ErrorSeverity.LOW,
+        context=error_ctx,
+        attempt_recovery=True
+    ):
         # 성능 최적화 보고서
         perf_report = global_performance_optimizer.get_performance_report()
-        
+
         # 캐시 통계
         cache_stats = {}
         if hasattr(app.state, 'cache_manager'):
             cache_stats = app.state.cache_manager.get_stats()
             cache_stats["hot_keys"] = app.state.cache_manager.get_hot_keys(10)
-        
+
         # AI 모델 상태
         model_stats = {}
         if hasattr(app.state, 'rag_system'):
             model_stats["knowledge_base"] = app.state.rag_system.get_knowledge_base_stats()
-        
+
         return {
             "timestamp": time.time(),
             "performance": perf_report,
@@ -446,10 +533,58 @@ async def get_performance_metrics(
                 "uptime": time.time() - getattr(app.state, 'startup_time', time.time())
             }
         }
-        
-    except Exception as e:
-        logger.error(f"Performance metrics failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v2/error-statistics")
+async def get_error_statistics(
+    request: Request,
+    hours: int = 24,
+    current_user: Dict[str, Any] = Depends(require_permission("system.admin"))
+):
+    """에러 통계 조회"""
+    error_ctx = ErrorContext(
+        endpoint="/api/v2/error-statistics",
+        method="GET",
+        user_id=current_user.get("user_id") if current_user else None,
+        user_agent=request.headers.get("user-agent"),
+        ip_address=getattr(request.client, 'host', None),
+        additional_data={"hours": hours}
+    )
+
+    async with error_context(
+        category=ErrorCategory.SYSTEM,
+        severity=ErrorSeverity.LOW,
+        context=error_ctx,
+        attempt_recovery=True
+    ):
+        # 에러 통계 조회
+        error_stats = global_error_handler.get_error_statistics(hours=hours)
+
+        # 최근 에러 샘플 (민감한 정보 제외)
+        recent_errors = []
+        for record in global_error_handler.error_records[-10:]:
+            recent_errors.append({
+                "error_id": record.error_id,
+                "category": record.category.value,
+                "severity": record.severity.value,
+                "timestamp": record.context.timestamp.isoformat(),
+                "endpoint": record.context.endpoint,
+                "is_handled": record.is_handled,
+                "recovery_successful": record.recovery_successful,
+                "user_message": record.user_message
+            })
+
+        return {
+            "timestamp": time.time(),
+            "period_hours": hours,
+            "statistics": error_stats,
+            "recent_errors": recent_errors,
+            "system_health": {
+                "error_rate": error_stats["total_errors"] / max(hours, 1),
+                "recovery_rate": error_stats["recovery_success_rate"],
+                "critical_issues": error_stats["by_severity"].get("critical", 0) > 0
+            }
+        }
 
 
 async def rerank_results(results: List[SearchResult], query: str) -> List[SearchResult]:
@@ -480,7 +615,7 @@ async def rerank_results(results: List[SearchResult], query: str) -> List[Search
 
 if __name__ == "__main__":
     uvicorn.run(
-        "fragrance_ai.api.main_v2:app",
+        "fragrance_ai.api.main:app",
         host=getattr(settings, 'api_host', '0.0.0.0'),
         port=getattr(settings, 'api_port', 8000),
         reload=getattr(settings, 'debug', False),

@@ -15,10 +15,15 @@ class VectorStore:
     """ChromaDB 기반 벡터 스토어 클래스"""
     
     def __init__(self):
-        """벡터 스토어 초기화"""
+        """Enhanced 벡터 스토어 초기화"""
         self.client = None
         self.collections = {}
         self.embedding_function = None
+
+        # Performance optimization settings
+        self.batch_size = 1000  # 기본 배치 크기
+        self.max_batch_size = 5000  # 최대 배치 크기
+        self.index_refresh_interval = 100  # 인덱스 갱신 간격
         
     async def initialize(self):
         """비동기 초기화"""
@@ -40,7 +45,64 @@ class VectorStore:
         except Exception as e:
             logger.error(f"Failed to initialize VectorStore: {e}")
             raise
-    
+
+    async def add_documents_batch(
+        self,
+        collection_name: str,
+        documents: List[Dict[str, Any]],
+        batch_size: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        대용량 문서를 효율적으로 배치 삽입
+
+        Args:
+            collection_name: 컬렉션 이름
+            documents: 문서 리스트
+            batch_size: 배치 크기 (None이면 자동 계산)
+        """
+        try:
+            # 자동 배치 크기 계산
+            if batch_size is None:
+                batch_size = min(self.batch_size, len(documents))
+
+            total_documents = len(documents)
+            processed = 0
+            results = []
+
+            logger.info(f"Starting batch insertion of {total_documents} documents with batch size {batch_size}")
+
+            # 배치별로 처리
+            for i in range(0, total_documents, batch_size):
+                batch_docs = documents[i:i + batch_size]
+
+                try:
+                    result = await self.add_documents(collection_name, batch_docs)
+                    results.append(result)
+                    processed += len(batch_docs)
+
+                    if processed % (batch_size * 5) == 0:  # 5배치마다 로그
+                        logger.info(f"Processed {processed}/{total_documents} documents ({processed/total_documents*100:.1f}%)")
+
+                except Exception as e:
+                    logger.error(f"Failed to process batch {i//batch_size + 1}: {e}")
+                    # 배치 크기를 줄여서 재시도
+                    if batch_size > 10:
+                        smaller_batch_size = batch_size // 2
+                        logger.info(f"Retrying with smaller batch size: {smaller_batch_size}")
+                        await self.add_documents_batch(collection_name, batch_docs, smaller_batch_size)
+
+            logger.info(f"Batch insertion completed: {processed} documents processed")
+            return {
+                "status": "success",
+                "total_processed": processed,
+                "batches_processed": len(results),
+                "batch_size": batch_size
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to batch insert documents: {e}")
+            raise
+
     async def _initialize_collections(self):
         """기본 컬렉션들 초기화"""
         collection_configs = {

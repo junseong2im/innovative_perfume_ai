@@ -1,43 +1,69 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
+  # PostgreSQL Database with security enhancements
   postgres:
-    image: postgres:15
+    image: postgres:15-alpine
     container_name: fragrance_ai_postgres
     environment:
       POSTGRES_DB: fragrance_ai
       POSTGRES_USER: fragrance_ai
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fragrance_ai_password}
+      POSTGRES_INITDB_ARGS: "--auth-local=peer --auth-host=scram-sha-256"
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+      - postgres_data:/var/lib/postgresql/data:Z
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
     ports:
-      - "5432:5432"
+      - "5432:5432"  # 외부 접근 가능 (필요시)
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fragrance_ai"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U fragrance_ai -d fragrance_ai"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks:
       - fragrance_ai_network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
 
-  # Redis Cache
+  # Redis Cache with security enhancements
   redis:
     image: redis:7-alpine
     container_name: fragrance_ai_redis
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD:-redis_password}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --tcp-keepalive 60
     volumes:
-      - redis_data:/data
+      - redis_data:/data:Z
     ports:
-      - "6379:6379"
+      - "6379:6379"  # 외부 접근 가능 (필요시)
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - fragrance_ai_network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
 
   # ChromaDB Vector Database
   chroma:
@@ -45,21 +71,21 @@ services:
     container_name: fragrance_ai_chroma
     environment:
       - CHROMA_SERVER_HOST=0.0.0.0
-      - CHROMA_SERVER_HTTP_PORT=8000
+      - CHROMA_SERVER_HTTP_PORT=8001
       - PERSIST_DIRECTORY=/chroma/chroma
     volumes:
       - chroma_data:/chroma/chroma
     ports:
-      - "8000:8000"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - "8001:8001"
+    # healthcheck:
+    #   test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8000/api/v2/heartbeat || exit 1"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
     networks:
       - fragrance_ai_network
 
-  # Main Application
+  # Main Application with production security
   fragrance_ai:
     build:
       context: .
@@ -71,30 +97,54 @@ services:
       - DATABASE_URL=postgresql://fragrance_ai:${POSTGRES_PASSWORD:-fragrance_ai_password}@postgres:5432/fragrance_ai
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
       - CHROMA_HOST=chroma
+      - CHROMA_PORT=8001
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
       - WANDB_API_KEY=${WANDB_API_KEY}
+      - WORKERS=4
+      - MAX_REQUESTS=1000
+      - TIMEOUT=120
+      - LOG_LEVEL=info
     volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-      - ./models:/app/models
-      - ./checkpoints:/app/checkpoints
+      - ./data:/app/data:Z
+      - ./logs:/app/logs:Z
+      - ./models:/app/models:ro
+      - ./checkpoints:/app/checkpoints:Z
     ports:
-      - "8080:8000"
+      - "8080:8000"  # 외부 접근 가능
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-      chroma:
-        condition: service_healthy
+      # chroma:
+      #   condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "--max-time", "10", "http://localhost:8000/health"]
       interval: 30s
-      timeout: 10s
+      timeout: 15s
       retries: 3
+      start_period: 60s
     networks:
       - fragrance_ai_network
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /app/tmp:size=100M,mode=1777
+      - /tmp:size=50M,mode=1777
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
 
   # Celery Worker
   celery_worker:

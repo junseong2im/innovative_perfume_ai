@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     
     # Security Settings
     secret_key: str = Field(
-        default="your-super-secret-key-change-in-production",
+        default="INSECURE-DEFAULT-CHANGE-IMMEDIATELY-FOR-PRODUCTION-USE",
         env="SECRET_KEY"
     )
     access_token_expire_minutes: int = Field(
@@ -81,6 +81,13 @@ class Settings(BaseSettings):
     # Celery Settings
     celery_broker_url: str = Field(default="redis://localhost:6379/1", env="CELERY_BROKER_URL")
     celery_result_backend: str = Field(default="redis://localhost:6379/2", env="CELERY_RESULT_BACKEND")
+
+    # CORS Settings
+    cors_origins: Optional[str] = Field(default=None, env="CORS_ORIGINS")
+
+    # ChromaDB Settings
+    chroma_host: str = Field(default="localhost", env="CHROMA_HOST")
+    chroma_port: int = Field(default=8001, env="CHROMA_PORT")
 
     model_config = {
         "env_file": ".env",

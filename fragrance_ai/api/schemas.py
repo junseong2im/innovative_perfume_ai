@@ -1,7 +1,13 @@
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 from pydantic.dataclasses import dataclass
 from typing import List, Dict, Any, Optional, Union, Annotated, Literal
-from enum import Enum, StrEnum
+from enum import Enum
+try:
+    from enum import StrEnum
+except ImportError:
+    # Python 3.10 호환성
+    class StrEnum(str, Enum):
+        pass
 from datetime import datetime, timezone
 import asyncio
 from collections.abc import Sequence
@@ -145,7 +151,7 @@ class SemanticSearchResponse(BaseModel):
 
 class RecipeGenerationRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=1000, description="생성 요청 프롬프트")
-    recipe_type: RecipeType = Field(default=RecipeType.basic_recipe, description="레시피 타입")
+    recipe_type: RecipeType = Field(default=RecipeType.BASIC, description="레시피 타입")
     include_story: bool = Field(default=True, description="브랜드 스토리 포함 여부")
     mood: Optional[str] = Field(None, max_length=100, description="목표 무드")
     season: Optional[str] = Field(None, max_length=50, description="적합한 계절")
@@ -153,7 +159,8 @@ class RecipeGenerationRequest(BaseModel):
     target_customer: Optional[str] = Field(None, max_length=200, description="타겟 고객")
     price_range: Optional[str] = Field(None, description="가격대")
 
-    @validator('notes_preference')
+    @field_validator('notes_preference')
+    @classmethod
     def validate_notes_preference(cls, v):
         if v and len(v) > 20:
             raise ValueError("선호 노트는 최대 20개까지 가능합니다")
@@ -206,11 +213,12 @@ class RecipeGenerationResponse(BaseModel):
 
 class BatchGenerationRequest(BaseModel):
     prompts: List[str] = Field(..., min_items=1, max_items=20, description="생성 요청 프롬프트 목록")
-    recipe_type: RecipeType = Field(default=RecipeType.basic_recipe, description="레시피 타입")
+    recipe_type: RecipeType = Field(default=RecipeType.BASIC, description="레시피 타입")
     batch_size: int = Field(default=4, ge=1, le=8, description="배치 크기")
     include_story: bool = Field(default=False, description="스토리 포함 여부 (배치에서는 성능상 기본 false)")
 
-    @validator('prompts')
+    @field_validator('prompts')
+    @classmethod
     def validate_prompts(cls, v):
         if any(len(prompt.strip()) == 0 for prompt in v):
             raise ValueError("빈 프롬프트는 허용되지 않습니다")

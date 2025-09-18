@@ -15,7 +15,10 @@ from enum import Enum
 from collections import deque, defaultdict
 import threading
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-import psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None
 import numpy as np
 import statistics
 
@@ -385,7 +388,7 @@ class PerformanceOptimizer:
         
         if mode == ProcessingMode.ADAPTIVE:
             # 현재 시스템 부하에 따라 모드 선택
-            cpu_usage = psutil.cpu_percent(interval=0.1)
+            cpu_usage = psutil.cpu_percent(interval=0.1) if psutil else 50.0
             if cpu_usage > 80:
                 mode = ProcessingMode.BATCH
             elif cpu_usage > 60:
@@ -450,8 +453,8 @@ class PerformanceOptimizer:
         """메트릭 수집"""
         try:
             # 시스템 메트릭
-            self.metrics.cpu_usage = psutil.cpu_percent(interval=1)
-            self.metrics.memory_usage = psutil.virtual_memory().percent
+            self.metrics.cpu_usage = psutil.cpu_percent(interval=1) if psutil else 50.0
+            self.metrics.memory_usage = psutil.virtual_memory().percent if psutil else 50.0
             
             # 성능 메트릭 업데이트
             self.metrics.last_updated = time.time()

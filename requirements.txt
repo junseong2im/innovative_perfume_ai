@@ -17,7 +17,7 @@ httpx==0.25.2
 
 # AI/ML Dependencies - with compatible versioning
 torch~=2.1.0
-transformers~=4.35.0
+transformers>=4.36.0
 sentence-transformers~=2.2.0
 datasets~=2.14.0
 peft~=0.6.0
@@ -45,11 +45,11 @@ wandb==0.16.0
 tensorboard==2.15.1
 prometheus-client==0.19.0
 
-# Optimization & Deployment
-vllm==0.2.6
-triton==2.1.0
-onnx==1.15.0
-onnxruntime-gpu==1.16.3
+# Optimization & Deployment (removed for Docker compatibility)
+# vllm==0.2.6
+# triton==2.1.0
+# onnx==1.15.0
+# onnxruntime-gpu==1.16.3
 
 # Additional utilities
 python-dotenv==1.0.0

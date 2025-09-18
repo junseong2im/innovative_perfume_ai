@@ -1,65 +1,54 @@
-from fastapi import HTTPException, Depends, status
+from fastapi import HTTPException, Depends, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional, Dict, Any
 import jwt
-import logging
 from datetime import datetime, timedelta
 import hashlib
 import hmac
 
 from ..core.config import settings
+from ..core.logging_config import get_logger
+from ..core.security import api_key_manager, AccessLevel
 from ..services.search_service import SearchService
 from ..services.generation_service import GenerationService
+from .auth import auth_manager, authz_manager, EnhancedAuthenticationError, EnhancedAuthorizationError
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 security = HTTPBearer()
 
 
-class AuthenticationError(HTTPException):
-    """인증 오류"""
-    def __init__(self, detail: str = "인증에 실패했습니다"):
-        super().__init__(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=detail,
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-
-
-class AuthorizationError(HTTPException):
-    """인가 오류"""
-    def __init__(self, detail: str = "권한이 없습니다"):
-        super().__init__(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=detail
-        )
+# Legacy error classes - use Enhanced versions from auth.py
+AuthenticationError = EnhancedAuthenticationError
+AuthorizationError = EnhancedAuthorizationError
 
 
 def verify_api_key(api_key: str) -> bool:
-    """API 키 검증"""
+    """API 키 검증 (보안 강화 버전)"""
     try:
-        # Simple API key validation - in production use proper key management
         if not api_key:
-            raise AuthenticationError("API 키가 필요합니다")
-        
-        # Check if it's the master admin key (for development/demo)
-        if api_key == "demo_admin_key_12345":  # Change in production
-            return True
-        
-        # In production, validate against database or key management service
-        valid_keys = [
-            "fragrance_ai_key_001",
-            "fragrance_ai_key_002",
-            "fragrance_ai_key_003"
-        ]
-        
-        if api_key not in valid_keys:
-            raise AuthenticationError("유효하지 않은 API 키입니다")
-        
+            raise EnhancedAuthenticationError(
+                detail="API 키가 필요합니다",
+                error_code="MISSING_API_KEY"
+            )
+
+        # 통합된 보안 시스템 사용
+        api_key_obj = api_key_manager.validate_api_key(api_key)
+        if not api_key_obj:
+            raise EnhancedAuthenticationError(
+                detail="유효하지 않은 API 키입니다",
+                error_code="INVALID_API_KEY"
+            )
+
         return True
-        
+
+    except EnhancedAuthenticationError:
+        raise
     except Exception as e:
         logger.error(f"API key verification failed: {e}")
-        raise AuthenticationError("API 키 검증에 실패했습니다")
+        raise EnhancedAuthenticationError(
+            detail="API 키 검증에 실패했습니다",
+            error_code="API_KEY_VERIFICATION_ERROR"
+        )
 
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
@@ -109,45 +98,67 @@ def verify_token(token: str) -> Dict[str, Any]:
         raise AuthenticationError("토큰 검증에 실패했습니다")
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict[str, Any]:
-    """현재 사용자 정보 조회"""
+async def get_current_user(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+) -> Dict[str, Any]:
+    """현재 사용자 정보 조회 (통합 인증 시스템)"""
     try:
+        if not credentials:
+            raise EnhancedAuthenticationError(
+                detail="인증이 필요합니다",
+                error_code="AUTHENTICATION_REQUIRED"
+            )
+
         token = credentials.credentials
-        payload = verify_token(token)
-        
-        # In production, fetch user info from database
-        user_info = {
-            "username": payload.get("sub"),
-            "user_id": payload.get("user_id"),
-            "roles": payload.get("roles", []),
-            "permissions": payload.get("permissions", [])
-        }
-        
-        return user_info
-        
+
+        # API 키 또는 JWT 토큰 형태 확인
+        if token.startswith(('pk_', 'sk_', 'ak_', 'admin_', 'super_')):
+            return await auth_manager.authenticate_api_key(request, credentials)
+        else:
+            return await auth_manager.authenticate_jwt(request, credentials)
+
+    except (EnhancedAuthenticationError, EnhancedAuthorizationError):
+        raise
     except Exception as e:
         logger.error(f"User authentication failed: {e}")
-        raise AuthenticationError()
+        raise EnhancedAuthenticationError(
+            detail="사용자 인증에 실패했습니다",
+            error_code="AUTHENTICATION_PROCESSING_ERROR"
+        )
 
 
-def require_admin(current_user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
-    """관리자 권한 필요"""
-    if "admin" not in current_user.get("roles", []):
-        raise AuthorizationError("관리자 권한이 필요합니다")
-    
+def require_admin(
+    request: Request,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """관리자 권한 필요 (통합 인가 시스템)"""
+    access_level = current_user.get("access_level")
+    if access_level not in [AccessLevel.ADMIN.value, AccessLevel.SUPER_ADMIN.value]:
+        raise EnhancedAuthorizationError(
+            detail="관리자 권한이 필요합니다",
+            error_code="ADMIN_REQUIRED"
+        )
+
     return current_user
 
 
 def require_permission(permission: str):
-    """특정 권한 필요"""
-    def permission_checker(current_user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
-        user_permissions = current_user.get("permissions", [])
-        
-        if permission not in user_permissions and "admin" not in current_user.get("roles", []):
-            raise AuthorizationError(f"'{permission}' 권한이 필요합니다")
-        
+    """특정 권한 필요 (통합 인가 시스템)"""
+    def permission_checker(
+        request: Request,
+        current_user: Dict[str, Any] = Depends(get_current_user)
+    ) -> Dict[str, Any]:
+
+        if not authz_manager.check_permission(current_user, permission):
+            raise EnhancedAuthorizationError(
+                detail=f"'{permission}' 권한이 필요합니다",
+                error_code="PERMISSION_DENIED",
+                required_permission=permission
+            )
+
         return current_user
-    
+
     return permission_checker
 
 
@@ -285,20 +296,23 @@ async def get_generation_service() -> GenerationService:
 
 def check_api_quota(operation_type: str = "requests"):
     """API 할당량 확인 의존성"""
-    def quota_checker(current_user: Dict[str, Any] = Depends(get_current_user)):
+    def quota_checker(
+        request: Request,
+        current_user: Dict[str, Any] = Depends(get_current_user)
+    ):
         user_id = current_user.get("user_id", "anonymous")
-        
+
         if not quota_manager.check_quota(user_id, operation_type):
             raise HTTPException(
                 status_code=429,
                 detail=f"일일 {operation_type} 할당량을 초과했습니다"
             )
-        
+
         # Consume quota
         quota_manager.consume_quota(user_id, operation_type)
-        
+
         return current_user
-    
+
     return quota_checker
 
 

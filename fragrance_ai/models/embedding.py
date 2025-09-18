@@ -47,7 +47,9 @@ class AdvancedKoreanFragranceEmbedding:
         cache_size: int = 10000
     ):
         self.model_name = model_name or settings.embedding_model_name
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # Enhanced GPU acceleration setup
+        self._setup_device_optimization()
+        self.device = self._device
         self.use_adapter = use_adapter
         self.enable_multi_aspect = enable_multi_aspect
         
@@ -65,7 +67,36 @@ class AdvancedKoreanFragranceEmbedding:
         self._init_fragrance_vocabulary()
         
         logger.info(f"Advanced Korean Fragrance Embedding initialized")
-    
+
+    def _setup_device_optimization(self) -> None:
+        """Enhanced GPU setup with optimization"""
+        if torch.cuda.is_available():
+            # Select best GPU
+            self._device = torch.device(f"cuda:{torch.cuda.current_device()}")
+
+            # Enable optimizations
+            torch.backends.cudnn.enabled = True
+            torch.backends.cudnn.benchmark = True
+            torch.backends.cudnn.deterministic = False
+
+            # Memory management
+            torch.cuda.empty_cache()
+
+            # Set memory allocation strategy
+            if hasattr(torch.cuda, 'set_per_process_memory_fraction'):
+                torch.cuda.set_per_process_memory_fraction(0.8)
+
+            # Mixed precision support
+            self.use_mixed_precision = torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 7
+            if self.use_mixed_precision:
+                self.scaler = torch.cuda.amp.GradScaler()
+
+            logger.info(f"GPU optimization enabled on {self._device}, mixed precision: {self.use_mixed_precision}")
+        else:
+            self._device = torch.device("cpu")
+            self.use_mixed_precision = False
+            logger.info("Using CPU - consider using GPU for better performance")
+
     def _load_model(self) -> None:
         """최신 임베딩 모델 로드 (Multi-model support)"""
         try:
@@ -553,26 +584,55 @@ class AdvancedKoreanFragranceEmbedding:
             raise
     
     def encode_batch(self, texts: List[str], batch_size: int = 32) -> np.ndarray:
-        """배치 텍스트를 벡터로 인코딩"""
+        """GPU 최적화된 배치 텍스트 인코딩"""
         try:
+            # GPU 메모리 기반 적응형 배치 크기
+            if self.device.type == 'cuda':
+                available_memory = torch.cuda.get_device_properties(self.device).total_memory
+                batch_size = min(batch_size, max(8, int(available_memory / (1024**3) * 16)))  # 메모리 기반 조정
+
             enhanced_texts = [self._enhance_fragrance_text(text) for text in texts]
-            
+
+            # GPU 가속 인코딩
             if isinstance(self.model, SentenceTransformer):
-                embeddings = self.model.encode(
-                    enhanced_texts, 
-                    batch_size=batch_size,
-                    convert_to_numpy=True,
-                    show_progress_bar=True
-                )
+                if self.use_mixed_precision:
+                    # Mixed precision으로 속도 향상
+                    with torch.cuda.amp.autocast():
+                        embeddings = self.model.encode(
+                            enhanced_texts,
+                            batch_size=batch_size,
+                            convert_to_numpy=True,
+                            show_progress_bar=len(texts) > 100,
+                            device=self.device,
+                            normalize_embeddings=True  # 정규화로 품질 향상
+                        )
+                else:
+                    embeddings = self.model.encode(
+                        enhanced_texts,
+                        batch_size=batch_size,
+                        convert_to_numpy=True,
+                        show_progress_bar=len(texts) > 100,
+                        device=self.device,
+                        normalize_embeddings=True
+                    )
             else:
                 embeddings = []
                 for i in range(0, len(enhanced_texts), batch_size):
                     batch = enhanced_texts[i:i + batch_size]
-                    batch_embeddings = self._encode_batch_transformers(batch)
+                    if self.use_mixed_precision:
+                        with torch.cuda.amp.autocast():
+                            batch_embeddings = self._encode_batch_transformers(batch)
+                    else:
+                        batch_embeddings = self._encode_batch_transformers(batch)
                     embeddings.extend(batch_embeddings)
+
+                    # GPU 메모리 정리
+                    if self.device.type == 'cuda':
+                        torch.cuda.empty_cache()
+
                 embeddings = np.array(embeddings)
-            
-            logger.info(f"Encoded {len(texts)} texts into embeddings of shape {embeddings.shape}")
+
+            logger.info(f"GPU-optimized encoding: {len(texts)} texts -> {embeddings.shape}, device: {self.device}")
             return embeddings
             
         except Exception as e:

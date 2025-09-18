@@ -1,0 +1,25 @@
+# Core Web Framework
+fastapi==0.104.0
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+sqlalchemy==2.0.23
+alembic==1.13.1
+python-dotenv==1.0.0
+python-multipart==0.0.6
+
+# Database
+psycopg2-binary==2.9.9
+
+# Basic utilities
+click==8.1.7
+rich==13.7.0
+structlog==23.2.0
+
+# Task Queue
+celery==5.3.4
+flower==2.0.1
+redis==5.0.1
+
+# System monitoring
+psutil==6.1.0

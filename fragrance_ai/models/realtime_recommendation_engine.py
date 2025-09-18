@@ -468,6 +468,9 @@ class RealtimeRecommendationEngine:
     """실시간 조향 추천 엔진 메인 클래스"""
 
     def __init__(self):
+        # Enhanced device setup
+        self._setup_device_optimization()
+
         # 핵심 AI 컴포넌트들 초기화
         self.perfumer_knowledge = MasterPerfumerKnowledge()
         self.blending_ai = AdvancedBlendingAI()
@@ -478,17 +481,171 @@ class RealtimeRecommendationEngine:
         self.user_modeling = UserModelingEngine()
         self.contextual_reasoning = ContextualReasoningEngine()
 
-        # 추천 캐시
+        # Enhanced 캐싱 시스템
         self.recommendation_cache = {}
         self.cache_expire_time = 3600  # 1시간
+        self.hot_cache = {}  # 자주 사용되는 추천 캐시
+        self.cache_hit_count = defaultdict(int)
 
-        # 백그라운드 작업을 위한 스레드풀
-        self.executor = ThreadPoolExecutor(max_workers=4)
+        # 성능 최적화를 위한 백그라운드 작업
+        self.executor = ThreadPoolExecutor(max_workers=8)  # 더 많은 워커
+        self.batch_queue = deque()  # 배치 처리 큐
+        self.batch_size = 10
 
         # 추천 성능 모니터링
         self.recommendation_metrics = defaultdict(list)
+        self.inference_times = deque(maxlen=1000)  # 최근 1000개 추론 시간
 
         logger.info("Realtime Recommendation Engine initialized")
+
+    def _setup_device_optimization(self) -> None:
+        """실시간 추론을 위한 디바이스 최적화"""
+        if torch.cuda.is_available():
+            self.device = torch.device(f"cuda:{torch.cuda.current_device()}")
+
+            # 실시간 추론 최적화
+            torch.backends.cudnn.enabled = True
+            torch.backends.cudnn.benchmark = True
+            torch.backends.cuda.matmul.allow_tf32 = True
+
+            # 실시간 추론을 위한 메모리 최적화
+            torch.cuda.empty_cache()
+
+            logger.info(f"Real-time inference optimized for {self.device}")
+        else:
+            self.device = torch.device("cpu")
+            logger.warning("Running real-time inference on CPU - performance may be limited")
+
+    async def get_recommendations_fast(
+        self,
+        request: RecommendationRequest,
+        use_cache: bool = True
+    ) -> List[RecommendationResult]:
+        """고속 실시간 추천 (< 100ms 목표)"""
+        start_time = asyncio.get_event_loop().time()
+
+        try:
+            # 1. Hot cache 우선 확인
+            if use_cache:
+                hot_result = self._check_hot_cache(request)
+                if hot_result:
+                    end_time = asyncio.get_event_loop().time()
+                    self.inference_times.append(end_time - start_time)
+                    return hot_result
+
+            # 2. 경량화된 추천 로직
+            results = await self._fast_recommendation_pipeline(request)
+
+            # 3. Hot cache 업데이트
+            if use_cache:
+                self._update_hot_cache(request, results)
+
+            end_time = asyncio.get_event_loop().time()
+            inference_time = end_time - start_time
+            self.inference_times.append(inference_time)
+
+            logger.info(f"Fast recommendation completed in {inference_time*1000:.1f}ms")
+            return results
+
+        except Exception as e:
+            logger.error(f"Fast recommendation failed: {e}")
+            # Fallback to standard recommendation
+            return await self.get_recommendations(request)
+
+    def _check_hot_cache(self, request: RecommendationRequest) -> Optional[List[RecommendationResult]]:
+        """Hot cache 확인"""
+        cache_key = self._generate_cache_key(request)
+
+        if cache_key in self.hot_cache:
+            self.cache_hit_count[cache_key] += 1
+            cached_item = self.hot_cache[cache_key]
+
+            # 캐시가 아직 유효한지 확인
+            if datetime.now() - cached_item["timestamp"] < timedelta(seconds=300):  # 5분 hot cache
+                return cached_item["recommendations"]
+
+        return None
+
+    def _update_hot_cache(self, request: RecommendationRequest, results: List[RecommendationResult]) -> None:
+        """Hot cache 업데이트"""
+        cache_key = self._generate_cache_key(request)
+
+        # Hot cache 크기 제한 (최대 100개)
+        if len(self.hot_cache) >= 100:
+            # 가장 적게 사용된 항목 제거
+            least_used_key = min(self.cache_hit_count, key=self.cache_hit_count.get)
+            self.hot_cache.pop(least_used_key, None)
+            self.cache_hit_count.pop(least_used_key, None)
+
+        # 새 항목 추가
+        self.hot_cache[cache_key] = {
+            "recommendations": results,
+            "timestamp": datetime.now()
+        }
+
+    async def _fast_recommendation_pipeline(self, request: RecommendationRequest) -> List[RecommendationResult]:
+        """경량화된 고속 추천 파이프라인"""
+        try:
+            # 1. 사전 계산된 임베딩 사용
+            if hasattr(request, 'preferences') and request.preferences:
+                preference_vector = self._get_cached_preference_vector(request.user_id, request.preferences)
+            else:
+                preference_vector = np.zeros(512)  # 기본 벡터
+
+            # 2. 빠른 유사도 계산 (근사치 사용)
+            candidates = await self._get_candidate_fragrances_fast(preference_vector)
+
+            # 3. 경량화된 스코어링
+            scored_results = []
+            for candidate in candidates[:20]:  # 상위 20개만 처리
+                score = self._calculate_fast_score(candidate, request)
+                if score > 0.5:  # 임계값 이상만
+                    result = RecommendationResult(
+                        fragrance_id=candidate.get('id'),
+                        fragrance_name=candidate.get('name'),
+                        confidence_score=score,
+                        recommendation_type=RecommendationType.SIMILAR,
+                        explanation=f"빠른 매칭 (점수: {score:.2f})"
+                    )
+                    scored_results.append(result)
+
+            # 4. 상위 5개 반환
+            scored_results.sort(key=lambda x: x.confidence_score, reverse=True)
+            return scored_results[:5]
+
+        except Exception as e:
+            logger.error(f"Fast pipeline failed: {e}")
+            return []
+
+    def _get_cached_preference_vector(self, user_id: str, preferences: Dict) -> np.ndarray:
+        """캐시된 사용자 선호 벡터 가져오기"""
+        # 실제 구현에서는 Redis 등에서 가져올 수 있음
+        return np.random.random(512)  # 임시 구현
+
+    async def _get_candidate_fragrances_fast(self, preference_vector: np.ndarray) -> List[Dict]:
+        """고속 후보 향수 검색"""
+        # 실제 구현에서는 FAISS 등의 고속 벡터 검색 사용
+        # 임시로 더미 데이터 반환
+        candidates = []
+        for i in range(50):
+            candidates.append({
+                'id': f'fragrance_{i}',
+                'name': f'향수 {i}',
+                'vector': np.random.random(512)
+            })
+        return candidates
+
+    def _calculate_fast_score(self, candidate: Dict, request: RecommendationRequest) -> float:
+        """경량화된 점수 계산"""
+        # 간단한 점수 계산 로직
+        base_score = np.random.random()  # 임시
+
+        # 상황적 보정
+        if request.context and request.context.get('season'):
+            seasonal_bonus = 0.1 if request.context['season'] in ['spring', 'summer'] else 0.05
+            base_score += seasonal_bonus
+
+        return min(1.0, base_score)
 
     async def get_recommendations(
         self,

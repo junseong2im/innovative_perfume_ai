@@ -92,7 +92,7 @@ class FragranceDataScraper:
 
         logger.info(f"FragranceDataScraper initialized with rate_limit={rate_limit_delay}s")
 
-    def scrape_fragrance_data(
+    async def scrape_fragrance_data(
         self,
         url: str,
         max_items: int = 100,
@@ -122,7 +122,7 @@ class FragranceDataScraper:
             logger.error(f"Failed to scrape {url}: {e}")
             return []
 
-    def _scrape_fragrantica(
+    async def _scrape_fragrantica(
         self,
         url: str,
         max_items: int,
@@ -163,7 +163,7 @@ class FragranceDataScraper:
                         next_button = driver.find_element(By.CSS_SELECTOR, "a.next")
                         if next_button.is_enabled():
                             next_button.click()
-                            time.sleep(2)
+                            await asyncio.sleep(2)
                             page += 1
                         else:
                             break
@@ -182,7 +182,7 @@ class FragranceDataScraper:
                         fragrances.append(fragrance_data.to_dict())
                         logger.info(f"Scraped {i+1}/{min(len(perfume_links), max_items)}: {fragrance_data.name}")
 
-                    time.sleep(self.rate_limit_delay)
+                    await asyncio.sleep(self.rate_limit_delay)
 
                 except Exception as e:
                     logger.error(f"Failed to scrape fragrance {link}: {e}")
@@ -196,7 +196,7 @@ class FragranceDataScraper:
         logger.info(f"Scraped {len(fragrances)} fragrances from Fragrantica")
         return fragrances
 
-    def _scrape_fragrantica_detail(
+    async def _scrape_fragrantica_detail(
         self,
         driver: webdriver.Chrome,
         url: str,
@@ -206,7 +206,7 @@ class FragranceDataScraper:
 
         try:
             driver.get(url)
-            time.sleep(1)
+            await asyncio.sleep(1)
 
             # 기본 정보 추출
             name_elem = driver.find_element(By.CSS_SELECTOR, "h1[itemprop='name']")
@@ -308,7 +308,7 @@ class FragranceDataScraper:
         except:
             return []
 
-    def _scrape_basenotes(
+    async def _scrape_basenotes(
         self,
         url: str,
         max_items: int,
@@ -368,7 +368,7 @@ class FragranceDataScraper:
 
                     fragrances.append(fragrance.to_dict())
 
-                    time.sleep(self.rate_limit_delay)
+                    await asyncio.sleep(self.rate_limit_delay)
 
                 except Exception as e:
                     logger.error(f"Failed to parse Basenotes item {i}: {e}")
@@ -380,7 +380,7 @@ class FragranceDataScraper:
         logger.info(f"Scraped {len(fragrances)} fragrances from Basenotes")
         return fragrances
 
-    def _scrape_oliveyoung(
+    async def _scrape_oliveyoung(
         self,
         url: str,
         max_items: int,
@@ -394,7 +394,7 @@ class FragranceDataScraper:
         try:
             driver = webdriver.Chrome(options=self.chrome_options)
             driver.get(url)
-            time.sleep(2)
+            await asyncio.sleep(2)
 
             # 상품 리스트 찾기
             product_elements = driver.find_elements(
@@ -455,7 +455,7 @@ class FragranceDataScraper:
 
                     fragrances.append(fragrance.to_dict())
 
-                    time.sleep(self.rate_limit_delay)
+                    await asyncio.sleep(self.rate_limit_delay)
 
                 except Exception as e:
                     logger.error(f"Failed to parse Olive Young item {i}: {e}")
@@ -469,7 +469,7 @@ class FragranceDataScraper:
         logger.info(f"Scraped {len(fragrances)} fragrances from Olive Young")
         return fragrances
 
-    def _scrape_amorepacific(
+    async def _scrape_amorepacific(
         self,
         url: str,
         max_items: int,
@@ -529,7 +529,7 @@ class FragranceDataScraper:
 
                     fragrances.append(fragrance.to_dict())
 
-                    time.sleep(self.rate_limit_delay)
+                    await asyncio.sleep(self.rate_limit_delay)
 
                 except Exception as e:
                     logger.error(f"Failed to parse Amore Pacific item {i}: {e}")
@@ -541,7 +541,7 @@ class FragranceDataScraper:
         logger.info(f"Scraped {len(fragrances)} fragrances from Amore Pacific")
         return fragrances
 
-    def _scrape_parfumo(
+    async def _scrape_parfumo(
         self,
         url: str,
         max_items: int,
@@ -595,7 +595,7 @@ class FragranceDataScraper:
 
                     fragrances.append(fragrance.to_dict())
 
-                    time.sleep(self.rate_limit_delay)
+                    await asyncio.sleep(self.rate_limit_delay)
 
                 except Exception as e:
                     logger.error(f"Failed to parse Parfumo item {i}: {e}")
@@ -607,7 +607,7 @@ class FragranceDataScraper:
         logger.info(f"Scraped {len(fragrances)} fragrances from Parfumo")
         return fragrances
 
-    def _scrape_generic_site(
+    async def _scrape_generic_site(
         self,
         url: str,
         max_items: int,
@@ -676,7 +676,7 @@ class FragranceDataScraper:
 
                     fragrances.append(fragrance.to_dict())
 
-                    time.sleep(self.rate_limit_delay)
+                    await asyncio.sleep(self.rate_limit_delay)
 
                 except Exception as e:
                     logger.error(f"Failed to parse generic item {i}: {e}")

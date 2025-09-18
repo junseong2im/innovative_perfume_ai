@@ -1,0 +1,237 @@
+version: '3.8'
+
+services:
+  # HAProxy 로드 밸런서
+  loadbalancer:
+    image: haproxy:2.8-alpine
+    container_name: fragrance_ai_lb
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8404:8404"  # Stats
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./haproxy/ssl:/etc/ssl/certs:ro
+    networks:
+      - fragrance_ai_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+
+  # 메인 애플리케이션 (스케일 가능)
+  fragrance_ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://fragrance_ai:${POSTGRES_PASSWORD}@postgres:5432/fragrance_ai
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      - ./logs:/app/logs
+      - ./models:/app/models:ro
+      - ./checkpoints:/app/checkpoints:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - fragrance_ai_network
+    restart: unless-stopped
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  # Celery Worker (스케일 가능)
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    command: celery -A fragrance_ai.celery_app worker --loglevel=info --concurrency=4 --prefetch-multiplier=1
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://fragrance_ai:${POSTGRES_PASSWORD}@postgres:5432/fragrance_ai
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/2
+    volumes:
+      - ./logs:/app/logs
+      - ./models:/app/models:ro
+      - ./checkpoints:/app/checkpoints:ro
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - fragrance_ai_network
+    restart: unless-stopped
+    deploy:
+      replicas: 5
+      resources:
+        limits:
+          cpus: '2'
+          memory: 3G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  # PostgreSQL (HA 설정)
+  postgres:
+    image: postgres:15-alpine
+    container_name: fragrance_ai_postgres
+    environment:
+      POSTGRES_DB: fragrance_ai
+      POSTGRES_USER: fragrance_ai
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_REPLICA_USER: replica
+      POSTGRES_REPLICA_PASSWORD: ${POSTGRES_REPLICA_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./postgres/init_replication.sql:/docker-entrypoint-initdb.d/init_replication.sql
+    ports:
+      - "5432:5432"
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fragrance_ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fragrance_ai_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+
+  # Redis Cluster
+  redis:
+    image: redis:7-alpine
+    container_name: fragrance_ai_redis
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 300
+      --timeout 0
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "auth", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - fragrance_ai_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # Auto-scaler (커스텀)
+  autoscaler:
+    build:
+      context: .
+      dockerfile: Dockerfile.autoscaler
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - SCALE_UP_THRESHOLD=80
+      - SCALE_DOWN_THRESHOLD=30
+      - MIN_REPLICAS=2
+      - MAX_REPLICAS=10
+      - CHECK_INTERVAL=30
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./autoscaler:/app/autoscaler
+    networks:
+      - fragrance_ai_network
+    restart: unless-stopped
+    depends_on:
+      - fragrance_ai
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Prometheus (모니터링)
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: fragrance_ai_prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - fragrance_ai_network
+    restart: unless-stopped
+
+  # Grafana (시각화)
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: fragrance_ai_grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - fragrance_ai_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  fragrance_ai_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16

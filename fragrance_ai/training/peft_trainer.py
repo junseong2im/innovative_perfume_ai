@@ -85,15 +85,97 @@ class PEFTTrainer:
         self.model_name = model_name
         self.use_quantization = use_quantization
         self.use_wandb = use_wandb
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
+        # Enhanced GPU setup
+        self._setup_device_optimization()
+
         # Initialize model and tokenizer
         self._load_base_model()
+
+        # Enhanced training features
+        self.checkpoint_dir = f"./checkpoints/{model_name.replace('/', '_')}"
+        os.makedirs(self.checkpoint_dir, exist_ok=True)
+        self.best_loss = float('inf')
+        self.patience = 0
         
         # Initialize wandb if enabled
         if self.use_wandb:
             self._init_wandb()
-    
+
+    def _setup_device_optimization(self) -> None:
+        """Enhanced GPU setup with training optimizations"""
+        if torch.cuda.is_available():
+            # Select best GPU
+            self.device = torch.device(f"cuda:{torch.cuda.current_device()}")
+
+            # Enable training optimizations
+            torch.backends.cudnn.enabled = True
+            torch.backends.cudnn.benchmark = True
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
+
+            # Memory management for training
+            torch.cuda.empty_cache()
+
+            # Set memory allocation strategy for training
+            if hasattr(torch.cuda, 'set_per_process_memory_fraction'):
+                torch.cuda.set_per_process_memory_fraction(0.9)  # More aggressive for training
+
+            # Mixed precision support
+            self.use_mixed_precision = torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 7
+            if self.use_mixed_precision:
+                self.scaler = torch.cuda.amp.GradScaler()
+
+            # Gradient checkpointing for memory efficiency
+            self.use_gradient_checkpointing = True
+
+            logger.info(f"Training GPU optimization enabled on {self.device}")
+            logger.info(f"Mixed precision: {self.use_mixed_precision}, Gradient checkpointing: {self.use_gradient_checkpointing}")
+        else:
+            self.device = torch.device("cpu")
+            self.use_mixed_precision = False
+            self.use_gradient_checkpointing = False
+            logger.warning("Training on CPU - strongly recommend using GPU for fine-tuning")
+
+    def _calculate_gradient_accumulation_steps(self, batch_size: int) -> int:
+        """GPU 메모리에 따른 gradient accumulation 계산"""
+        if not torch.cuda.is_available():
+            return 1
+
+        # GPU 메모리 기반 gradient accumulation 계산
+        gpu_memory_gb = torch.cuda.get_device_properties(self.device).total_memory / (1024**3)
+
+        if gpu_memory_gb >= 24:  # A100, RTX 3090 등
+            return 1
+        elif gpu_memory_gb >= 16:  # RTX 4080, V100 등
+            return 2
+        elif gpu_memory_gb >= 11:  # RTX 2080 Ti, RTX 3080 등
+            return 4
+        else:  # < 11GB
+            return 8
+
+    def _save_checkpoint(self, model, output_dir: str, step: int, loss: float) -> None:
+        """Enhanced checkpoint saving with metadata"""
+        checkpoint_dir = os.path.join(output_dir, f"checkpoint-{step}")
+        os.makedirs(checkpoint_dir, exist_ok=True)
+
+        # Save PEFT model
+        model.save_pretrained(checkpoint_dir)
+
+        # Save training metadata
+        metadata = {
+            "step": step,
+            "loss": loss,
+            "timestamp": datetime.now().isoformat(),
+            "model_name": self.model_name,
+            "device": str(self.device),
+            "mixed_precision": self.use_mixed_precision
+        }
+
+        with open(os.path.join(checkpoint_dir, "training_metadata.json"), "w") as f:
+            json.dump(metadata, f, indent=2)
+
+        logger.info(f"Checkpoint saved at step {step} with loss {loss:.4f}")
+
     def _load_base_model(self) -> None:
         """기본 모델과 토크나이저 로드"""
         try:
@@ -270,18 +352,23 @@ class PEFTTrainer:
             # Create output directory
             os.makedirs(output_dir, exist_ok=True)
             
-            # Configure training arguments
+            # Enhanced training arguments with optimization
             training_args = TrainingArguments(
                 output_dir=output_dir,
                 num_train_epochs=num_epochs,
                 per_device_train_batch_size=batch_size,
                 per_device_eval_batch_size=batch_size,
-                gradient_accumulation_steps=1,
+                gradient_accumulation_steps=self._calculate_gradient_accumulation_steps(batch_size),
                 learning_rate=learning_rate,
                 warmup_ratio=warmup_ratio,
                 max_grad_norm=max_grad_norm,
+
+                # Enhanced logging and monitoring
                 logging_dir=f"{output_dir}/logs",
                 logging_steps=logging_steps,
+                logging_first_step=True,
+
+                # Advanced checkpointing
                 save_steps=save_steps,
                 eval_steps=eval_steps if eval_dataset else None,
                 evaluation_strategy="steps" if eval_dataset else "no",
@@ -289,10 +376,27 @@ class PEFTTrainer:
                 load_best_model_at_end=True if eval_dataset else False,
                 metric_for_best_model="eval_loss" if eval_dataset else None,
                 greater_is_better=False,
-                save_total_limit=3,
+                save_total_limit=5,  # Keep more checkpoints
+
+                # Performance optimizations
                 remove_unused_columns=False,
-                dataloader_pin_memory=False,
-                fp16=torch.cuda.is_available(),
+                dataloader_pin_memory=torch.cuda.is_available(),
+                dataloader_num_workers=4 if torch.cuda.is_available() else 0,
+
+                # Mixed precision training
+                fp16=self.use_mixed_precision and not torch.cuda.is_available(),
+                bf16=self.use_mixed_precision and torch.cuda.is_available(),
+                fp16_full_eval=False,
+
+                # Memory optimization
+                gradient_checkpointing=self.use_gradient_checkpointing,
+                dataloader_drop_last=True,
+
+                # Advanced features
+                prediction_loss_only=True,
+                include_inputs_for_metrics=False,
+
+                # Monitoring
                 report_to="wandb" if self.use_wandb else None,
                 run_name=f"fragrance-peft-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
             )

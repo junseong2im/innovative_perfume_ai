@@ -5,7 +5,7 @@ from datetime import datetime
 import json
 
 from ..core.vector_store import VectorStore
-from ..models.embedding import FragranceEmbedding
+from ..models.embedding import AdvancedKoreanFragranceEmbedding
 from ..core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ class SearchService:
     
     def __init__(self):
         self.vector_store = VectorStore()
-        self.embedding_model = FragranceEmbedding()
+        self.embedding_model = AdvancedKoreanFragranceEmbedding()
         self.search_cache = {}
         self.cache_ttl = 3600  # 1시간
         
