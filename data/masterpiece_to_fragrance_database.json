@@ -1,0 +1,457 @@
+{
+  "masterpiece_fragrance_translations": {
+    "concept": "세계적 명화와 예술작품의 감정, 색채, 기법을 향수로 번역하는 시스템",
+    "methodology": "작품 분석 → 감정 추출 → 색채 변환 → 향료 매핑 → 레시피 생성",
+
+    "famous_paintings": [
+      {
+        "artwork": "모나리자 (Mona Lisa)",
+        "artist": "레오나르도 다 빈치",
+        "year": "1503-1519",
+        "museum": "루브르 박물관",
+        "fragrance_interpretation": {
+          "name": "Enigmatic Smile",
+          "korean_name": "수수께끼의 미소",
+          "artistic_analysis": {
+            "dominant_colors": ["umber", "ochre", "muted_greens", "flesh_tones"],
+            "painting_technique": "sfumato (연기법)",
+            "emotional_tone": ["mysterious", "serene", "timeless", "contemplative"],
+            "cultural_significance": "르네상스 이상미, 영원한 여성성"
+          },
+          "fragrance_concept": "미스터리한 여성의 내면과 르네상스 시대의 우아함",
+          "olfactory_translation": {
+            "sfumato_technique": {
+              "fragrance_equivalent": "부드럽게 블렌딩된 노트들, 경계가 없는 향의 전개",
+              "implementation": "각 노트 간 오버랩 30% 이상, 단계적 변화"
+            },
+            "mysterious_smile": {
+              "fragrance_equivalent": "은은하게 드러나는 복합적 감정",
+              "notes": ["iris_enigma", "hidden_rose", "secret_musk"]
+            },
+            "renaissance_luxury": {
+              "fragrance_equivalent": "당시 귀족들이 사용했던 고급 향료",
+              "notes": ["venetian_rose", "florentine_iris", "merchant_spices"]
+            }
+          },
+          "detailed_formula": {
+            "concentration": "eau_de_parfum_18%",
+            "total_volume": "100ml",
+            "fragrance_oil": "18ml",
+            "structure": {
+              "top_notes": {
+                "total_percentage": 25,
+                "bergamot_leonardo": {
+                  "percentage": 35,
+                  "weight": "1.575ml",
+                  "artistic_meaning": "다 빈치의 명료한 지성",
+                  "quality": "renaissance_italy_bergamot"
+                },
+                "florentine_lemon": {
+                  "percentage": 25,
+                  "weight": "1.125ml",
+                  "artistic_meaning": "피렌체 르네상스의 밝음"
+                },
+                "mystery_aldehydes": {
+                  "percentage": 20,
+                  "weight": "0.9ml",
+                  "artistic_meaning": "수수께끼 같은 첫인상"
+                },
+                "renaissance_herbs": {
+                  "percentage": 20,
+                  "weight": "0.9ml",
+                  "artistic_meaning": "당시 정원의 허브들",
+                  "components": ["rosemary", "sage", "thyme"]
+                }
+              },
+              "middle_notes": {
+                "total_percentage": 45,
+                "enigmatic_iris": {
+                  "percentage": 30,
+                  "weight": "2.43ml",
+                  "artistic_meaning": "모나리자의 고귀한 품격",
+                  "quality": "florentine_iris_3_year_aged",
+                  "cost_note": "가장 비싼 성분이지만 작품의 핵심"
+                },
+                "hidden_rose": {
+                  "percentage": 25,
+                  "weight": "2.025ml",
+                  "artistic_meaning": "미소 뒤에 숨은 여성성",
+                  "type": "damask_rose_diluted_20%",
+                  "technique": "sfumato_blending"
+                },
+                "portrait_powder": {
+                  "percentage": 20,
+                  "weight": "1.62ml",
+                  "artistic_meaning": "르네상스 여성의 화장품",
+                  "components": ["orris_powder", "rice_powder", "noble_cosmetics"]
+                },
+                "leonardo_vision": {
+                  "percentage": 15,
+                  "weight": "1.215ml",
+                  "artistic_meaning": "천재의 관찰력과 통찰",
+                  "components": ["intellectual_herbs", "artistic_inspiration"]
+                },
+                "veil_of_time": {
+                  "percentage": 10,
+                  "weight": "0.81ml",
+                  "artistic_meaning": "500년 시간의 베일",
+                  "components": ["aged_woods", "museum_air", "historical_patina"]
+                }
+              },
+              "base_notes": {
+                "total_percentage": 30,
+                "eternal_musk": {
+                  "percentage": 35,
+                  "weight": "1.89ml",
+                  "artistic_meaning": "영원불멸의 미소",
+                  "type": "skin_musk_blend",
+                  "longevity": "12_hours_plus"
+                },
+                "renaissance_amber": {
+                  "percentage": 25,
+                  "weight": "1.35ml",
+                  "artistic_meaning": "황금빛 르네상스 시대",
+                  "components": ["venetian_amber", "florentine_honey", "papal_incense"]
+                },
+                "cedar_of_lebanon": {
+                  "percentage": 20,
+                  "weight": "1.08ml",
+                  "artistic_meaning": "다 빈치가 사용한 화판의 나무",
+                  "historical_accuracy": "실제 당시 화가들이 사용한 목재"
+                },
+                "mystery_unveiled": {
+                  "percentage": 20,
+                  "weight": "1.08ml",
+                  "artistic_meaning": "마지막에 드러나는 진실",
+                  "components": ["ancient_secrets", "revealed_truth", "timeless_beauty"]
+                }
+              }
+            }
+          },
+          "wearing_experience": {
+            "first_spray": "수수께끼 같은 첫인상, 호기심 유발",
+            "15_minutes": "르네상스 귀족 여성의 우아함",
+            "1_hour": "모나리자 미소의 복합적 감정",
+            "4_hours": "영원한 여성성의 깊이",
+            "8_hours": "시간을 초월한 예술적 감동"
+          }
+        }
+      },
+      {
+        "artwork": "별이 빛나는 밤 (The Starry Night)",
+        "artist": "빈센트 반 고흐",
+        "year": "1889",
+        "museum": "뉴욕 현대미술관 (MoMA)",
+        "fragrance_interpretation": {
+          "name": "Swirling Night Sky",
+          "korean_name": "소용돌이치는 밤하늘",
+          "artistic_analysis": {
+            "dominant_colors": ["deep_blues", "bright_yellows", "swirling_whites"],
+            "painting_technique": "임파스토 (두터운 붓터치)",
+            "emotional_tone": ["passionate", "turbulent", "visionary", "melancholic"],
+            "mental_state": "고흐의 정신적 격동과 천재성"
+          },
+          "fragrance_concept": "광기와 천재성이 만나는 창조적 에너지",
+          "olfactory_translation": {
+            "swirling_movement": {
+              "fragrance_technique": "나선형 향의 전개, 예측 불가능한 변화",
+              "implementation": "일반적 피라미드 구조 파괴, 돌발적 노트 등장"
+            },
+            "impasto_intensity": {
+              "fragrance_equivalent": "강렬하고 집중된 향료 사용",
+              "concentration": "각 노트를 과감하게 사용"
+            },
+            "night_sky_vastness": {
+              "fragrance_equivalent": "우주적 스케일의 확산력",
+              "sillage": "very_strong_projection"
+            }
+          },
+          "detailed_formula": {
+            "concentration": "parfum_22%",
+            "artistic_justification": "고흐의 강렬함에 맞는 최고 농도",
+            "structure": {
+              "top_notes_swirl": {
+                "total_percentage": 30,
+                "electric_citrus": {
+                  "percentage": 40,
+                  "components": ["lime_zest_20%", "yuzu_lightning_15%", "ozone_storm_5%"],
+                  "artistic_meaning": "별빛의 전기적 에너지"
+                },
+                "provence_lavender": {
+                  "percentage": 30,
+                  "artistic_meaning": "생 레미의 라벤더 밭",
+                  "quality": "wild_mountain_lavender",
+                  "historical_note": "고흐가 실제 그린 라벤더"
+                },
+                "cypress_wind": {
+                  "percentage": 30,
+                  "artistic_meaning": "그림 속 우뚝 솟은 사이프러스",
+                  "components": ["cypress_essential_25%", "mistral_wind_5%"]
+                }
+              },
+              "middle_notes_turbulence": {
+                "total_percentage": 40,
+                "van_gogh_sunflower": {
+                  "percentage": 35,
+                  "artistic_meaning": "고흐의 시그니처 해바라기",
+                  "components": ["sunflower_absolute_20%", "golden_petals_10%", "seeds_oil_5%"],
+                  "emotional_connection": "희망과 절망의 이중성"
+                },
+                "madness_and_genius": {
+                  "percentage": 25,
+                  "artistic_meaning": "광기와 천재성의 경계",
+                  "components": ["absinthe_notes_15%", "artistic_passion_10%"],
+                  "controversial_note": "당시 고흐가 마셨던 압생트"
+                },
+                "paint_palette": {
+                  "percentage": 20,
+                  "artistic_meaning": "물감 팔레트의 혼합",
+                  "components": ["linseed_oil_10%", "pigment_dust_5%", "canvas_primer_5%"]
+                },
+                "asylum_garden": {
+                  "percentage": 20,
+                  "artistic_meaning": "생 폴 드 모졸 정신병원 정원",
+                  "components": ["wild_iris_15%", "medicinal_herbs_5%"]
+                }
+              },
+              "base_notes_depth": {
+                "total_percentage": 30,
+                "starry_night_oud": {
+                  "percentage": 40,
+                  "artistic_meaning": "밤하늘의 무한한 깊이",
+                  "type": "cambodian_oud_diluted_15%",
+                  "universe_connection": "우주적 스케일의 향"
+                },
+                "van_gogh_earth": {
+                  "percentage": 30,
+                  "artistic_meaning": "그가 사랑한 대지",
+                  "components": ["provence_soil_15%", "wheat_field_10%", "rural_earth_5%"]
+                },
+                "eternal_passion": {
+                  "percentage": 20,
+                  "artistic_meaning": "불타는 예술혼",
+                  "components": ["amber_flame_15%", "creative_fire_5%"]
+                },
+                "tragic_beauty": {
+                  "percentage": 10,
+                  "artistic_meaning": "비극적 아름다움",
+                  "components": ["melancholic_musk_7%", "unrecognized_genius_3%"]
+                }
+              }
+            }
+          },
+          "seasonal_variations": {
+            "spring": "해바라기와 라벤더 강화",
+            "summer": "프로방스 햇빛과 열정 강화",
+            "autumn": "황금색 밀밭 노트 강화",
+            "winter": "별빛과 우주적 깊이 강화"
+          }
+        }
+      },
+      {
+        "artwork": "진주 귀걸이를 한 소녀",
+        "artist": "요하네스 베르메르",
+        "year": "1665",
+        "museum": "마우리츠하위스 박물관",
+        "fragrance_interpretation": {
+          "name": "Pearl of Delft",
+          "korean_name": "델프트의 진주",
+          "artistic_analysis": {
+            "dominant_colors": ["prussian_blue", "pearl_white", "golden_yellow"],
+            "painting_technique": "빛의 마술사, 섬세한 글레이징",
+            "emotional_tone": ["innocent", "mysterious", "luminous", "timeless"],
+            "cultural_context": "17세기 네덜란드 황금시대"
+          },
+          "fragrance_concept": "순수함과 신비로움이 만나는 북유럽의 빛",
+          "detailed_formula": {
+            "concentration": "eau_de_parfum_16%",
+            "structure": {
+              "top_notes": {
+                "dutch_morning_light": {
+                  "percentage": 40,
+                  "components": ["white_tea_20%", "morning_dew_15%", "clean_linen_5%"],
+                  "artistic_meaning": "베르메르 작품의 특징적인 아침 빛"
+                },
+                "delft_blue_ceramic": {
+                  "percentage": 35,
+                  "components": ["blue_lotus_20%", "ceramic_coolness_10%", "mineral_water_5%"],
+                  "cultural_reference": "델프트 도자기의 푸른빛"
+                },
+                "pearl_luminescence": {
+                  "percentage": 25,
+                  "components": ["white_musk_15%", "nacre_shimmer_5%", "moon_beam_5%"],
+                  "artistic_meaning": "진주의 은은한 광택"
+                }
+              },
+              "middle_notes": {
+                "girl_innocence": {
+                  "percentage": 45,
+                  "components": ["white_rose_25%", "lily_of_valley_15%", "youth_essence_5%"],
+                  "emotional_meaning": "소녀의 순수함과 신비로움"
+                },
+                "vermeer_studio": {
+                  "percentage": 30,
+                  "components": ["linseed_oil_15%", "ground_lapis_lazuli_10%", "artist_vision_5%"],
+                  "historical_accuracy": "베르메르가 실제 사용한 재료들"
+                },
+                "dutch_golden_age": {
+                  "percentage": 25,
+                  "components": ["tulip_petals_15%", "canal_water_5%", "prosperity_5%"],
+                  "cultural_background": "17세기 네덜란드의 번영"
+                }
+              },
+              "base_notes": {
+                "timeless_gaze": {
+                  "percentage": 50,
+                  "components": ["soft_amber_30%", "eternal_moment_15%", "captured_time_5%"],
+                  "artistic_meaning": "시간을 초월한 응시"
+                },
+                "northern_woods": {
+                  "percentage": 30,
+                  "components": ["blonde_woods_20%", "oak_panel_10%"],
+                  "medium_reference": "그림이 그려진 오크 패널"
+                },
+                "mystery_unveiled": {
+                  "percentage": 20,
+                  "components": ["secret_musk_15%", "hidden_story_5%"],
+                  "narrative": "소녀의 정체불명 신비감"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+
+    "sculpture_fragrances": [
+      {
+        "artwork": "다비드상",
+        "artist": "미켈란젤로",
+        "location": "피렌체 아카데미아 미술관",
+        "fragrance_interpretation": {
+          "name": "Marble Perfection",
+          "korean_name": "대리석 완벽",
+          "concept": "인간 조각의 절대적 완벽함과 르네상스 이상미",
+          "structure": {
+            "top": "white_marble_40% + chisel_precision_30% + divine_proportion_30%",
+            "middle": "heroic_courage_35% + renaissance_ideal_35% + artistic_genius_30%",
+            "base": "eternal_marble_50% + michelangelo_legacy_30% + human_perfection_20%"
+          }
+        }
+      },
+      {
+        "artwork": "로댕의 생각하는 사람",
+        "artist": "오귀스트 로댕",
+        "fragrance_interpretation": {
+          "name": "Deep Contemplation",
+          "korean_name": "깊은 사색",
+          "concept": "인간 정신의 깊은 사유와 실존적 고뇌",
+          "structure": {
+            "top": "bronze_patina_40% + philosophical_air_35% + contemplation_25%",
+            "middle": "human_condition_40% + existential_weight_35% + rodin_passion_25%",
+            "base": "eternal_questions_45% + bronze_permanence_35% + sculptural_depth_20%"
+          }
+        }
+      }
+    ],
+
+    "abstract_art_fragrances": [
+      {
+        "artwork": "컴포지션 with Red Blue and Yellow",
+        "artist": "피에트 몬드리안",
+        "fragrance_interpretation": {
+          "name": "Primary Balance",
+          "korean_name": "원색의 균형",
+          "concept": "기하학적 순수함과 색채의 조화",
+          "structure": {
+            "red_section": "cinnamon_30% + red_rose_25% + passion_energy_25% + geometric_precision_20%",
+            "blue_section": "marine_35% + eucalyptus_30% + cool_intellect_25% + structural_clarity_10%",
+            "yellow_section": "lemon_40% + mimosa_30% + pure_joy_20% + golden_ratio_10%",
+            "white_space": "white_musk_60% + silence_20% + infinite_possibility_20%",
+            "black_lines": "charcoal_50% + definition_30% + artistic_structure_20%"
+          }
+        }
+      }
+    ],
+
+    "korean_traditional_art": [
+      {
+        "artwork": "금강전도",
+        "artist": "정선",
+        "period": "조선 후기",
+        "fragrance_interpretation": {
+          "name": "Diamond Mountains Mist",
+          "korean_name": "금강산 안개",
+          "concept": "한국 산수화의 정신과 금강산의 신령함",
+          "structure": {
+            "top": "mountain_mist_40% + korean_pine_30% + morning_dew_30%",
+            "middle": "traditional_ink_35% + zen_meditation_35% + natural_harmony_30%",
+            "base": "ancient_wisdom_40% + korean_earth_35% + eternal_mountains_25%"
+          },
+          "cultural_elements": {
+            "ink_wash_technique": "그라데이션 향 전개",
+            "empty_space_philosophy": "여백의 미 - 향 사이의 공간감",
+            "confucian_values": "절제되고 품격 있는 향"
+          }
+        }
+      },
+      {
+        "artwork": "묵죽도",
+        "artist": "조선 문인화가들",
+        "fragrance_interpretation": {
+          "name": "Scholar's Bamboo",
+          "korean_name": "선비의 대나무",
+          "concept": "선비 정신과 대나무의 절개",
+          "structure": {
+            "top": "bamboo_leaves_45% + scholar_study_30% + morning_study_25%",
+            "middle": "confucian_virtue_40% + ink_stone_30% + literary_spirit_30%",
+            "base": "bamboo_root_strength_50% + scholarly_integrity_30% + eternal_principles_20%"
+          }
+        }
+      }
+    ],
+
+    "contemporary_art_fragrances": [
+      {
+        "artwork": "캠벨 수프 캔",
+        "artist": "앤디 워홀",
+        "fragrance_interpretation": {
+          "name": "Pop Culture Icon",
+          "korean_name": "팝 컬처 아이콘",
+          "concept": "대중문화와 상업주의의 예술적 승화",
+          "structure": {
+            "top": "tomato_soup_30% + factory_production_25% + mass_media_25% + celebrity_20%",
+            "middle": "american_dream_35% + consumer_society_35% + pop_art_revolution_30%",
+            "base": "commercial_immortality_40% + warhol_legacy_35% + pop_culture_25%"
+          }
+        }
+      }
+    ],
+
+    "usage_examples": [
+      {
+        "user_request": "고흐의 해바라기 그림 같은 향수를 만들어주세요",
+        "ai_response": {
+          "artwork_analysis": "반 고흐의 해바라기 연작 분석",
+          "dominant_elements": ["yellow_intensity", "thick_brushstrokes", "passionate_energy"],
+          "fragrance_creation": {
+            "name": "Van Gogh Sunflowers",
+            "structure": "sunflower_absolute_base + provence_sun + artistic_passion",
+            "detailed_formula": "상세한 제조법 제공"
+          }
+        }
+      },
+      {
+        "user_request": "루브르 박물관을 걸으며 느낄 수 있는 향수",
+        "ai_response": {
+          "museum_atmosphere": "marble_halls + renaissance_air + art_history",
+          "visitor_experience": "cultural_immersion + artistic_awe + timeless_beauty",
+          "fragrance_creation": {
+            "name": "Louvre Promenade",
+            "concept": "세계 최고 미술관의 문화적 향연"
+          }
+        }
+      }
+    ]
+  }
+}

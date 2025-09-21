@@ -1,0 +1,694 @@
+{
+  "artistic_fragrance_collection_templates": {
+    "collection_design_philosophy": {
+      "artistic_coherence": "예술적 일관성과 컬렉션 통일성",
+      "narrative_storytelling": "향을 통한 스토리텔링과 감정 전달",
+      "sensory_journey": "후각적 여행과 경험 설계",
+      "cultural_resonance": "문화적 공명과 개인적 연결",
+      "technical_excellence": "조향 기술의 우수성과 혁신"
+    },
+    "master_collection_templates": {
+      "impressionist_series": {
+        "collection_concept": "인상주의 화가들의 빛과 색채를 향으로 표현",
+        "artistic_inspiration": "모네, 르누아르, 드가 등의 작품 세계",
+        "fragrance_count": 5,
+        "collection_structure": {
+          "monet_water_lilies": {
+            "artistic_reference": "모네의 수련 연작",
+            "fragrance_concept": "연못 위 떠다니는 수련의 몽환적 아름다움",
+            "scent_profile": {
+              "opening": {
+                "water_lily_accord": "8ml - 수련의 순수한 아름다움",
+                "pond_mist": "6ml - 연못 위 아침 안개",
+                "dewy_green": "4ml - 이슬 맺힌 수생식물"
+              },
+              "heart": {
+                "white_lotus": "10ml - 백련의 성스러운 향",
+                "aquatic_florals": "8ml - 물 위 꽃들의 조화",
+                "impressionist_light": "6ml - 빛의 반사와 굴절"
+              },
+              "base": {
+                "pond_woods": "8ml - 연못가 버드나무",
+                "water_musk": "6ml - 물의 투명한 머스크",
+                "dreamy_amber": "4ml - 꿈같은 앰버"
+              }
+            },
+            "manufacturing_specifications": {
+              "concentration": "20% EDP",
+              "total_volume": "50ml",
+              "aging_period": "3개월",
+              "bottle_design": "수련 모양 유리병"
+            },
+            "artistic_interpretation_notes": "모네의 후기 작품에서 보이는 형태의 해체와 빛의 순간적 포착을 액체 향수로 구현. 시간에 따라 변화하는 향의 레이어가 다양한 시간대의 연못을 표현"
+          },
+          "renoir_luncheon": {
+            "artistic_reference": "르누아르의 '뱃놀이 파티의 점심'",
+            "fragrance_concept": "19세기 파리 부르주아의 우아한 사교 모임",
+            "scent_profile": {
+              "opening": {
+                "champagne_bubbles": "6ml - 샴페인의 발랄한 거품",
+                "french_garden": "8ml - 프랑스 정원의 화사함",
+                "social_laughter": "4ml - 사교적 즐거움의 경쾌함"
+              },
+              "heart": {
+                "parisian_roses": "12ml - 파리지엔 장미의 우아함",
+                "belle_epoque": "10ml - 아름다운 시대의 화려함",
+                "silk_dresses": "6ml - 비단 드레스의 부드러움"
+              },
+              "base": {
+                "french_oak": "8ml - 프랑스 오크의 품격",
+                "vintage_powder": "6ml - 빈티지 파우더의 우아함",
+                "timeless_elegance": "5ml - 시대를 초월한 우아함"
+              }
+            },
+            "social_occasion_pairing": {
+              "daytime_events": "브런치, 가든 파티, 문화 행사",
+              "seasonal_timing": "봄과 초여름",
+              "dress_code": "캐주얼 시크, 빈티지 스타일"
+            }
+          },
+          "degas_ballet": {
+            "artistic_reference": "드가의 발레리나 시리즈",
+            "fragrance_concept": "오페라 하우스의 백스테이지와 무대의 이중성",
+            "scent_profile": {
+              "opening": {
+                "stage_lights": "5ml - 무대 조명의 따뜻함",
+                "tutu_powder": "7ml - 투투의 파우더리함",
+                "nervous_excitement": "4ml - 공연 전 떨림"
+              },
+              "heart": {
+                "prima_ballerina": "10ml - 프리마 발레리나의 우아함",
+                "music_box": "8ml - 오르골의 로맨틱함",
+                "backstage_secrets": "6ml - 백스테이지의 비밀"
+              },
+              "base": {
+                "worn_pointe_shoes": "7ml - 낡은 토슈즈의 추억",
+                "opera_house_velvet": "8ml - 오페라 하우스 벨벳",
+                "standing_ovation": "6ml - 기립박수의 감동"
+              }
+            },
+            "performance_elements": {
+              "movement_interpretation": "향의 역동적 변화로 춤의 움직임 표현",
+              "emotional_crescendo": "클라이맥스에서 향의 최고 발현",
+              "artistic_dedication": "예술에 대한 헌신과 열정"
+            }
+          },
+          "cezanne_provence": {
+            "artistic_reference": "세잔의 프로방스 풍경",
+            "fragrance_concept": "남프랑스의 햇살과 대지의 향",
+            "scent_profile": {
+              "opening": {
+                "provence_herbs": "8ml - 프로방스 허브의 상쾌함",
+                "mediterranean_sun": "6ml - 지중해성 햇살",
+                "lavender_fields": "7ml - 라벤더 밭의 보라빛"
+              },
+              "heart": {
+                "mont_sainte_victoire": "10ml - 생트 빅투아르 산의 웅장함",
+                "olive_groves": "8ml - 올리브 나무 숲",
+                "cicada_song": "5ml - 매미 소리의 여름"
+              },
+              "base": {
+                "limestone_rocks": "8ml - 석회암 바위의 미네랄",
+                "aged_wine_cellars": "7ml - 와인 저장고의 깊이",
+                "eternal_provence": "6ml - 영원한 프로방스"
+              }
+            },
+            "geographical_authenticity": {
+              "terroir_expression": "테루아의 고유성 표현",
+              "seasonal_variations": "계절별 프로방스의 변화",
+              "cultural_heritage": "프로방스 문화 유산"
+            }
+          },
+          "pissarro_seasons": {
+            "artistic_reference": "피사로의 사계절 연작",
+            "fragrance_concept": "시간의 흐름과 자연의 순환",
+            "scent_profile": {
+              "opening": {
+                "spring_awakening": "6ml - 봄의 깨어남",
+                "summer_abundance": "8ml - 여름의 풍요로움",
+                "autumn_harvest": "7ml - 가을의 수확"
+              },
+              "heart": {
+                "winter_reflection": "9ml - 겨울의 성찰",
+                "seasonal_cycle": "10ml - 계절의 순환",
+                "natural_rhythm": "8ml - 자연의 리듬"
+              },
+              "base": {
+                "earth_memory": "8ml - 대지의 기억",
+                "time_passage": "7ml - 시간의 흐름",
+                "eternal_nature": "6ml - 영원한 자연"
+              }
+            },
+            "temporal_philosophy": {
+              "impermanence": "무상함과 변화의 아름다움",
+              "cyclical_time": "순환하는 시간 개념",
+              "natural_wisdom": "자연의 지혜와 가르침"
+            }
+          }
+        },
+        "collection_packaging": {
+          "box_design": "인상주의 팔레트를 모티브로 한 아트 박스",
+          "bottle_series": "각각 다른 붓터치 패턴의 유리병",
+          "accompanying_materials": "작품 해설서와 조향 노트",
+          "limited_edition_elements": "아티스트 사인 복제본 포함"
+        },
+        "marketing_narrative": "19세기 파리 몽마르트르의 아틀리에에서 영감을 받아, 빛과 색채의 혁명을 향으로 재해석한 컬렉션"
+      },
+      "korean_traditional_art_series": {
+        "collection_concept": "한국 전통 예술의 정신과 미학을 현대적 향수로 재해석",
+        "artistic_inspiration": "수묵화, 민화, 단청, 한복 등 한국 전통 예술",
+        "fragrance_count": 6,
+        "collection_structure": {
+          "sumokwa_ink_painting": {
+            "artistic_reference": "조선시대 수묵화의 여백미",
+            "fragrance_concept": "먹의 깊이와 여백의 철학",
+            "scent_profile": {
+              "opening": {
+                "ink_stone": "5ml - 벼루의 차가운 미네랄",
+                "bamboo_brush": "6ml - 대나무 붓의 청량함",
+                "white_paper": "4ml - 한지의 순수함"
+              },
+              "heart": {
+                "pine_ink": "10ml - 송연먹의 깊이",
+                "meditation_silence": "8ml - 명상의 고요함",
+                "philosophical_depth": "7ml - 철학적 깊이감"
+              },
+              "base": {
+                "ancient_wisdom": "8ml - 고대의 지혜",
+                "zen_emptiness": "6ml - 선의 공(空)",
+                "eternal_mountain": "7ml - 영원한 산水"
+              }
+            },
+            "philosophical_elements": {
+              "minimalism": "최소한의 표현으로 최대 효과",
+              "void_beauty": "여백의 아름다움",
+              "spiritual_depth": "정신적 깊이감"
+            },
+            "cultural_significance": "동양 철학의 핵심인 무위자연을 향으로 표현"
+          },
+          "minhwa_folk_painting": {
+            "artistic_reference": "조선 후기 민화의 소박한 아름다움",
+            "fragrance_concept": "서민들의 소망과 해학이 담긴 따뜻한 향",
+            "scent_profile": {
+              "opening": {
+                "magpie_joy": "7ml - 까치의 기쁜 소식",
+                "plum_blossom": "8ml - 매화의 고고함",
+                "folk_happiness": "6ml - 민중의 소박한 행복"
+              },
+              "heart": {
+                "ten_longevity_symbols": "12ml - 십장생의 길상",
+                "tiger_protection": "9ml - 호랑이의 수호",
+                "lotus_purity": "8ml - 연꽃의 청정"
+              },
+              "base": {
+                "village_warmth": "8ml - 마을의 따뜻함",
+                "ancestral_blessing": "7ml - 조상의 축복",
+                "humble_beauty": "6ml - 소박한 아름다움"
+              }
+            },
+            "symbolic_meanings": {
+              "longevity_wishes": "장수에 대한 염원",
+              "prosperity_hopes": "풍요에 대한 희망",
+              "protection_prayers": "액막이와 수호"
+            }
+          },
+          "dancheong_colors": {
+            "artistic_reference": "궁궐과 사찰의 단청 오색",
+            "fragrance_concept": "오방색의 조화와 균형",
+            "scent_profile": {
+              "opening": {
+                "royal_red": "6ml - 적색의 위엄",
+                "sky_blue": "7ml - 청색의 상서로움",
+                "earth_yellow": "6ml - 황색의 안정감"
+              },
+              "heart": {
+                "pure_white": "10ml - 백색의 순결",
+                "deep_black": "9ml - 흑색의 깊이",
+                "five_elements": "8ml - 오행의 조화"
+              },
+              "base": {
+                "palace_grandeur": "8ml - 궁궐의 웅장함",
+                "temple_sanctity": "7ml - 사찰의 성스러움",
+                "traditional_beauty": "6ml - 전통의 아름다움"
+              }
+            },
+            "color_philosophy": {
+              "cosmological_order": "우주 질서의 표현",
+              "harmony_balance": "조화와 균형",
+              "spiritual_protection": "영적 보호"
+            }
+          },
+          "hanbok_elegance": {
+            "artistic_reference": "한복의 우아한 곡선미",
+            "fragrance_concept": "전통 의상의 품격과 멋",
+            "scent_profile": {
+              "opening": {
+                "silk_smoothness": "7ml - 비단의 부드러움",
+                "jeogori_grace": "6ml - 저고리의 우아함",
+                "chima_flow": "8ml - 치마의 흐름"
+              },
+              "heart": {
+                "traditional_beauty": "12ml - 전통 미인의 품격",
+                "ceremonial_dignity": "10ml - 의례의 장엄함",
+                "feminine_virtue": "9ml - 여성의 덕"
+              },
+              "base": {
+                "noble_heritage": "8ml - 고귀한 전통",
+                "cultural_pride": "7ml - 문화적 자부심",
+                "timeless_elegance": "6ml - 시대불변의 우아함"
+              }
+            },
+            "fashion_elements": {
+              "curved_lines": "한복의 곡선미",
+              "color_harmony": "색상 조화",
+              "cultural_identity": "문화적 정체성"
+            }
+          },
+          "celadon_serenity": {
+            "artistic_reference": "고려청자의 비취색 아름다움",
+            "fragrance_concept": "청자의 은은하고 고귀한 품격",
+            "scent_profile": {
+              "opening": {
+                "jade_coolness": "6ml - 비취의 차가운 아름다움",
+                "celadon_glaze": "7ml - 청자 유약의 윤기",
+                "kiln_fire": "5ml - 가마 불의 정화"
+              },
+              "heart": {
+                "artisan_soul": "11ml - 장인의 혼",
+                "ceramic_purity": "9ml - 도자의 순수함",
+                "korean_aesthetics": "10ml - 한국적 미감"
+              },
+              "base": {
+                "thousand_years": "8ml - 천년의 세월",
+                "cultural_treasure": "7ml - 문화 유산",
+                "eternal_beauty": "6ml - 영원한 아름다움"
+              }
+            },
+            "craftsmanship_elements": {
+              "technical_mastery": "기술적 완성도",
+              "aesthetic_refinement": "미적 세련됨",
+              "spiritual_depth": "정신적 깊이"
+            }
+          },
+          "hanji_texture": {
+            "artistic_reference": "한지의 자연스러운 질감과 순수함",
+            "fragrance_concept": "전통 종이의 소박하고 따뜻한 향",
+            "scent_profile": {
+              "opening": {
+                "mulberry_bark": "8ml - 뽕나무 껍질의 자연스러움",
+                "handmade_texture": "6ml - 수제의 온기",
+                "paper_purity": "5ml - 종이의 순수함"
+              },
+              "heart": {
+                "craftsman_devotion": "10ml - 장인의 정성",
+                "natural_fiber": "9ml - 천연 섬유의 부드러움",
+                "traditional_skill": "8ml - 전통 기법의 가치"
+              },
+              "base": {
+                "cultural_memory": "8ml - 문화적 기억",
+                "humble_materials": "7ml - 소박한 재료의 품격",
+                "enduring_tradition": "6ml - 지속되는 전통"
+              }
+            },
+            "material_philosophy": {
+              "natural_harmony": "자연과의 조화",
+              "simple_beauty": "단순한 아름다움",
+              "sustainable_craft": "지속가능한 공예"
+            }
+          }
+        },
+        "cultural_authenticity": {
+          "historical_research": "각 예술 분야의 역사적 고증",
+          "expert_consultation": "전통 예술 전문가 자문",
+          "modern_interpretation": "현대적 감각으로 재해석",
+          "educational_value": "문화 교육적 가치 포함"
+        },
+        "collection_presentation": {
+          "traditional_packaging": "한지와 노리개를 활용한 패키징",
+          "calligraphy_labels": "서예 레이블",
+          "cultural_guide": "한국 전통 예술 해설서",
+          "museum_collaboration": "박물관 협업 전시"
+        }
+      },
+      "abstract_expressionism_series": {
+        "collection_concept": "추상표현주의의 원시적 에너지와 감정의 폭발",
+        "artistic_inspiration": "잭슨 폴록, 마크 로스코, 윌렘 드 쿠닝",
+        "fragrance_count": 4,
+        "collection_structure": {
+          "pollock_action": {
+            "artistic_reference": "잭슨 폴록의 액션 페인팅",
+            "fragrance_concept": "창작 과정의 역동성과 무의식적 에너지",
+            "scent_profile": {
+              "opening": {
+                "paint_splashes": "8ml - 물감이 튀는 역동성",
+                "creative_chaos": "7ml - 창조적 혼돈",
+                "artist_energy": "6ml - 예술가의 강렬한 에너지"
+              },
+              "heart": {
+                "unconscious_flow": "12ml - 무의식의 흐름",
+                "raw_emotion": "10ml - 날 것의 감정",
+                "gestural_freedom": "9ml - 몸짓의 자유"
+              },
+              "base": {
+                "primal_instinct": "8ml - 원시적 본능",
+                "american_spirit": "7ml - 아메리칸 스피릿",
+                "art_revolution": "6ml - 예술 혁명"
+              }
+            },
+            "experiential_elements": {
+              "kinetic_sensation": "운동감각적 경험",
+              "emotional_release": "감정의 분출",
+              "creative_liberation": "창조적 해방"
+            }
+          },
+          "rothko_meditation": {
+            "artistic_reference": "마크 로스코의 색면 회화",
+            "fragrance_concept": "색채의 명상적 깊이와 영적 체험",
+            "scent_profile": {
+              "opening": {
+                "color_fields": "6ml - 색면의 순수함",
+                "contemplative_silence": "5ml - 명상적 침묵",
+                "spiritual_light": "7ml - 영적인 빛"
+              },
+              "heart": {
+                "deep_meditation": "14ml - 깊은 명상",
+                "transcendent_red": "10ml - 초월적 빨강",
+                "infinite_space": "8ml - 무한한 공간"
+              },
+              "base": {
+                "eternal_soul": "9ml - 영원한 영혼",
+                "mystical_union": "7ml - 신비로운 합일",
+                "sublime_experience": "6ml - 숭고한 경험"
+              }
+            },
+            "meditative_qualities": {
+              "inner_peace": "내적 평화",
+              "spiritual_depth": "영적 깊이",
+              "transcendent_beauty": "초월적 아름다움"
+            }
+          },
+          "de_kooning_woman": {
+            "artistic_reference": "윌렘 드 쿠닝의 여인 시리즈",
+            "fragrance_concept": "여성성의 복합적이고 모순적인 표현",
+            "scent_profile": {
+              "opening": {
+                "fierce_femininity": "8ml - 강렬한 여성성",
+                "abstract_beauty": "7ml - 추상적 아름다움",
+                "emotional_complexity": "6ml - 감정의 복잡함"
+              },
+              "heart": {
+                "distorted_grace": "11ml - 비틀린 우아함",
+                "primitive_power": "10ml - 원시적 힘",
+                "modern_anxiety": "9ml - 현대적 불안"
+              },
+              "base": {
+                "existential_struggle": "8ml - 실존적 고투",
+                "human_condition": "7ml - 인간 조건",
+                "artistic_truth": "6ml - 예술적 진실"
+              }
+            },
+            "psychological_depth": {
+              "emotional_turbulence": "감정의 격류",
+              "identity_fragmentation": "정체성의 파편화",
+              "authentic_expression": "진정성 있는 표현"
+            }
+          },
+          "motherwell_elegy": {
+            "artistic_reference": "로버트 마더웰의 스페인 공화국을 위한 비가",
+            "fragrance_concept": "역사적 비극과 기억의 향수",
+            "scent_profile": {
+              "opening": {
+                "tragic_memory": "7ml - 비극적 기억",
+                "spanish_sorrow": "6ml - 스페인의 슬픔",
+                "historical_weight": "5ml - 역사의 무게"
+              },
+              "heart": {
+                "collective_mourning": "12ml - 집단적 애도",
+                "resistance_spirit": "10ml - 저항 정신",
+                "human_dignity": "9ml - 인간의 존엄"
+              },
+              "base": {
+                "eternal_remembrance": "8ml - 영원한 기억",
+                "freedom_hope": "7ml - 자유에 대한 희망",
+                "artistic_witness": "6ml - 예술적 증언"
+              }
+            },
+            "memorial_significance": {
+              "historical_consciousness": "역사 의식",
+              "collective_memory": "집단 기억",
+              "artistic_responsibility": "예술가적 책임"
+            }
+          }
+        },
+        "avant_garde_elements": {
+          "experimental_techniques": "실험적 조향 기법",
+          "unconventional_materials": "비전통적 향료 사용",
+          "boundary_pushing": "경계를 허무는 도전",
+          "artistic_integrity": "예술적 진정성"
+        }
+      },
+      "surrealism_dream_series": {
+        "collection_concept": "초현실주의의 꿈과 무의식의 세계",
+        "artistic_inspiration": "살바도르 달리, 르네 마그리트, 막스 에른스트",
+        "fragrance_count": 5,
+        "collection_structure": {
+          "dali_persistence": {
+            "artistic_reference": "달리의 '기억의 지속'",
+            "fragrance_concept": "시간의 유동성과 기억의 변형",
+            "scent_profile": {
+              "opening": {
+                "melting_time": "7ml - 녹아내리는 시간",
+                "desert_mirage": "6ml - 사막의 신기루",
+                "surreal_landscape": "8ml - 초현실적 풍경"
+              },
+              "heart": {
+                "persistent_memory": "11ml - 지속되는 기억",
+                "unconscious_desire": "10ml - 무의식적 욕망",
+                "dream_logic": "9ml - 꿈의 논리"
+              },
+              "base": {
+                "eternal_moment": "8ml - 영원한 순간",
+                "metamorphosis": "7ml - 변신",
+                "psychic_landscape": "6ml - 정신적 풍경"
+              }
+            },
+            "temporal_philosophy": {
+              "fluid_time": "유동하는 시간",
+              "memory_distortion": "기억의 왜곡",
+              "reality_questioning": "현실에 대한 의문"
+            }
+          },
+          "magritte_treachery": {
+            "artistic_reference": "마그리트의 '이미지의 배반'",
+            "fragrance_concept": "현실과 표상의 괴리",
+            "scent_profile": {
+              "opening": {
+                "visual_paradox": "6ml - 시각적 역설",
+                "conceptual_surprise": "7ml - 개념적 놀라움",
+                "reality_question": "5ml - 현실에 대한 의문"
+              },
+              "heart": {
+                "intellectual_poetry": "12ml - 지적인 시정신",
+                "ordinary_mystery": "10ml - 일상의 신비",
+                "thought_experiment": "9ml - 사고 실험"
+              },
+              "base": {
+                "philosophical_depth": "8ml - 철학적 깊이",
+                "conceptual_art": "7ml - 개념 예술",
+                "mental_landscape": "6ml - 정신적 풍경"
+              }
+            },
+            "intellectual_elements": {
+              "conceptual_clarity": "개념적 명확성",
+              "logical_impossibility": "논리적 불가능성",
+              "poetic_precision": "시적 정확성"
+            }
+          },
+          "ernst_forest": {
+            "artistic_reference": "막스 에른스트의 석화된 숲",
+            "fragrance_concept": "원시적 무의식과 자연의 신비",
+            "scent_profile": {
+              "opening": {
+                "petrified_nature": "8ml - 석화된 자연",
+                "primordial_forest": "7ml - 원시림",
+                "geological_time": "6ml - 지질학적 시간"
+              },
+              "heart": {
+                "unconscious_nature": "11ml - 무의식적 자연",
+                "mythical_creatures": "10ml - 신화적 생명체",
+                "ancient_wisdom": "9ml - 고대의 지혜"
+              },
+              "base": {
+                "earth_memory": "8ml - 대지의 기억",
+                "evolutionary_dream": "7ml - 진화의 꿈",
+                "cosmic_connection": "6ml - 우주적 연결"
+              }
+            },
+            "prehistoric_elements": {
+              "geological_layers": "지질학적 층위",
+              "evolutionary_history": "진화의 역사",
+              "natural_mythology": "자연의 신화"
+            }
+          },
+          "miro_constellation": {
+            "artistic_reference": "미로의 별자리 시리즈",
+            "fragrance_concept": "우주적 놀이와 순수한 기쁨",
+            "scent_profile": {
+              "opening": {
+                "cosmic_play": "8ml - 우주적 놀이",
+                "stellar_dance": "7ml - 별들의 춤",
+                "childlike_wonder": "6ml - 어린이 같은 경이"
+              },
+              "heart": {
+                "celestial_joy": "12ml - 천상의 기쁨",
+                "pure_color": "10ml - 순수한 색채",
+                "musical_shapes": "9ml - 음악적 형태"
+              },
+              "base": {
+                "infinite_space": "8ml - 무한한 공간",
+                "eternal_play": "7ml - 영원한 놀이",
+                "cosmic_harmony": "6ml - 우주적 조화"
+              }
+            },
+            "playful_elements": {
+              "innocent_joy": "순진한 기쁨",
+              "cosmic_humor": "우주적 유머",
+              "spontaneous_creation": "자발적 창조"
+            }
+          },
+          "chirico_metaphysical": {
+            "artistic_reference": "키리코의 형이상학적 광장",
+            "fragrance_concept": "시간이 정지된 공간의 신비",
+            "scent_profile": {
+              "opening": {
+                "empty_plaza": "6ml - 텅 빈 광장",
+                "long_shadows": "7ml - 긴 그림자",
+                "metaphysical_silence": "5ml - 형이상학적 침묵"
+              },
+              "heart": {
+                "eternal_afternoon": "11ml - 영원한 오후",
+                "mysterious_architecture": "10ml - 신비로운 건축",
+                "nostalgic_melancholy": "9ml - 향수 어린 우울"
+              },
+              "base": {
+                "timeless_space": "8ml - 시간 없는 공간",
+                "existential_anxiety": "7ml - 실존적 불안",
+                "poetic_solitude": "6ml - 시적 고독"
+              }
+            },
+            "metaphysical_qualities": {
+              "spatial_mystery": "공간의 신비",
+              "temporal_suspension": "시간의 정지",
+              "existential_questioning": "실존적 질문"
+            }
+          }
+        },
+        "unconscious_exploration": {
+          "dream_interpretation": "꿈의 해석",
+          "symbolic_language": "상징적 언어",
+          "psychoanalytic_insight": "정신분석학적 통찰",
+          "creative_unconscious": "창조적 무의식"
+        }
+      }
+    },
+    "collection_development_methodology": {
+      "research_phase": {
+        "art_historical_study": "미술사적 연구와 분석",
+        "cultural_context_analysis": "문화적 맥락 파악",
+        "artist_biography_study": "작가 전기 연구",
+        "movement_characteristics": "예술 운동의 특성 이해",
+        "contemporary_relevance": "현대적 의미와 관련성"
+      },
+      "concept_development": {
+        "artistic_interpretation": "예술적 해석과 번역",
+        "olfactory_metaphor": "후각적 은유 개발",
+        "emotional_mapping": "감정적 매핑",
+        "sensory_synesthesia": "감각적 공감각",
+        "narrative_construction": "내러티브 구성"
+      },
+      "formulation_process": {
+        "ingredient_selection": "원료 선택과 조합",
+        "prototype_development": "프로토타입 개발",
+        "artistic_review": "예술적 검토",
+        "technical_refinement": "기술적 개선",
+        "final_approval": "최종 승인"
+      },
+      "quality_assurance": {
+        "artistic_authenticity": "예술적 진정성",
+        "olfactory_excellence": "후각적 우수성",
+        "cultural_sensitivity": "문화적 민감성",
+        "technical_stability": "기술적 안정성",
+        "market_appropriateness": "시장 적절성"
+      }
+    },
+    "educational_components": {
+      "art_education": {
+        "movement_explanations": "예술 운동 설명",
+        "artist_biographies": "작가 전기",
+        "work_analysis": "작품 분석",
+        "historical_context": "역사적 맥락",
+        "influence_legacy": "영향과 유산"
+      },
+      "perfumery_education": {
+        "ingredient_information": "원료 정보",
+        "blending_techniques": "블렌딩 기법",
+        "olfactory_training": "후각 훈련",
+        "cultural_perfumery": "문화별 조향법",
+        "contemporary_trends": "현대적 트렌드"
+      },
+      "synesthetic_exploration": {
+        "cross_sensory_perception": "교차 감각 인지",
+        "color_scent_correlation": "색채-향 상관관계",
+        "texture_fragrance_mapping": "질감-향료 매핑",
+        "sound_smell_synesthesia": "소리-냄새 공감각",
+        "emotional_olfactory_connection": "감정-후각 연결"
+      }
+    },
+    "presentation_formats": {
+      "museum_collaboration": {
+        "exhibition_integration": "전시 연계",
+        "educational_programs": "교육 프로그램",
+        "artist_retrospectives": "작가 회고전",
+        "thematic_exhibitions": "주제별 전시",
+        "public_engagement": "대중 참여"
+      },
+      "luxury_retail": {
+        "flagship_stores": "플래그십 스토어",
+        "art_gallery_partnerships": "아트 갤러리 파트너십",
+        "collector_editions": "컬렉터 에디션",
+        "private_consultations": "개인 상담",
+        "custom_blending": "맞춤 블렌딩"
+      },
+      "digital_platforms": {
+        "virtual_exhibitions": "가상 전시",
+        "ar_experiences": "증강현실 경험",
+        "educational_apps": "교육용 앱",
+        "online_masterclasses": "온라인 마스터클래스",
+        "social_art_sharing": "소셜 아트 공유"
+      }
+    },
+    "sustainability_considerations": {
+      "ethical_sourcing": {
+        "fair_trade_ingredients": "공정 거래 원료",
+        "local_artist_support": "지역 작가 지원",
+        "cultural_preservation": "문화 보존",
+        "community_engagement": "지역사회 참여",
+        "traditional_craft_support": "전통 공예 지원"
+      },
+      "environmental_responsibility": {
+        "eco_friendly_packaging": "친환경 패키징",
+        "renewable_ingredients": "재생 가능 원료",
+        "carbon_neutral_production": "탄소 중립 생산",
+        "waste_reduction": "폐기물 감소",
+        "recycling_programs": "재활용 프로그램"
+      },
+      "social_impact": {
+        "art_education_funding": "예술 교육 후원",
+        "emerging_artist_support": "신진 작가 지원",
+        "cultural_accessibility": "문화 접근성",
+        "diversity_inclusion": "다양성과 포용성",
+        "global_cultural_exchange": "세계 문화 교류"
+      }
+    }
+  }
+}

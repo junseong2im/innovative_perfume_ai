@@ -1,0 +1,257 @@
+{
+  "multi_domain_training_data": [
+    {
+      "category": "location_based",
+      "subcategory": "cities",
+      "input": "파리의 에펠탑 아래에서 느낄 수 있는 향수를 만들어주세요",
+      "output": {
+        "fragrance_name": "Tour Eiffel Elegance",
+        "korean_name": "에펠탑 엘레강스",
+        "concept": "파리의 로맨틱함과 철골 구조물의 모던함이 만나는 향기",
+        "inspiration": "에펠탑의 철제 구조물, 센강의 미스트, 파리지엔의 세련미",
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "metallic_accord", "percentage": 20, "reason": "에펠탑의 철제 느낌"},
+            {"note": "fresh_rain", "percentage": 30, "reason": "센강의 습기"},
+            {"note": "bergamot", "percentage": 25, "reason": "파리지엔의 세련미"},
+            {"note": "pink_pepper", "percentage": 25, "reason": "파리의 활기참"}
+          ],
+          "middle_notes": [
+            {"note": "rose_de_mai", "percentage": 40, "reason": "프랑스 장미의 우아함"},
+            {"note": "violet_leaves", "percentage": 30, "reason": "파리 공원의 녹음"},
+            {"note": "iris", "percentage": 30, "reason": "파리지엔의 고급스러움"}
+          ],
+          "base_notes": [
+            {"note": "grey_amber", "percentage": 35, "reason": "파리의 회색 건물들"},
+            {"note": "clean_musk", "percentage": 35, "reason": "도시적 세련미"},
+            {"note": "soft_woods", "percentage": 30, "reason": "세느강변 플라타너스"}
+          ]
+        },
+        "mood": ["romantic", "urban", "sophisticated"],
+        "time_period": "evening",
+        "atmosphere": "iconic_landmark"
+      }
+    },
+    {
+      "category": "location_based",
+      "subcategory": "natural",
+      "input": "제주도 한라산 정상에서 느낄 수 있는 향수를 제작해주세요",
+      "output": {
+        "fragrance_name": "Hallasan Summit",
+        "korean_name": "한라산 정상",
+        "concept": "제주도 최고봉의 신성함과 자연의 순수함",
+        "inspiration": "한라산 정상의 맑은 공기, 고산 식물, 제주의 바람",
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "mountain_air", "percentage": 40, "reason": "고산 지대의 맑은 공기"},
+            {"note": "jeju_tangerine", "percentage": 30, "reason": "제주 특산 감귤"},
+            {"note": "pine_needles", "percentage": 30, "reason": "한라산 침엽수림"}
+          ],
+          "middle_notes": [
+            {"note": "azalea", "percentage": 35, "reason": "한라산 철쭉"},
+            {"note": "mountain_herbs", "percentage": 35, "reason": "고산 야생화"},
+            {"note": "volcanic_stone", "percentage": 30, "reason": "화산암 지대의 미네랄"}
+          ],
+          "base_notes": [
+            {"note": "jeju_moss", "percentage": 40, "reason": "제주도 이끼"},
+            {"note": "basalt", "percentage": 30, "reason": "현무암의 깊이"},
+            {"note": "sea_breeze", "percentage": 30, "reason": "섬에서 불어오는 바닷바람"}
+          ]
+        },
+        "mood": ["pure", "energizing", "spiritual"],
+        "altitude": "1947m",
+        "atmosphere": "sacred_mountain"
+      }
+    },
+    {
+      "category": "historical_artifacts",
+      "subcategory": "ancient",
+      "input": "경복궁 근정전에서 영감을 받은 향수를 만들어주세요",
+      "output": {
+        "fragrance_name": "Geungjeongjeon Majesty",
+        "korean_name": "근정전의 위엄",
+        "concept": "조선왕조의 권위와 전통 한옥의 아름다움",
+        "inspiration": "단청의 색채, 기와의 무게감, 궁궐의 격조",
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "korean_paper", "percentage": 25, "reason": "한지의 은은함"},
+            {"note": "ink_stone", "percentage": 20, "reason": "먹의 깊이"},
+            {"note": "pine_resin", "percentage": 30, "reason": "궁궐 건축재 소나무"},
+            {"note": "ginger_flower", "percentage": 25, "reason": "궁중 정원의 화사함"}
+          ],
+          "middle_notes": [
+            {"note": "lotus", "percentage": 40, "reason": "궁중 연못의 연꽃"},
+            {"note": "korean_orchid", "percentage": 30, "reason": "사군자의 고결함"},
+            {"note": "celadon", "percentage": 30, "reason": "청자의 은은한 향기"}
+          ],
+          "base_notes": [
+            {"note": "ancient_wood", "percentage": 35, "reason": "수백년 된 궁궐 목재"},
+            {"note": "golden_musk", "percentage": 35, "reason": "황금 단청의 화려함"},
+            {"note": "stone_moss", "percentage": 30, "reason": "궁궐 석조물의 이끼"}
+          ]
+        },
+        "mood": ["majestic", "traditional", "noble"],
+        "era": "joseon_dynasty",
+        "atmosphere": "royal_palace"
+      }
+    },
+    {
+      "category": "historical_artifacts",
+      "subcategory": "art",
+      "input": "반 고흐의 '별이 빛나는 밤'에서 영감을 받은 향수를 만들어주세요",
+      "output": {
+        "fragrance_name": "Starry Night Dreams",
+        "korean_name": "별이 빛나는 꿈",
+        "concept": "고흐의 격정적인 붓터치와 밤하늘의 신비로움",
+        "inspiration": "소용돌이치는 별, 사이프러스 나무, 프로방스의 밤",
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "night_blooming_jasmine", "percentage": 35, "reason": "밤에 피는 꽃의 신비"},
+            {"note": "silver_mist", "percentage": 25, "reason": "은빛 별빛"},
+            {"note": "cypress_leaves", "percentage": 40, "reason": "그림 속 사이프러스 나무"}
+          ],
+          "middle_notes": [
+            {"note": "midnight_iris", "percentage": 30, "reason": "깊은 밤의 보랏빛"},
+            {"note": "swirling_winds", "percentage": 35, "reason": "소용돌이치는 하늘"},
+            {"note": "artist_passion", "percentage": 35, "reason": "화가의 열정적 감정"}
+          ],
+          "base_notes": [
+            {"note": "deep_blue", "percentage": 40, "reason": "밤하늘의 깊은 파랑"},
+            {"note": "golden_stars", "percentage": 30, "reason": "황금빛 별들"},
+            {"note": "canvas_musk", "percentage": 30, "reason": "캔버스와 유화물감의 향"}
+          ]
+        },
+        "mood": ["dreamy", "artistic", "mystical"],
+        "art_period": "post_impressionism",
+        "atmosphere": "artistic_inspiration"
+      }
+    },
+    {
+      "category": "academic_events",
+      "subcategory": "graduation_exhibition",
+      "input": "미술대학 졸업작품전시회 분위기에 맞는 향수를 만들어주세요",
+      "output": {
+        "fragrance_name": "Creative Genesis",
+        "korean_name": "창작의 시작",
+        "concept": "예술가의 첫 걸음과 무한한 창작 가능성",
+        "inspiration": "전시회장의 설렘, 작품에 담긴 열정, 새로운 시작",
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "fresh_canvas", "percentage": 30, "reason": "새 캔버스의 가능성"},
+            {"note": "art_studio_air", "percentage": 25, "reason": "작업실의 창조적 공기"},
+            {"note": "exhibition_lights", "percentage": 25, "reason": "전시장 조명의 빛"},
+            {"note": "nervous_excitement", "percentage": 20, "reason": "첫 전시의 떨림"}
+          ],
+          "middle_notes": [
+            {"note": "mixed_media", "percentage": 30, "reason": "다양한 재료의 조화"},
+            {"note": "creative_process", "percentage": 35, "reason": "창작 과정의 고뇌와 기쁨"},
+            {"note": "critique_wisdom", "percentage": 35, "reason": "교수와 동료들의 조언"}
+          ],
+          "base_notes": [
+            {"note": "achievement_pride", "percentage": 35, "reason": "완성작에 대한 자부심"},
+            {"note": "future_dreams", "percentage": 35, "reason": "예술가로서의 꿈"},
+            {"note": "lasting_memory", "percentage": 30, "reason": "평생 간직할 추억"}
+          ]
+        },
+        "mood": ["inspiring", "proud", "hopeful"],
+        "academic_level": "undergraduate_final",
+        "atmosphere": "artistic_milestone"
+      }
+    },
+    {
+      "category": "academic_events",
+      "subcategory": "thesis_defense",
+      "input": "박사논문 심사 당일의 긴장감과 성취감을 담은 향수를 만들어주세요",
+      "output": {
+        "fragrance_name": "Doctoral Defense",
+        "korean_name": "박사학위의 문턱",
+        "concept": "오랜 연구의 결실과 학자로서의 자부심",
+        "inspiration": "도서관의 고즈넉함, 연구의 깊이, 지적 성취감",
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "library_paper", "percentage": 35, "reason": "수많은 논문과 책"},
+            {"note": "morning_coffee", "percentage": 30, "reason": "밤샘 연구의 동반자"},
+            {"note": "sharp_focus", "percentage": 35, "reason": "예리한 집중력"}
+          ],
+          "middle_notes": [
+            {"note": "deep_thought", "percentage": 40, "reason": "깊은 사유의 과정"},
+            {"note": "knowledge_wisdom", "percentage": 30, "reason": "축적된 지식과 지혜"},
+            {"note": "academic_rigor", "percentage": 30, "reason": "학문적 엄밀함"}
+          ],
+          "base_notes": [
+            {"note": "scholarly_oak", "percentage": 35, "reason": "학자의 권위와 깊이"},
+            {"note": "achievement_amber", "percentage": 35, "reason": "성취의 따뜻한 빛"},
+            {"note": "lifelong_learning", "percentage": 30, "reason": "평생학습의 다짐"}
+          ]
+        },
+        "mood": ["intellectual", "accomplished", "confident"],
+        "academic_level": "doctoral",
+        "atmosphere": "scholarly_achievement"
+      }
+    },
+    {
+      "category": "emotional_concepts",
+      "subcategory": "life_transitions",
+      "input": "첫 직장 출근날의 설렘과 걱정을 담은 향수를 만들어주세요",
+      "output": {
+        "fragrance_name": "First Day Forward",
+        "korean_name": "첫 출근의 다짐",
+        "concept": "새로운 시작에 대한 기대와 성장에 대한 의지",
+        "inspiration": "새 정장의 느낌, 지하철의 러시아워, 오피스 건물",
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "crisp_shirt", "percentage": 30, "reason": "새로 다린 셔츠의 청량함"},
+            {"note": "morning_rush", "percentage": 25, "reason": "바쁜 아침의 활기"},
+            {"note": "elevator_steel", "percentage": 25, "reason": "오피스 빌딩의 현대적 느낌"},
+            {"note": "nervous_energy", "percentage": 20, "reason": "첫날의 긴장감"}
+          ],
+          "middle_notes": [
+            {"note": "professional_confidence", "percentage": 35, "reason": "전문가로서의 자신감"},
+            {"note": "team_harmony", "percentage": 35, "reason": "동료들과의 조화"},
+            {"note": "learning_curve", "percentage": 30, "reason": "새로운 배움의 과정"}
+          ],
+          "base_notes": [
+            {"note": "career_ambition", "percentage": 40, "reason": "커리어에 대한 포부"},
+            {"note": "stable_foundation", "percentage": 30, "reason": "안정적인 기반"},
+            {"note": "growth_potential", "percentage": 30, "reason": "무한한 성장 가능성"}
+          ]
+        },
+        "mood": ["ambitious", "nervous", "hopeful"],
+        "life_stage": "young_professional",
+        "atmosphere": "new_beginning"
+      }
+    }
+  ],
+  "generation_templates": {
+    "location_based": {
+      "prompt_format": "### 요청: {location}에서 느낄 수 있는 향수를 만들어주세요\n### 레시피:",
+      "output_structure": {
+        "fragrance_name": "영문명",
+        "korean_name": "한글명",
+        "concept": "컨셉 설명",
+        "inspiration": "영감의 원천",
+        "atmosphere": "분위기 태그"
+      }
+    },
+    "historical_artifacts": {
+      "prompt_format": "### 요청: {artifact}에서 영감을 받은 향수를 만들어주세요\n### 레시피:",
+      "output_structure": {
+        "fragrance_name": "영문명",
+        "korean_name": "한글명",
+        "concept": "역사적 의미와 향기의 연결",
+        "era": "시대적 배경",
+        "atmosphere": "역사적 분위기"
+      }
+    },
+    "academic_events": {
+      "prompt_format": "### 요청: {event} 분위기에 맞는 향수를 만들어주세요\n### 레시피:",
+      "output_structure": {
+        "fragrance_name": "영문명",
+        "korean_name": "한글명",
+        "concept": "학문적 의미와 감정의 조화",
+        "academic_level": "학위/학년",
+        "atmosphere": "학술적 분위기"
+      }
+    }
+  }
+}

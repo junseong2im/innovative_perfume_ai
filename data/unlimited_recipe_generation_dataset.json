@@ -1,0 +1,546 @@
+{
+  "unlimited_recipe_training_data": [
+    {
+      "id": "MEGA_001",
+      "input": "우울할 때 기분을 좋게 해주는 향수를 만들어주세요. 향기요법 효과가 있으면서도 주변 사람들이 좋아할만한 향으로요.",
+      "output": {
+        "fragrance_name": "Mood Elevation Therapy",
+        "korean_name": "기분 상승 테라피",
+        "therapeutic_concept": "우울감 완화와 기분 개선을 위한 아로마테라피 향수",
+        "scientific_basis": "라벤더와 베르가못의 세로토닌 증가 효과, 바닐라의 엔돌핀 분비 촉진",
+        "fragrance_family": "aromatic_floral_gourmand",
+        "concentration": "eau_de_parfum",
+        "target_concentration": 16,
+        "detailed_formulation": {
+          "total_volume": "100ml",
+          "perfume_oil_concentration": "16ml",
+          "alcohol_96%": "80ml",
+          "distilled_water": "4ml",
+          "notes_breakdown": {
+            "top_notes": {
+              "total_percentage": 30,
+              "bergamot": {
+                "percentage": 35,
+                "weight_in_oil": "1.68ml",
+                "therapeutic_property": "항우울, 스트레스 완화",
+                "quality_grade": "italian_calabrian_fcf_free",
+                "supplier_note": "베르가프텐 제거하여 광독성 방지",
+                "blending_note": "첫 15분간 즉각적인 기분 개선 효과"
+              },
+              "sweet_orange": {
+                "percentage": 25,
+                "weight_in_oil": "1.2ml",
+                "therapeutic_property": "기분 밝게 함, 에너지 증진",
+                "origin": "brazil_valencia",
+                "blending_note": "베르가못의 세련미를 부드럽게 보완"
+              },
+              "grapefruit": {
+                "percentage": 20,
+                "weight_in_oil": "0.96ml",
+                "therapeutic_property": "활력 증진, 자신감 향상",
+                "variety": "pink_grapefruit",
+                "blending_note": "상쾌함으로 무기력감 제거"
+              },
+              "petitgrain": {
+                "percentage": 20,
+                "weight_in_oil": "0.96ml",
+                "therapeutic_property": "신경 안정, 정신적 균형",
+                "origin": "paraguay",
+                "blending_note": "시트러스와 플로럴을 자연스럽게 연결"
+              }
+            },
+            "middle_notes": {
+              "total_percentage": 40,
+              "lavender": {
+                "percentage": 30,
+                "weight_in_oil": "1.92ml",
+                "therapeutic_property": "세로토닌 증가, 불안감 완화",
+                "variety": "french_fine_lavender",
+                "origin": "provence_aop",
+                "quality_note": "최고급 프로방스 라벤더로 진정 효과 극대화",
+                "blending_note": "향수의 치료적 핵심, 30분-2시간 지속 효과"
+              },
+              "geranium": {
+                "percentage": 25,
+                "weight_in_oil": "1.6ml",
+                "therapeutic_property": "호르몬 균형, 감정 안정",
+                "variety": "bourbon_geranium",
+                "origin": "reunion_island",
+                "blending_note": "라벤더와 로즈를 자연스럽게 연결"
+              },
+              "rose": {
+                "percentage": 20,
+                "weight_in_oil": "1.28ml",
+                "therapeutic_property": "자존감 향상, 사랑받는 느낌",
+                "variety": "damask_rose_10_percent_dilution",
+                "origin": "bulgaria_kazanlak",
+                "cost_optimization": "10% 희석액 사용으로 비용 절감하면서 품질 유지",
+                "blending_note": "우울감에 특히 효과적인 '사랑' 감정 유발"
+              },
+              "ylang_ylang": {
+                "percentage": 15,
+                "weight_in_oil": "0.96ml",
+                "therapeutic_property": "행복감 증진, 감정 고양",
+                "grade": "ylang_ylang_extra",
+                "origin": "comoros_islands",
+                "blending_note": "이국적 매력으로 기분 전환 효과"
+              },
+              "chamomile": {
+                "percentage": 10,
+                "weight_in_oil": "0.64ml",
+                "therapeutic_property": "신경 진정, 내면 평화",
+                "variety": "roman_chamomile",
+                "blending_note": "부드러운 진정 효과로 과도한 자극 방지"
+              }
+            },
+            "base_notes": {
+              "total_percentage": 30,
+              "vanilla": {
+                "percentage": 35,
+                "weight_in_oil": "1.68ml",
+                "therapeutic_property": "엔돌핀 분비, 행복감 증진",
+                "variety": "madagascar_vanilla_absolute",
+                "origin": "madagascar_sambava",
+                "blending_note": "달콤함으로 장기적 행복감 제공, 8시간+ 지속"
+              },
+              "sandalwood": {
+                "percentage": 25,
+                "weight_in_oil": "1.2ml",
+                "therapeutic_property": "명상적 평화, 정신적 안정",
+                "variety": "australian_sandalwood",
+                "sustainability_note": "지속가능한 호주산 사용",
+                "blending_note": "깊은 내면의 평화와 안정감 제공"
+              },
+              "white_musk": {
+                "percentage": 20,
+                "weight_in_oil": "0.96ml",
+                "therapeutic_property": "피부 친화적, 편안함",
+                "type": "synthetic_white_musk_blend",
+                "components": ["galaxolide", "muscenone"],
+                "blending_note": "깨끗하고 편안한 피부 같은 마무리"
+              },
+              "benzoin": {
+                "percentage": 15,
+                "weight_in_oil": "0.72ml",
+                "therapeutic_property": "포근함, 위로감",
+                "origin": "sumatra",
+                "blending_note": "바닐라의 달콤함을 부드럽게 지지"
+              },
+              "amber": {
+                "percentage": 5,
+                "weight_in_oil": "0.24ml",
+                "therapeutic_property": "따뜻함, 안정감",
+                "composition": "labdanum_vanilla_benzoin_blend",
+                "blending_note": "전체적인 따뜻함과 포근함 완성"
+              }
+            }
+          }
+        },
+        "manufacturing_process": {
+          "step_1_preparation": {
+            "equipment": "정밀 저울, 유리 비커, 교반봉",
+            "safety": "장갑 착용, 환기 잘 되는 곳에서 작업"
+          },
+          "step_2_base_notes": "베이스 노트부터 차례로 혼합, 각각 30초씩 교반",
+          "step_3_middle_notes": "미들 노트 추가, 순서대로 혼합",
+          "step_4_top_notes": "탑 노트 마지막에 추가",
+          "step_5_alcohol_addition": "96% 에탄올 천천히 추가하며 지속적 교반",
+          "step_6_maturation": "밀폐 용기에서 4-6주간 숙성",
+          "step_7_filtration": "미세 여과지로 불순물 제거",
+          "step_8_water_addition": "증류수 소량 추가로 최종 조정",
+          "step_9_final_aging": "추가 2주 숙성 후 완성"
+        },
+        "characteristics": {
+          "longevity": 8,
+          "sillage": 6,
+          "projection": 5,
+          "therapeutic_effectiveness": 9,
+          "mood_evocation": ["uplifting", "comforting", "hopeful", "peaceful"]
+        },
+        "usage_guide": {
+          "application_points": ["pulse_points", "behind_ears", "inner_wrists"],
+          "best_times": ["morning_for_energy", "evening_for_comfort"],
+          "dosage": "2-3_sprays_maximum",
+          "frequency": "daily_use_safe"
+        },
+        "clinical_notes": {
+          "contraindications": "임신 중 라벤더 과다 사용 주의",
+          "age_restrictions": "12세 이상 사용 권장",
+          "skin_sensitivity": "패치 테스트 권장"
+        }
+      }
+    },
+    {
+      "id": "MEGA_002",
+      "input": "50대 CEO 남성이 중요한 비즈니스 미팅에서 사용할 수 있는 강력하면서도 세련된 향수를 만들어주세요. 신뢰감과 카리스마를 표현하고 싶어요.",
+      "output": {
+        "fragrance_name": "Executive Authority",
+        "korean_name": "경영진의 권위",
+        "business_concept": "성공한 리더의 카리스마와 신뢰성을 향으로 표현",
+        "psychological_impact": "상대방에게 능력과 신뢰감을 무의식적으로 전달",
+        "fragrance_family": "woody_aromatic_spicy",
+        "concentration": "eau_de_parfum",
+        "target_concentration": 18,
+        "detailed_formulation": {
+          "total_volume": "100ml",
+          "perfume_oil_concentration": "18ml",
+          "alcohol_96%": "78ml",
+          "distilled_water": "4ml",
+          "notes_breakdown": {
+            "top_notes": {
+              "total_percentage": 25,
+              "bergamot_fcf": {
+                "percentage": 40,
+                "weight_in_oil": "1.8ml",
+                "psychological_effect": "지적이고 세련된 첫인상",
+                "quality": "italian_reggio_calabria_premium",
+                "business_note": "국제 비즈니스에서 보편적으로 선호되는 향",
+                "projection_time": "첫 30분간 강력한 존재감"
+              },
+              "black_pepper": {
+                "percentage": 25,
+                "weight_in_oil": "1.125ml",
+                "psychological_effect": "에너지와 결단력 표현",
+                "origin": "madagascar_premium",
+                "business_note": "협상력과 추진력을 무의식적으로 전달",
+                "blending_note": "베르가못의 우아함에 남성적 강인함 추가"
+              },
+              "cardamom": {
+                "percentage": 20,
+                "weight_in_oil": "0.9ml",
+                "psychological_effect": "이국적 세련미, 국제적 감각",
+                "quality": "guatemalan_green_cardamom",
+                "business_note": "글로벌 비즈니스 감각 표현",
+                "cultural_significance": "동서양 모두에서 고급스러움의 상징"
+              },
+              "grapefruit": {
+                "percentage": 15,
+                "weight_in_oil": "0.675ml",
+                "psychological_effect": "활력과 자신감",
+                "variety": "white_grapefruit",
+                "business_note": "아침 미팅에 특히 효과적"
+              }
+            },
+            "middle_notes": {
+              "total_percentage": 35,
+              "iris": {
+                "percentage": 30,
+                "weight_in_oil": "1.89ml",
+                "psychological_effect": "고귀함과 품격의 상징",
+                "quality": "florentine_iris_pallida",
+                "origin": "italy_florence",
+                "cost_note": "매우 고가이지만 럭셔리함의 핵심",
+                "business_impact": "최고급 브랜드와 동일한 품격 전달",
+                "aging_requirement": "3년 숙성된 iris root 사용"
+              },
+              "geranium": {
+                "percentage": 25,
+                "weight_in_oil": "1.575ml",
+                "psychological_effect": "균형감과 안정감",
+                "variety": "bourbon_geranium",
+                "origin": "reunion_island",
+                "business_note": "신뢰성과 일관성을 무의식적으로 전달"
+              },
+              "lavender": {
+                "percentage": 20,
+                "weight_in_oil": "1.26ml",
+                "psychological_effect": "침착함과 명료한 판단력",
+                "variety": "spike_lavender",
+                "origin": "spain",
+                "business_advantage": "스트레스 상황에서도 냉정함 유지",
+                "blending_note": "일반 라벤더보다 더 남성적이고 캄포러스함"
+              },
+              "clary_sage": {
+                "percentage": 15,
+                "weight_in_oil": "0.945ml",
+                "psychological_effect": "명확한 의사소통 능력",
+                "origin": "france_provence",
+                "business_impact": "프레젠테이션과 협상 시 효과적"
+              },
+              "nutmeg": {
+                "percentage": 10,
+                "weight_in_oil": "0.63ml",
+                "psychological_effect": "따뜻한 카리스마",
+                "origin": "grenada",
+                "business_note": "딱딱하지 않은 접근하기 쉬운 리더십 표현"
+              }
+            },
+            "base_notes": {
+              "total_percentage": 40,
+              "vetiver": {
+                "percentage": 30,
+                "weight_in_oil": "2.16ml",
+                "psychological_effect": "근본적 안정감과 신뢰성",
+                "variety": "haitian_vetiver",
+                "origin": "haiti_premium",
+                "business_impact": "장기적 신뢰 관계 구축에 효과적",
+                "longevity": "12시간 이상 지속되는 신뢰감의 기반"
+              },
+              "cedar": {
+                "percentage": 25,
+                "weight_in_oil": "1.8ml",
+                "psychological_effect": "확고함과 결단력",
+                "variety": "atlas_cedar",
+                "origin": "morocco",
+                "business_symbolism": "흔들리지 않는 신념과 의지력"
+              },
+              "patchouli": {
+                "percentage": 20,
+                "weight_in_oil": "1.44ml",
+                "psychological_effect": "깊이와 복잡성",
+                "quality": "indonesian_light_patchouli",
+                "business_note": "다각적 사고와 전략적 마인드 표현",
+                "processing": "철분 제거 처리된 고급 패출리"
+              },
+              "tonka_bean": {
+                "percentage": 15,
+                "weight_in_oil": "1.08ml",
+                "psychological_effect": "온화한 카리스마",
+                "origin": "venezuela",
+                "business_impact": "강함 속에 숨은 인간적 매력",
+                "blending_note": "바닐라보다 더 세련되고 남성적인 달콤함"
+              },
+              "ambergris_synthetic": {
+                "percentage": 10,
+                "weight_in_oil": "0.72ml",
+                "psychological_effect": "고급스러움과 독특함",
+                "type": "ambroxan_blend",
+                "business_advantage": "기억에 남는 독특한 인상 창조"
+              }
+            }
+          }
+        },
+        "manufacturing_process": {
+          "professional_grade": true,
+          "quality_control": "각 단계마다 향료 전문가 검증",
+          "step_1": "iris를 먼저 alcohol에 용해 (24시간 예비 침지)",
+          "step_2": "베이스 노트 블렌딩 (무거운 분자부터)",
+          "step_3": "미들 노트 순차 첨가",
+          "step_4": "탑 노트 최종 첨가",
+          "step_5": "48시간 1차 숙성",
+          "step_6": "여과 및 불순물 제거",
+          "step_7": "8주 장기 숙성 (최적의 조화를 위해)",
+          "step_8": "최종 품질 검사 및 농도 조정"
+        },
+        "business_usage_strategy": {
+          "application_timing": "미팅 1시간 전 적용 (최적 발현 시간)",
+          "application_amount": "목 뒤, 손목 안쪽 각 1스프레이",
+          "seasonal_adaptation": "겨울철 1스프레이 추가 가능",
+          "meeting_types": {
+            "board_meeting": "완벽, 권위적 인상",
+            "client_presentation": "신뢰감과 전문성 강조",
+            "negotiation": "심리적 우위 확보",
+            "networking": "기억에 남는 인상 창조"
+          }
+        },
+        "characteristics": {
+          "longevity": 10,
+          "sillage": 7,
+          "projection": 6,
+          "authority_factor": 9,
+          "memorability": 8,
+          "versatility": 7
+        },
+        "investment_analysis": {
+          "cost_per_ml": "높음 (iris로 인한)",
+          "cost_effectiveness": "장기적으로 비즈니스 성과에 기여",
+          "luxury_positioning": "niche_premium_level",
+          "market_comparison": "Tom Ford Oud Wood 급 포지셔닝"
+        }
+      }
+    },
+    {
+      "id": "MEGA_003",
+      "input": "제주도 여행을 갔을 때 그 자연의 향기를 담은 향수를 만들어주세요. 바다, 오름, 귤향, 한라산의 느낌이 다 들어갔으면 좋겠어요.",
+      "output": {
+        "fragrance_name": "Jeju Island Memories",
+        "korean_name": "제주 섬의 기억",
+        "regional_concept": "제주도의 독특한 자연 환경을 향으로 완벽 재현",
+        "cultural_significance": "한국인의 여행과 휴식의 성지를 향기로 보존",
+        "fragrance_family": "fresh_marine_citrus_woody",
+        "concentration": "eau_de_toilette",
+        "target_concentration": 12,
+        "detailed_formulation": {
+          "total_volume": "100ml",
+          "perfume_oil_concentration": "12ml",
+          "alcohol_96%": "85ml",
+          "distilled_water": "3ml",
+          "geographical_interpretation": {
+            "coastline_section": {
+              "inspiration": "제주 해안선의 시원한 바람과 현무암 해변",
+              "notes": ["sea_breeze", "marine", "salt", "seaweed"],
+              "percentage_of_total": 35
+            },
+            "oreum_section": {
+              "inspiration": "368개 오름의 푸른 초원과 야생화",
+              "notes": ["grass", "wild_herbs", "mountain_air", "volcanic_soil"],
+              "percentage_of_total": 25
+            },
+            "citrus_farm_section": {
+              "inspiration": "제주 귤밭과 한라봉 농장",
+              "notes": ["jeju_mandarin", "hallabong", "yuzu", "citrus_leaves"],
+              "percentage_of_total": 25
+            },
+            "hallasan_section": {
+              "inspiration": "한라산의 침엽수림과 백록담",
+              "notes": ["korean_pine", "fir", "moss", "mountain_spring"],
+              "percentage_of_total": 15
+            }
+          },
+          "notes_breakdown": {
+            "top_notes": {
+              "total_percentage": 30,
+              "jeju_mandarin": {
+                "percentage": 35,
+                "weight_in_oil": "1.26ml",
+                "regional_specificity": "제주도 고유 품종의 달콤하고 진한 감귤",
+                "harvest_season": "겨울철 완숙 과일",
+                "extraction_method": "cold_press_from_fresh_peel",
+                "local_significance": "제주도 여행의 대표적 기념품 향",
+                "blending_note": "즉시 제주도를 연상시키는 시그니처 향"
+              },
+              "hallabong": {
+                "percentage": 20,
+                "weight_in_oil": "0.72ml",
+                "regional_specificity": "제주 한라봉 특유의 달콤함",
+                "unique_character": "일반 오렌지보다 더 달콤하고 과육향이 풍부",
+                "seasonal_association": "겨울-봄 제주 여행"
+              },
+              "sea_breeze": {
+                "percentage": 25,
+                "weight_in_oil": "0.9ml",
+                "geographical_reference": "우도, 성산일출봉 주변 해안 바람",
+                "composition": "calone + dihydromyrcenol + marine minerals",
+                "sensory_description": "새벽 해안도로를 달릴 때의 시원한 바람",
+                "emotional_trigger": "제주도 렌터카 여행의 자유로움"
+              },
+              "mountain_air": {
+                "percentage": 20,
+                "weight_in_oil": "0.72ml",
+                "altitude_reference": "한라산 1950m 정상 부근의 맑은 공기",
+                "composition": "ozonic_compounds + pine_terpenes",
+                "hiking_memory": "등반 중 느끼는 상쾌한 고산 공기"
+              }
+            },
+            "middle_notes": {
+              "total_percentage": 40,
+              "wild_grass": {
+                "percentage": 30,
+                "weight_in_oil": "1.44ml",
+                "species_reference": "제주 오름의 억새와 야생 풀",
+                "seasonal_variation": "봄-여름의 푸른 초원",
+                "composition": "grass_absolute + green_leaves + hay",
+                "hiking_trail_memory": "오름 트레킹 중 발길에 밟히는 풀향"
+              },
+              "camellia": {
+                "percentage": 25,
+                "weight_in_oil": "1.2ml",
+                "regional_flower": "제주도 동백꽃 (도화)",
+                "blooming_season": "겨울-봄 (12월-4월)",
+                "cultural_meaning": "제주 여성의 강인함과 아름다움",
+                "location_reference": "카멜리아힐, 동백숲 산책로"
+              },
+              "volcanic_soil": {
+                "percentage": 20,
+                "weight_in_oil": "0.96ml",
+                "geological_uniqueness": "제주 현무암 토양의 미네랄 향",
+                "composition": "earthy_notes + mineral_salts + wet_stone",
+                "sensory_memory": "비 온 후 돌담길을 걸을 때의 흙내음"
+              },
+              "citrus_blossom": {
+                "percentage": 15,
+                "weight_in_oil": "0.72ml",
+                "seasonal_reference": "봄철 감귤나무 꽃",
+                "location": "서귀포 감귤밭",
+                "description": "하얀 꽃과 녹색 잎사귀의 조화"
+              },
+              "sea_fennel": {
+                "percentage": 10,
+                "weight_in_oil": "0.48ml",
+                "coastal_plant": "제주 해안가에 자생하는 해조류와 식물",
+                "salinity": "바다의 짠맛이 느껴지는 그린 노트"
+              }
+            },
+            "base_notes": {
+              "total_percentage": 30,
+              "korean_pine": {
+                "percentage": 35,
+                "weight_in_oil": "1.26ml",
+                "forest_reference": "한라산 침엽수림",
+                "altitude_range": "1000-1950m 구간의 소나무",
+                "seasonal_character": "사계절 내내 일정한 침엽수 향",
+                "hiking_memory": "정상 근처 구상나무숲의 신성함"
+              },
+              "driftwood": {
+                "percentage": 25,
+                "weight_in_oil": "0.9ml",
+                "coastal_reference": "제주 해변의 표류목",
+                "weathering": "소금물과 햇볕에 자연 풍화된 나무",
+                "beach_memory": "협재, 금능, 함덕 해변 산책",
+                "composition": "weathered_cedar + sea_salt + sun_bleached_wood"
+              },
+              "volcanic_rock": {
+                "percentage": 20,
+                "weight_in_oil": "0.72ml",
+                "geological_foundation": "제주도의 근간인 현무암",
+                "mineral_character": "차갑고 묵직한 돌의 향",
+                "location_reference": "주상절리, 용두암, 섭지코지",
+                "sensory_description": "햇볕에 달궈진 검은 돌을 만질 때의 느낌"
+              },
+              "white_musk": {
+                "percentage": 15,
+                "weight_in_oil": "0.54ml",
+                "purity_concept": "제주도 자연의 순수함",
+                "cloud_reference": "한라산을 감싸는 하얀 구름",
+                "clean_air": "미세먼지 없는 깨끗한 공기"
+              },
+              "ambergris_note": {
+                "percentage": 5,
+                "weight_in_oil": "0.18ml",
+                "ocean_depth": "제주 바다의 깊이감",
+                "type": "synthetic_ambroxan",
+                "whale_watching": "제주 앞바다 고래 관찰 투어의 추억"
+              }
+            }
+          }
+        },
+        "manufacturing_process": {
+          "local_sourcing": "가능한 제주도 현지 원료 사용",
+          "sustainability": "제주도 환경 보호 가치 반영",
+          "step_1": "제주 감귤 오일을 먼저 알코올에 용해",
+          "step_2": "해양 노트와 오조닉 화합물 블렌딩",
+          "step_3": "식물성 노트 (풀, 동백, 소나무) 순차 첨가",
+          "step_4": "미네랄 노트로 땅의 향 표현",
+          "step_5": "4주 숙성으로 계절감 조화",
+          "step_6": "제주도 현지에서 최종 테스트"
+        },
+        "seasonal_variation": {
+          "spring_version": "동백꽃과 감귤꽃 강화",
+          "summer_version": "바다와 풀향 강화",
+          "autumn_version": "억새와 단풍 노트 추가",
+          "winter_version": "귤향과 소나무 강화"
+        },
+        "memory_triggers": {
+          "visual_memories": "푸른 바다, 녹색 오름, 하얀 구름",
+          "activity_memories": "렌터카 드라이브, 오름 하이킹, 해변 산책",
+          "food_memories": "한라봉, 흑돼지, 해녀의 성게",
+          "emotional_memories": "자유로움, 평화로움, 치유감"
+        },
+        "characteristics": {
+          "longevity": 6,
+          "sillage": 5,
+          "projection": 4,
+          "nostalgia_factor": 10,
+          "regional_authenticity": 9,
+          "mood_evocation": ["peaceful", "free", "nostalgic", "healing"]
+        },
+        "usage_recommendations": {
+          "perfect_occasions": "여행 계획할 때, 제주도 추억 되새길 때",
+          "seasonal_best": "모든 계절 (각 계절마다 다른 면이 부각)",
+          "time_of_day": "아침 드라이브, 오후 카페에서",
+          "mood_enhancement": "일상 탈출, 힐링, 자연 그리움"
+        }
+      }
+    }
+  ]
+}

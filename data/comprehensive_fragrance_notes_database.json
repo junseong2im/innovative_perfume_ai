@@ -1,0 +1,773 @@
+{
+  "comprehensive_fragrance_notes": {
+    "citrus_family": {
+      "traditional_citrus": {
+        "bergamot": {
+          "name": "bergamot", "korean_name": "베르가못",
+          "description": "우아하고 세련된 감귤, 얼그레이 차의 향",
+          "origin": "이탈리아 칼라브리아", "extraction": "cold_press",
+          "strength": 7, "longevity": 4, "cost_level": "mid",
+          "chemical_profile": ["linalyl_acetate", "limonene", "linalool"],
+          "blends_excellently_with": ["lavender", "rose", "vetiver", "sandalwood"],
+          "avoid_with": ["heavy_animalic", "strong_gourmand"],
+          "seasonal_use": ["spring", "summer", "early_autumn"],
+          "time_of_day": ["morning", "afternoon"],
+          "mood_evocation": ["elegant", "sophisticated", "fresh", "uplifting"],
+          "cultural_associations": ["british_tea", "mediterranean", "aristocratic"],
+          "aromatherapy_properties": ["stress_relief", "mood_lifting", "energizing"],
+          "usage_percentage": {"top": "10-40%", "middle": "5-15%", "base": "0-5%"}
+        },
+        "lemon": {
+          "name": "lemon", "korean_name": "레몬",
+          "description": "상큼하고 청량한 순수한 레몬의 향",
+          "origin": "지중해 지역", "extraction": "cold_press",
+          "strength": 8, "longevity": 3, "cost_level": "low",
+          "chemical_profile": ["limonene", "citral", "pinene"],
+          "blends_excellently_with": ["mint", "basil", "rose", "white_musk"],
+          "avoid_with": ["heavy_woods", "animalic", "dense_oriental"],
+          "seasonal_use": ["spring", "summer"],
+          "time_of_day": ["morning", "early_afternoon"],
+          "mood_evocation": ["energetic", "clean", "fresh", "cheerful"],
+          "cultural_associations": ["cleanliness", "mediterranean_cuisine", "summer"],
+          "aromatherapy_properties": ["energizing", "focus_enhancing", "purifying"],
+          "usage_percentage": {"top": "15-45%", "middle": "0-10%", "base": "0%"}
+        },
+        "lime": {
+          "name": "lime", "korean_name": "라임",
+          "description": "톡 쏘는 듯한 신선함의 라임",
+          "origin": "아시아 열대지방", "extraction": "cold_press",
+          "strength": 8, "longevity": 3, "cost_level": "low",
+          "chemical_profile": ["limonene", "citral", "terpinene"],
+          "blends_excellently_with": ["coconut", "ginger", "rum_notes", "marine"],
+          "seasonal_use": ["summer"],
+          "mood_evocation": ["tropical", "energetic", "cocktail_like", "vacation"],
+          "usage_percentage": {"top": "10-35%", "middle": "0-10%", "base": "0%"}
+        },
+        "grapefruit": {
+          "name": "grapefruit", "korean_name": "자몽",
+          "description": "씁쓸하면서도 상큼한 자몽의 향",
+          "variants": ["pink_grapefruit", "white_grapefruit", "ruby_red_grapefruit"],
+          "origin": "바베이도스", "extraction": "cold_press",
+          "strength": 7, "longevity": 4, "cost_level": "low",
+          "mood_evocation": ["sporty", "energetic", "healthy", "morning"],
+          "usage_percentage": {"top": "15-40%", "middle": "0-15%", "base": "0%"}
+        }
+      },
+      "exotic_citrus": {
+        "yuzu": {
+          "name": "yuzu", "korean_name": "유자",
+          "description": "동양적이고 복합적인 감귤의 향",
+          "origin": "동아시아", "extraction": "cold_press",
+          "strength": 6, "longevity": 5, "cost_level": "high",
+          "cultural_significance": "korean_winter_tradition",
+          "blends_excellently_with": ["green_tea", "bamboo", "hinoki", "ginger"],
+          "mood_evocation": ["zen", "contemplative", "eastern_wisdom", "warm"],
+          "usage_percentage": {"top": "10-30%", "middle": "5-20%", "base": "0-5%"}
+        },
+        "sudachi": {
+          "name": "sudachi", "korean_name": "스다치",
+          "description": "일본의 신맛이 강한 작은 감귤",
+          "origin": "일본", "strength": 8, "longevity": 3, "cost_level": "very_high"
+        },
+        "kaffir_lime": {
+          "name": "kaffir_lime", "korean_name": "카피르 라임",
+          "description": "동남아시아의 독특한 잎과 열매 향",
+          "origin": "동남아시아", "strength": 9, "longevity": 4, "cost_level": "high"
+        },
+        "blood_orange": {
+          "name": "blood_orange", "korean_name": "블러드 오렌지",
+          "description": "베리 같은 복잡함이 있는 오렌지",
+          "origin": "시칠리아", "strength": 6, "longevity": 4, "cost_level": "mid"
+        }
+      }
+    },
+    "floral_family": {
+      "classic_flowers": {
+        "rose": {
+          "variants": {
+            "damascus_rose": {
+              "name": "damascus_rose", "korean_name": "다마스크 장미",
+              "description": "가장 클래식하고 럭셔리한 장미의 향",
+              "origin": "시리아 다마스크", "extraction": "steam_distillation",
+              "strength": 9, "longevity": 8, "cost_level": "very_high",
+              "chemical_profile": ["phenylethyl_alcohol", "citronellol", "geraniol"],
+              "emotional_impact": ["romantic", "feminine", "classic", "luxurious"],
+              "usage_percentage": {"top": "5-20%", "middle": "15-50%", "base": "5-25%"}
+            },
+            "bulgarian_rose": {
+              "name": "bulgarian_rose", "korean_name": "불가리아 장미",
+              "description": "깊고 진한 장미의 여왕",
+              "origin": "불가리아 카잔룩", "cost_level": "very_high",
+              "strength": 10, "longevity": 9
+            },
+            "tea_rose": {
+              "name": "tea_rose", "korean_name": "티 로즈",
+              "description": "부드럽고 파우더리한 장미",
+              "characteristics": ["soft", "powdery", "romantic"],
+              "strength": 6, "longevity": 6, "cost_level": "mid"
+            },
+            "centifolia_rose": {
+              "name": "centifolia_rose", "korean_name": "센티폴리아 장미",
+              "description": "프랑스 그라스의 전통 장미",
+              "origin": "프랑스 그라스", "strength": 8, "longevity": 7
+            }
+          }
+        },
+        "jasmine": {
+          "variants": {
+            "jasmine_grandiflorum": {
+              "name": "jasmine_grandiflorum", "korean_name": "그란디플로룸 자스민",
+              "description": "관능적이고 매혹적인 자스민의 여왕",
+              "origin": "인도", "extraction": "enfleurage_or_solvent",
+              "strength": 10, "longevity": 9, "cost_level": "very_high",
+              "emotional_impact": ["sensual", "intoxicating", "exotic", "night_blooming"],
+              "time_of_day": ["evening", "night"],
+              "cultural_associations": ["indian_culture", "exotic_beauty", "sensuality"]
+            },
+            "jasmine_sambac": {
+              "name": "jasmine_sambac", "korean_name": "삼박 자스민",
+              "description": "아라비아 자스민, 차에 사용되는 향",
+              "origin": "아라비아", "strength": 9, "longevity": 8
+            }
+          }
+        },
+        "lily": {
+          "variants": {
+            "lily_of_the_valley": {
+              "name": "lily_of_the_valley", "korean_name": "은방울꽃",
+              "description": "순수하고 청순한 봄꽃의 향",
+              "strength": 6, "longevity": 5, "cost_level": "high",
+              "seasonal_association": "spring",
+              "mood_evocation": ["innocent", "pure", "bridal", "fresh"]
+            },
+            "white_lily": {
+              "name": "white_lily", "korean_name": "백합",
+              "description": "우아하고 순결한 백합의 향",
+              "strength": 7, "longevity": 6, "cost_level": "mid"
+            }
+          }
+        }
+      },
+      "exotic_flowers": {
+        "ylang_ylang": {
+          "name": "ylang_ylang", "korean_name": "일랑일랑",
+          "description": "이국적이고 관능적인 열대 꽃",
+          "origin": "코모로 제도", "extraction": "steam_distillation",
+          "strength": 9, "longevity": 8, "cost_level": "high",
+          "grades": ["extra", "first", "second", "third"],
+          "mood_evocation": ["exotic", "sensual", "tropical", "euphoric"],
+          "aromatherapy_properties": ["aphrodisiac", "mood_lifting", "stress_relief"]
+        },
+        "frangipani": {
+          "name": "frangipani", "korean_name": "프랑지파니",
+          "description": "열대의 크리미한 달콤한 꽃향기",
+          "origin": "중앙아메리카", "strength": 8, "longevity": 7
+        },
+        "gardenia": {
+          "name": "gardenia", "korean_name": "치자꽃",
+          "description": "크리미하고 달콤한 화이트 플로럴",
+          "strength": 8, "longevity": 6, "cost_level": "high"
+        },
+        "tuberose": {
+          "name": "tuberose", "korean_name": "튜베로즈",
+          "description": "밤에 피는 매혹적인 꽃",
+          "strength": 10, "longevity": 8, "cost_level": "very_high",
+          "time_of_day": ["evening", "night"],
+          "mood_evocation": ["seductive", "intoxicating", "dramatic"]
+        }
+      },
+      "delicate_flowers": {
+        "peony": {
+          "name": "peony", "korean_name": "모란",
+          "description": "부드럽고 여성스러운 모란꽃",
+          "origin": "중국", "strength": 5, "longevity": 5,
+          "mood_evocation": ["gentle", "feminine", "soft", "spring_like"]
+        },
+        "freesia": {
+          "name": "freesia", "korean_name": "프리지아",
+          "description": "신선하고 깨끗한 봄꽃",
+          "strength": 4, "longevity": 4, "cost_level": "mid"
+        },
+        "magnolia": {
+          "name": "magnolia", "korean_name": "목련",
+          "description": "크리미하고 레몬 같은 꽃향기",
+          "strength": 6, "longevity": 5, "cost_level": "mid"
+        }
+      }
+    },
+    "woody_family": {
+      "precious_woods": {
+        "sandalwood": {
+          "variants": {
+            "mysore_sandalwood": {
+              "name": "mysore_sandalwood", "korean_name": "마이소르 샌달우드",
+              "description": "가장 고급스러운 크리미한 샌달우드",
+              "origin": "인도 마이소르", "strength": 8, "longevity": 9, "cost_level": "extremely_high",
+              "characteristics": ["creamy", "milky", "meditative", "sacred"],
+              "cultural_significance": "indian_spirituality",
+              "usage_percentage": {"top": "0-5%", "middle": "10-30%", "base": "20-60%"}
+            },
+            "australian_sandalwood": {
+              "name": "australian_sandalwood", "korean_name": "호주 샌달우드",
+              "description": "지속가능한 대안, 약간 더 드라이한 느낌",
+              "origin": "호주", "strength": 6, "longevity": 7, "cost_level": "high"
+            }
+          }
+        },
+        "agarwood_oud": {
+          "variants": {
+            "cambodian_oud": {
+              "name": "cambodian_oud", "korean_name": "캄보디아 우드",
+              "description": "깊고 신비로운 최고급 우드",
+              "origin": "캄보디아", "strength": 10, "longevity": 12, "cost_level": "extremely_high",
+              "characteristics": ["animalic", "deep", "mystical", "spiritual"]
+            },
+            "hindi_oud": {
+              "name": "hindi_oud", "korean_name": "힌디 우드",
+              "description": "인도의 전통적인 우드",
+              "origin": "인도", "strength": 10, "longevity": 10
+            }
+          }
+        },
+        "rosewood": {
+          "name": "rosewood", "korean_name": "로즈우드",
+          "description": "부드럽고 로지한 우드 향",
+          "origin": "브라질", "strength": 6, "longevity": 7, "cost_level": "high",
+          "sustainability_note": "CITES_regulated"
+        }
+      },
+      "common_woods": {
+        "cedar": {
+          "variants": {
+            "virginia_cedar": {
+              "name": "virginia_cedar", "korean_name": "버지니아 시더",
+              "description": "연필깎이를 연상시키는 드라이한 시더",
+              "strength": 6, "longevity": 8, "cost_level": "low"
+            },
+            "himalayan_cedar": {
+              "name": "himalayan_cedar", "korean_name": "히말라야 시더",
+              "description": "더 부드럽고 발사믹한 시더",
+              "strength": 7, "longevity": 8, "cost_level": "mid"
+            }
+          }
+        },
+        "pine": {
+          "variants": {
+            "scotch_pine": {
+              "name": "scotch_pine", "korean_name": "스코치 파인",
+              "description": "상쾌하고 숲속 같은 소나무",
+              "strength": 7, "longevity": 6, "cost_level": "low"
+            },
+            "korean_pine": {
+              "name": "korean_pine", "korean_name": "잣나무",
+              "description": "한국 전통의 부드러운 소나무 향",
+              "cultural_significance": "korean_tradition"
+            }
+          }
+        }
+      },
+      "japanese_woods": {
+        "hinoki": {
+          "name": "hinoki", "korean_name": "편백나무",
+          "description": "일본 전통의 신성한 나무 향",
+          "origin": "일본", "strength": 6, "longevity": 7, "cost_level": "high",
+          "cultural_associations": ["japanese_spa", "meditation", "purification"],
+          "aromatherapy_properties": ["relaxing", "purifying", "grounding"]
+        },
+        "sugi": {
+          "name": "sugi", "korean_name": "스기(일본 삼나무)",
+          "description": "일본의 국목, 깨끗하고 상쾌한 향",
+          "origin": "일본", "strength": 5, "longevity": 6
+        }
+      }
+    },
+    "green_family": {
+      "leaf_notes": {
+        "green_leaves": {
+          "name": "green_leaves", "korean_name": "푸른 잎사귀",
+          "description": "싱그러운 잎사귀를 비비는 향",
+          "strength": 6, "longevity": 4, "cost_level": "low",
+          "chemical_profile": ["cis_3_hexenol", "hexyl_acetate"],
+          "seasonal_association": "spring_summer"
+        },
+        "violet_leaf": {
+          "name": "violet_leaf", "korean_name": "제비꽃 잎",
+          "description": "그린하고 약간 메탈릭한 잎사귀",
+          "strength": 7, "longevity": 5, "cost_level": "mid"
+        },
+        "fig_leaf": {
+          "name": "fig_leaf", "korean_name": "무화과 잎",
+          "description": "크리미하고 밀키한 그린 노트",
+          "strength": 6, "longevity": 6, "cost_level": "mid"
+        }
+      },
+      "herbs": {
+        "basil": {
+          "variants": {
+            "sweet_basil": {
+              "name": "sweet_basil", "korean_name": "스위트 바질",
+              "description": "요리용 바질의 아로마틱한 향",
+              "strength": 7, "longevity": 5, "cost_level": "low"
+            },
+            "holy_basil": {
+              "name": "holy_basil", "korean_name": "홀리 바질",
+              "description": "더 스파이시하고 신성한 바질",
+              "cultural_significance": "hindu_tradition"
+            }
+          }
+        },
+        "rosemary": {
+          "name": "rosemary", "korean_name": "로즈마리",
+          "description": "기억력을 높이는 허브의 향",
+          "strength": 8, "longevity": 6, "cost_level": "low",
+          "aromatherapy_properties": ["memory_enhancement", "focus", "energizing"]
+        },
+        "thyme": {
+          "name": "thyme", "korean_name": "타임",
+          "description": "따뜻하고 허브적인 타임",
+          "strength": 7, "longevity": 5, "cost_level": "low"
+        },
+        "sage": {
+          "name": "sage", "korean_name": "세이지",
+          "description": "지혜로운 세이지의 향",
+          "strength": 6, "longevity": 6, "cost_level": "mid",
+          "mood_evocation": ["wise", "contemplative", "purifying"]
+        }
+      },
+      "grass_notes": {
+        "vetiver": {
+          "variants": {
+            "haitian_vetiver": {
+              "name": "haitian_vetiver", "korean_name": "아이티 베티버",
+              "description": "스모키하고 남성적인 뿌리의 향",
+              "origin": "아이티", "strength": 8, "longevity": 9, "cost_level": "mid"
+            },
+            "java_vetiver": {
+              "name": "java_vetiver", "korean_name": "자바 베티버",
+              "description": "더 부드럽고 우디한 베티버",
+              "origin": "인도네시아"
+            }
+          }
+        },
+        "lemongrass": {
+          "name": "lemongrass", "korean_name": "레몬그라스",
+          "description": "레몬 향의 동남아 풀",
+          "origin": "동남아시아", "strength": 7, "longevity": 4
+        }
+      }
+    },
+    "oriental_family": {
+      "vanilla_notes": {
+        "madagascar_vanilla": {
+          "name": "madagascar_vanilla", "korean_name": "마다가스카르 바닐라",
+          "description": "가장 고급스러운 크리미한 바닐라",
+          "origin": "마다가스카르", "strength": 8, "longevity": 9, "cost_level": "very_high",
+          "characteristics": ["creamy", "sweet", "comforting", "gourmand"]
+        },
+        "tahitian_vanilla": {
+          "name": "tahitian_vanilla", "korean_name": "타히티 바닐라",
+          "description": "플로럴하고 체리 같은 바닐라",
+          "origin": "타히티", "strength": 7, "longevity": 8
+        },
+        "vanilla_planifolia": {
+          "name": "vanilla_planifolia", "korean_name": "플라니폴리아 바닐라",
+          "description": "클래식한 바닐라 아이스크림 향",
+          "strength": 9, "longevity": 8
+        }
+      },
+      "resin_notes": {
+        "frankincense": {
+          "variants": {
+            "omani_frankincense": {
+              "name": "omani_frankincense", "korean_name": "오만 프랑킨센스",
+              "description": "최고급 유향의 신비로운 향",
+              "origin": "오만", "strength": 8, "longevity": 9, "cost_level": "very_high",
+              "cultural_significance": "religious_ceremonies"
+            },
+            "ethiopian_frankincense": {
+              "name": "ethiopian_frankincense", "korean_name": "에티오피아 프랑킨센스",
+              "description": "더 레몬 같고 상쾌한 유향"
+            }
+          }
+        },
+        "myrrh": {
+          "name": "myrrh", "korean_name": "몰약",
+          "description": "쓴맛이 있는 신성한 수지",
+          "strength": 7, "longevity": 8, "cost_level": "high"
+        },
+        "benzoin": {
+          "name": "benzoin", "korean_name": "벤조인",
+          "description": "바닐라 같은 달콤한 수지",
+          "strength": 6, "longevity": 8, "cost_level": "mid"
+        }
+      },
+      "amber_notes": {
+        "amber": {
+          "name": "amber", "korean_name": "앰버",
+          "description": "따뜻하고 포근한 황금빛 향 (합성)",
+          "note": "실제로는 여러 성분의 블렌드",
+          "components": ["labdanum", "vanilla", "benzoin", "styrax"],
+          "strength": 7, "longevity": 9, "cost_level": "mid"
+        },
+        "labdanum": {
+          "name": "labdanum", "korean_name": "라브다넘",
+          "description": "앰버의 주성분, 동물적이고 따뜻함",
+          "origin": "지중해", "strength": 8, "longevity": 9
+        }
+      }
+    },
+    "spicy_family": {
+      "warm_spices": {
+        "cinnamon": {
+          "variants": {
+            "ceylon_cinnamon": {
+              "name": "ceylon_cinnamon", "korean_name": "실론 계피",
+              "description": "진짜 계피, 달콤하고 부드러움",
+              "origin": "스리랑카", "strength": 8, "longevity": 7
+            },
+            "cassia_cinnamon": {
+              "name": "cassia_cinnamon", "korean_name": "카시아 계피",
+              "description": "더 강하고 매운 계피",
+              "origin": "중국", "strength": 9, "longevity": 6
+            }
+          }
+        },
+        "cardamom": {
+          "variants": {
+            "green_cardamom": {
+              "name": "green_cardamom", "korean_name": "그린 카다몬",
+              "description": "향신료의 여왕, 이국적이고 달콤함",
+              "origin": "인도", "strength": 7, "longevity": 6
+            },
+            "black_cardamom": {
+              "name": "black_cardamom", "korean_name": "블랙 카다몬",
+              "description": "스모키하고 더 강한 카다몬",
+              "strength": 8, "longevity": 7
+            }
+          }
+        },
+        "clove": {
+          "name": "clove", "korean_name": "정향",
+          "description": "따뜻하고 치과용 같은 강한 향신료",
+          "origin": "인도네시아", "strength": 10, "longevity": 8,
+          "usage_note": "소량_사용_권장"
+        },
+        "nutmeg": {
+          "name": "nutmeg", "korean_name": "넛메그",
+          "description": "따뜻하고 견과류 같은 향신료",
+          "strength": 6, "longevity": 6, "cost_level": "mid"
+        }
+      },
+      "hot_spices": {
+        "black_pepper": {
+          "name": "black_pepper", "korean_name": "블랙 페퍼",
+          "description": "톡 쏘는 후추의 매운 향",
+          "origin": "인도", "strength": 8, "longevity": 5,
+          "mood_evocation": ["energetic", "masculine", "spicy"]
+        },
+        "pink_pepper": {
+          "name": "pink_pepper", "korean_name": "핑크 페퍼",
+          "description": "부드럽고 로지한 가짜 후추",
+          "origin": "남미", "strength": 6, "longevity": 4,
+          "note": "실제로는 후추가 아님"
+        },
+        "white_pepper": {
+          "name": "white_pepper", "korean_name": "화이트 페퍼",
+          "description": "더 순하고 크리미한 후추",
+          "strength": 6, "longevity": 4
+        }
+      },
+      "exotic_spices": {
+        "saffron": {
+          "name": "saffron", "korean_name": "사프란",
+          "description": "세계에서 가장 비싼 향신료의 금속적 향",
+          "origin": "이란", "strength": 9, "longevity": 8, "cost_level": "extremely_high",
+          "characteristics": ["metallic", "hay_like", "luxurious"]
+        },
+        "star_anise": {
+          "name": "star_anise", "korean_name": "스타 아니스",
+          "description": "감초 같은 달콤한 향신료",
+          "origin": "중국", "strength": 8, "longevity": 6
+        }
+      }
+    },
+    "fruity_family": {
+      "stone_fruits": {
+        "peach": {
+          "name": "peach", "korean_name": "복숭아",
+          "description": "부드럽고 달콤한 복숭아",
+          "strength": 6, "longevity": 5, "cost_level": "mid",
+          "mood_evocation": ["sweet", "feminine", "summery"]
+        },
+        "apricot": {
+          "name": "apricot", "korean_name": "살구",
+          "description": "약간 시큼한 달콤함의 살구",
+          "strength": 5, "longevity": 4
+        },
+        "plum": {
+          "name": "plum", "korean_name": "자두",
+          "description": "깊고 진한 자두의 달콤함",
+          "strength": 6, "longevity": 5
+        }
+      },
+      "berries": {
+        "strawberry": {
+          "name": "strawberry", "korean_name": "딸기",
+          "description": "상큼하고 달콤한 딸기",
+          "strength": 6, "longevity": 4, "cost_level": "mid"
+        },
+        "raspberry": {
+          "name": "raspberry", "korean_name": "라즈베리",
+          "description": "톡 쏘는 달콤한 라즈베리",
+          "strength": 7, "longevity": 4
+        },
+        "blackberry": {
+          "name": "blackberry", "korean_name": "블랙베리",
+          "description": "진하고 어두운 베리의 향",
+          "strength": 6, "longevity": 5
+        },
+        "blackcurrant": {
+          "name": "blackcurrant", "korean_name": "블랙커런트",
+          "description": "톡 쏘고 강렬한 베리",
+          "strength": 8, "longevity": 6, "cost_level": "mid"
+        }
+      },
+      "tropical_fruits": {
+        "coconut": {
+          "name": "coconut", "korean_name": "코코넛",
+          "description": "크리미하고 열대적인 코코넛",
+          "strength": 6, "longevity": 6, "cost_level": "mid",
+          "mood_evocation": ["tropical", "vacation", "creamy"]
+        },
+        "mango": {
+          "name": "mango", "korean_name": "망고",
+          "description": "달콤하고 열대적인 망고",
+          "strength": 7, "longevity": 5
+        },
+        "passion_fruit": {
+          "name": "passion_fruit", "korean_name": "패션프루트",
+          "description": "이국적이고 톡 쏘는 열대과일",
+          "strength": 8, "longevity": 4
+        }
+      }
+    },
+    "aquatic_marine_family": {
+      "ocean_notes": {
+        "sea_breeze": {
+          "name": "sea_breeze", "korean_name": "바다 바람",
+          "description": "시원한 바다 바람의 향 (합성)",
+          "strength": 6, "longevity": 5, "cost_level": "mid",
+          "chemical_basis": "calone_and_dihydromyrcenol"
+        },
+        "marine": {
+          "name": "marine", "korean_name": "마린",
+          "description": "깊고 푸른 바다의 향",
+          "strength": 5, "longevity": 6
+        },
+        "seaweed": {
+          "name": "seaweed", "korean_name": "해조류",
+          "description": "미네랄하고 바다 같은 해조류",
+          "strength": 4, "longevity": 5
+        }
+      },
+      "fresh_water": {
+        "waterfall": {
+          "name": "waterfall", "korean_name": "폭포",
+          "description": "시원한 물의 흐름을 표현",
+          "strength": 4, "longevity": 4
+        },
+        "rain": {
+          "name": "rain", "korean_name": "빗물",
+          "description": "깨끗한 빗물의 향",
+          "strength": 3, "longevity": 4
+        }
+      },
+      "ozonic_notes": {
+        "ozone": {
+          "name": "ozone", "korean_name": "오존",
+          "description": "전기적이고 깨끗한 공기의 향",
+          "strength": 5, "longevity": 5
+        }
+      }
+    },
+    "gourmand_family": {
+      "dessert_notes": {
+        "chocolate": {
+          "variants": {
+            "dark_chocolate": {
+              "name": "dark_chocolate", "korean_name": "다크 초콜릿",
+              "description": "쓰고 진한 다크 초콜릿",
+              "strength": 8, "longevity": 7
+            },
+            "milk_chocolate": {
+              "name": "milk_chocolate", "korean_name": "밀크 초콜릿",
+              "description": "달콤하고 크리미한 밀크 초콜릿",
+              "strength": 7, "longevity": 6
+            }
+          }
+        },
+        "caramel": {
+          "name": "caramel", "korean_name": "캐러멜",
+          "description": "부드럽고 달콤한 캐러멜",
+          "strength": 7, "longevity": 6, "cost_level": "mid"
+        },
+        "honey": {
+          "variants": {
+            "acacia_honey": {
+              "name": "acacia_honey", "korean_name": "아카시아 꿀",
+              "description": "깨끗하고 플로럴한 꿀",
+              "strength": 6, "longevity": 6
+            },
+            "wildflower_honey": {
+              "name": "wildflower_honey", "korean_name": "야생화 꿀",
+              "description": "복합적이고 깊은 꿀",
+              "strength": 7, "longevity": 7
+            }
+          }
+        }
+      },
+      "bakery_notes": {
+        "bread": {
+          "name": "bread", "korean_name": "빵",
+          "description": "갓 구운 빵의 따뜻한 향",
+          "strength": 5, "longevity": 5
+        },
+        "croissant": {
+          "name": "croissant", "korean_name": "크루아상",
+          "description": "버터리하고 바삭한 크루아상",
+          "strength": 6, "longevity": 5
+        }
+      },
+      "beverage_notes": {
+        "coffee": {
+          "variants": {
+            "espresso": {
+              "name": "espresso", "korean_name": "에스프레소",
+              "description": "진하고 쓴 에스프레소",
+              "strength": 8, "longevity": 6
+            },
+            "cappuccino": {
+              "name": "cappuccino", "korean_name": "카푸치노",
+              "description": "밀크 폼이 있는 부드러운 커피",
+              "strength": 6, "longevity": 5
+            }
+          }
+        },
+        "tea": {
+          "variants": {
+            "green_tea": {
+              "name": "green_tea", "korean_name": "녹차",
+              "description": "신선하고 그린한 녹차",
+              "cultural_significance": "asian_culture",
+              "strength": 4, "longevity": 4
+            },
+            "black_tea": {
+              "name": "black_tea", "korean_name": "홍차",
+              "description": "진하고 따뜻한 홍차",
+              "strength": 5, "longevity": 5
+            },
+            "chai_tea": {
+              "name": "chai_tea", "korean_name": "차이 티",
+              "description": "향신료가 들어간 인도 차",
+              "strength": 7, "longevity": 6
+            }
+          }
+        }
+      }
+    },
+    "animalic_family": {
+      "traditional_animalic": {
+        "musk": {
+          "variants": {
+            "white_musk": {
+              "name": "white_musk", "korean_name": "화이트 머스크",
+              "description": "깨끗하고 부드러운 합성 머스크",
+              "strength": 6, "longevity": 8, "cost_level": "low",
+              "characteristics": ["clean", "soft", "skin_like"]
+            },
+            "deer_musk": {
+              "name": "deer_musk", "korean_name": "사슴 머스크",
+              "description": "전통적인 동물성 머스크 (현재 금지)",
+              "note": "현재는 합성으로 대체",
+              "strength": 10, "longevity": 12
+            }
+          }
+        },
+        "ambergris": {
+          "name": "ambergris", "korean_name": "앰버그리스",
+          "description": "고래의 분비물, 바다 같은 동물성 향",
+          "origin": "sperm_whale", "cost_level": "extremely_high",
+          "strength": 8, "longevity": 10,
+          "note": "현재는 대부분 ambroxan 등 합성 대체재 사용"
+        },
+        "civet": {
+          "name": "civet", "korean_name": "시벳",
+          "description": "고양이과 동물의 강한 동물성 향",
+          "note": "현재는 합성으로 대체",
+          "strength": 10, "longevity": 10
+        }
+      },
+      "modern_animalic": {
+        "iso_e_super": {
+          "name": "iso_e_super", "korean_name": "이소 E 슈퍼",
+          "description": "따뜻하고 벨벳 같은 현대적 분자",
+          "type": "synthetic_molecule",
+          "strength": 7, "longevity": 9, "cost_level": "mid"
+        },
+        "ambroxan": {
+          "name": "ambroxan", "korean_name": "암브록산",
+          "description": "앰버그리스의 합성 대체재",
+          "type": "synthetic_molecule",
+          "strength": 6, "longevity": 8
+        }
+      }
+    },
+    "mineral_metallic_family": {
+      "metallic_notes": {
+        "steel": {
+          "name": "steel", "korean_name": "강철",
+          "description": "차갑고 메탈릭한 강철의 향",
+          "strength": 5, "longevity": 6
+        },
+        "copper": {
+          "name": "copper", "korean_name": "구리",
+          "description": "따뜻한 구리 메탈의 향",
+          "strength": 4, "longevity": 5
+        }
+      },
+      "mineral_notes": {
+        "salt": {
+          "name": "salt", "korean_name": "소금",
+          "description": "미네랄하고 바다 같은 소금",
+          "strength": 4, "longevity": 4
+        },
+        "stone": {
+          "name": "stone", "korean_name": "돌",
+          "description": "차갑고 미네랄한 돌의 향",
+          "strength": 3, "longevity": 5
+        }
+      }
+    },
+    "smoky_family": {
+      "wood_smoke": {
+        "birch_tar": {
+          "name": "birch_tar", "korean_name": "자작나무 타르",
+          "description": "러시아 가죽을 연상시키는 스모키함",
+          "origin": "러시아", "strength": 9, "longevity": 8
+        },
+        "wood_smoke": {
+          "name": "wood_smoke", "korean_name": "나무 연기",
+          "description": "장작불의 따뜻한 연기",
+          "strength": 7, "longevity": 7
+        }
+      },
+      "incense_smoke": {
+        "church_incense": {
+          "name": "church_incense", "korean_name": "교회 향",
+          "description": "종교적인 향의 연기",
+          "strength": 8, "longevity": 8
+        }
+      }
+    }
+  }
+}

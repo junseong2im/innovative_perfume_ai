@@ -1,0 +1,699 @@
+{
+  "color_to_fragrance_system": {
+    "theory_foundation": {
+      "synesthesia_principles": {
+        "chromesthesia": "색상과 후각 감각 간의 신경학적 연결",
+        "cross_modal_perception": "다감각 경험의 향료 변환",
+        "emotional_color_mapping": "색상 심리학을 통한 향 감정 번역",
+        "cultural_color_meanings": "문화별 색상 인식과 향료 매핑"
+      },
+      "color_temperature_theory": {
+        "warm_colors": {
+          "temperature_range": "따뜻함 (빨강, 주황, 노랑)",
+          "fragrance_characteristics": ["spicy", "gourmand", "woody", "amber"],
+          "molecular_correspondence": "높은 분자량, 깊은 확산력"
+        },
+        "cool_colors": {
+          "temperature_range": "차가움 (파랑, 초록, 보라)",
+          "fragrance_characteristics": ["fresh", "aquatic", "green", "ozonic"],
+          "molecular_correspondence": "낮은 분자량, 상쾌한 확산력"
+        },
+        "neutral_colors": {
+          "temperature_range": "중성 (흰색, 회색, 검정)",
+          "fragrance_characteristics": ["clean", "powdery", "mineral", "transparent"],
+          "molecular_correspondence": "균형잡힌 분자 구조"
+        }
+      }
+    },
+    "detailed_color_mappings": {
+      "red_spectrum": {
+        "crimson_red": {
+          "hex": "#DC143C",
+          "fragrance_profile": {
+            "dominant_notes": ["rose_absolute", "red_berries", "spicy_cinnamon"],
+            "supporting_notes": ["black_pepper", "clove", "dark_chocolate"],
+            "base_foundation": ["patchouli", "red_sandalwood", "amber"]
+          },
+          "intensity_mapping": {
+            "light_crimson": "5% 농도 - 은은한 장미와 베리",
+            "medium_crimson": "15% 농도 - 풍부한 스파이시 플로럴",
+            "deep_crimson": "25% 농도 - 강렬한 오리엔탈 스파이스"
+          },
+          "emotional_translation": "열정, 사랑, 강렬함",
+          "manufacturing_recipe": {
+            "top_notes": {
+              "red_berries_accord": "8ml",
+              "pink_pepper": "3ml",
+              "bergamot_red": "4ml"
+            },
+            "middle_notes": {
+              "rose_absolute": "12ml",
+              "cinnamon_bark": "6ml",
+              "clove_bud": "2ml"
+            },
+            "base_notes": {
+              "patchouli": "8ml",
+              "red_sandalwood": "10ml",
+              "amber_resin": "7ml"
+            },
+            "total_fragrance_oil": "60ml",
+            "ethanol_96%": "240ml",
+            "final_concentration": "20% EDP"
+          }
+        },
+        "cherry_red": {
+          "hex": "#DE3163",
+          "fragrance_profile": {
+            "dominant_notes": ["cherry_blossom", "red_cherry", "almond"],
+            "supporting_notes": ["heliotrope", "vanilla", "tonka_bean"],
+            "base_foundation": ["sandalwood", "white_musk", "cashmere_wood"]
+          },
+          "seasonal_adaptation": {
+            "spring": "체리블라썸 강조 (한국 벚꽃 계절)",
+            "summer": "프레시 체리 중심",
+            "autumn": "아몬드와 토우카빈 강화",
+            "winter": "바닐라와 머스크 부각"
+          },
+          "manufacturing_recipe": {
+            "total_formula": "300ml EDP",
+            "fragrance_concentration": "18%",
+            "detailed_measurements": {
+              "cherry_blossom_accord": "10ml",
+              "red_cherry_essence": "8ml",
+              "bitter_almond": "4ml",
+              "heliotrope": "6ml",
+              "vanilla_absolute": "8ml",
+              "tonka_bean": "5ml",
+              "sandalwood": "7ml",
+              "white_musk": "6ml"
+            }
+          }
+        },
+        "burgundy": {
+          "hex": "#800020",
+          "fragrance_profile": {
+            "wine_inspiration": "깊은 와인의 복합성",
+            "dominant_notes": ["dark_rose", "wine_accord", "blackcurrant"],
+            "luxury_elements": ["oud", "frankincense", "myrrh"],
+            "base_foundation": ["aged_woods", "leather", "dark_amber"]
+          },
+          "complexity_levels": {
+            "simple_burgundy": "5가지 노트로 기본 구현",
+            "complex_burgundy": "15가지 노트로 풀 복합성",
+            "artisan_burgundy": "25가지 노트로 마스터 레벨"
+          },
+          "manufacturing_recipe": {
+            "artisan_level_formula": {
+              "top_notes": {
+                "blackcurrant_buds": "4ml",
+                "wine_top_accord": "3ml",
+                "bergamot_dark": "3ml"
+              },
+              "middle_notes": {
+                "dark_rose_absolute": "8ml",
+                "wine_heart_accord": "6ml",
+                "geranium_bourbon": "4ml",
+                "clove": "2ml",
+                "cinnamon": "3ml"
+              },
+              "base_notes": {
+                "oud_assam": "5ml",
+                "frankincense": "4ml",
+                "myrrh": "3ml",
+                "aged_sandalwood": "6ml",
+                "leather_accord": "4ml",
+                "dark_amber": "8ml"
+              },
+              "total_concentration": "22% Parfum"
+            }
+          }
+        }
+      },
+      "blue_spectrum": {
+        "sky_blue": {
+          "hex": "#87CEEB",
+          "fragrance_profile": {
+            "atmospheric_inspiration": "무한한 하늘의 자유로움",
+            "dominant_notes": ["ozonic_accord", "cloud_mist", "fresh_air"],
+            "supporting_notes": ["white_tea", "lily_of_valley", "cucumber"],
+            "base_foundation": ["clean_musk", "transparent_woods", "soft_amber"]
+          },
+          "korean_interpretation": {
+            "jeju_sky": "제주도 맑은 하늘 모티브",
+            "han_river_breeze": "한강 바람의 상쾌함",
+            "bukhan_mountain_air": "북한산 정상의 맑은 공기"
+          },
+          "manufacturing_recipe": {
+            "light_fresh_formula": {
+              "top_notes": {
+                "ozonic_molecules": "12ml",
+                "fresh_air_accord": "8ml",
+                "bergamot_silver": "5ml",
+                "cucumber_water": "3ml"
+              },
+              "middle_notes": {
+                "white_tea": "8ml",
+                "lily_of_valley": "6ml",
+                "cloud_mist_accord": "4ml"
+              },
+              "base_notes": {
+                "clean_musk": "6ml",
+                "transparent_cedar": "4ml",
+                "soft_amber": "4ml"
+              },
+              "concentration": "12% EDT - 상쾌함 극대화"
+            }
+          }
+        },
+        "navy_blue": {
+          "hex": "#000080",
+          "fragrance_profile": {
+            "deep_ocean_inspiration": "심해의 신비로움",
+            "dominant_notes": ["deep_marine", "sea_salt", "dark_aquatic"],
+            "sophisticated_elements": ["iris", "violet_leaf", "grey_amber"],
+            "base_foundation": ["driftwood", "sea_moss", "mineral_musk"]
+          },
+          "depth_variations": {
+            "surface_navy": "바다 표면의 반짝임",
+            "mid_depth_navy": "중간 깊이의 푸른 어둠",
+            "abyssal_navy": "심연의 깊고 신비한 어둠"
+          },
+          "manufacturing_recipe": {
+            "abyssal_formula": {
+              "marine_complex": {
+                "deep_marine_accord": "10ml",
+                "sea_salt_crystals": "3ml",
+                "dark_aquatic_molecules": "8ml"
+              },
+              "floral_sophistication": {
+                "iris_root": "6ml",
+                "violet_leaf_absolute": "4ml",
+                "sea_fennel": "2ml"
+              },
+              "woody_marine_base": {
+                "driftwood_accord": "8ml",
+                "sea_moss_tincture": "3ml",
+                "grey_amber": "6ml",
+                "mineral_musk": "5ml"
+              },
+              "concentration": "20% EDP - 깊이와 지속력"
+            }
+          }
+        },
+        "cobalt_blue": {
+          "hex": "#0047AB",
+          "fragrance_profile": {
+            "electric_energy": "코발트의 전기적 에너지",
+            "dominant_notes": ["electric_ozone", "metallic_accord", "sharp_citrus"],
+            "modern_elements": ["synthetic_molecules", "laboratory_clean", "futuristic_musk"],
+            "base_foundation": ["steel_accord", "concrete_powder", "urban_woods"]
+          },
+          "futuristic_interpretation": {
+            "cyberpunk_aesthetic": "미래도시의 네온사인",
+            "tech_lab_atmosphere": "첨단 연구소의 정밀함",
+            "space_station_air": "우주정거장의 정제된 공기"
+          }
+        }
+      },
+      "green_spectrum": {
+        "emerald_green": {
+          "hex": "#50C878",
+          "fragrance_profile": {
+            "precious_stone_inspiration": "에메랄드의 고귀함",
+            "dominant_notes": ["green_leaves", "emerald_moss", "precious_woods"],
+            "luxury_elements": ["green_tea_absolute", "jade_plant", "malachite_accord"],
+            "base_foundation": ["vetiver_haiti", "green_sandalwood", "forest_floor"]
+          },
+          "korean_elements": {
+            "jirisan_forest": "지리산 원시림의 깊은 녹음",
+            "bamboo_grove": "대나무 숲의 상쾌한 그늘",
+            "temple_moss": "고찰의 이끼 낀 돌계단"
+          },
+          "manufacturing_recipe": {
+            "luxury_emerald_formula": {
+              "precious_green_top": {
+                "emerald_moss_accord": "8ml",
+                "green_mandarin": "6ml",
+                "bamboo_leaves": "4ml"
+              },
+              "heart_of_forest": {
+                "green_tea_absolute": "10ml",
+                "jade_plant_essence": "5ml",
+                "forest_leaves": "8ml",
+                "vetiver_grass": "6ml"
+              },
+              "woody_foundation": {
+                "vetiver_haiti": "10ml",
+                "green_sandalwood": "8ml",
+                "cedar_atlas": "6ml",
+                "forest_floor_accord": "4ml"
+              },
+              "concentration": "25% Parfum - 최고급 농도"
+            }
+          }
+        },
+        "lime_green": {
+          "hex": "#32CD32",
+          "fragrance_profile": {
+            "citrus_energy": "라임의 톡 쏘는 에너지",
+            "dominant_notes": ["lime_zest", "green_apple", "mint_leaves"],
+            "energetic_elements": ["ginger", "lemongrass", "green_pepper"],
+            "base_foundation": ["white_woods", "clean_musk", "transparent_amber"]
+          },
+          "energy_levels": {
+            "morning_boost": "아침 활력 부스터",
+            "workout_companion": "운동 동반자",
+            "summer_cooling": "여름 쿨링 효과"
+          }
+        },
+        "forest_green": {
+          "hex": "#355E3B",
+          "fragrance_profile": {
+            "deep_woods_mystery": "깊은 숲의 신비",
+            "dominant_notes": ["pine_needles", "fir_balsam", "moss_absolute"],
+            "earthy_elements": ["wet_soil", "mushroom", "tree_bark"],
+            "base_foundation": ["cedarwood", "sandalwood", "forest_musk"]
+          },
+          "seasonal_forest_variations": {
+            "spring_forest": "새싹과 꽃봉오리",
+            "summer_forest": "무성한 잎사귀와 그늘",
+            "autumn_forest": "낙엽과 버섯의 흙내음",
+            "winter_forest": "침엽수와 눈의 정적"
+          }
+        }
+      },
+      "yellow_spectrum": {
+        "golden_yellow": {
+          "hex": "#FFD700",
+          "fragrance_profile": {
+            "luxury_gold_inspiration": "금의 고귀함과 따뜻함",
+            "dominant_notes": ["golden_honey", "saffron", "golden_woods"],
+            "precious_elements": ["gold_leaf_accord", "royal_amber", "precious_resins"],
+            "base_foundation": ["golden_sandalwood", "honey_musk", "precious_oud"]
+          },
+          "korean_royal_interpretation": {
+            "gyeongbok_palace": "경복궁 금박의 화려함",
+            "traditional_hanbok": "전통 한복의 금실",
+            "temple_buddha": "사찰 불상의 금칠"
+          },
+          "manufacturing_recipe": {
+            "royal_golden_formula": {
+              "precious_opening": {
+                "golden_honey_absolute": "8ml",
+                "saffron_absolute": "2ml",
+                "golden_citrus_blend": "6ml"
+              },
+              "heart_of_gold": {
+                "golden_woods_accord": "10ml",
+                "royal_amber": "8ml",
+                "precious_resins_blend": "6ml"
+              },
+              "golden_foundation": {
+                "golden_sandalwood": "12ml",
+                "honey_musk": "6ml",
+                "precious_oud": "4ml",
+                "gold_leaf_accord": "2ml"
+              },
+              "luxury_concentration": "30% Parfum Extrait"
+            }
+          }
+        },
+        "lemon_yellow": {
+          "hex": "#FFFF00",
+          "fragrance_profile": {
+            "citrus_sunshine": "레몬의 상쾌한 햇살",
+            "dominant_notes": ["lemon_zest", "yellow_grapefruit", "citron"],
+            "brightness_enhancers": ["bergamot", "verbena", "lemon_grass"],
+            "base_foundation": ["white_musk", "light_woods", "clean_amber"]
+          },
+          "mood_enhancement": {
+            "morning_energy": "아침 에너지 부스터",
+            "mood_lifting": "기분 향상 효과",
+            "concentration_aid": "집중력 향상 도움"
+          }
+        },
+        "mustard_yellow": {
+          "hex": "#FFDB58",
+          "fragrance_profile": {
+            "earthy_warmth": "겨자색의 따뜻한 대지",
+            "dominant_notes": ["turmeric", "ginger", "warm_spices"],
+            "comfort_elements": ["vanilla", "honey", "warm_woods"],
+            "base_foundation": ["sandalwood", "amber", "soft_musk"]
+          },
+          "comfort_therapy": {
+            "stress_relief": "스트레스 완화",
+            "warmth_provision": "따뜻함 제공",
+            "grounding_effect": "안정감 부여"
+          }
+        }
+      },
+      "purple_spectrum": {
+        "royal_purple": {
+          "hex": "#7851A9",
+          "fragrance_profile": {
+            "regal_sophistication": "왕실의 우아함",
+            "dominant_notes": ["violets", "purple_iris", "royal_orris"],
+            "luxury_elements": ["amethyst_accord", "purple_velvet", "noble_woods"],
+            "base_foundation": ["purple_patchouli", "royal_musk", "precious_amber"]
+          },
+          "historical_references": {
+            "korean_royalty": "조선 왕실의 자주색 비단",
+            "court_ceremony": "궁중 의식의 장엄함",
+            "noble_elegance": "귀족의 고귀한 품격"
+          },
+          "manufacturing_recipe": {
+            "regal_formula": {
+              "violet_crown": {
+                "violet_leaf_absolute": "6ml",
+                "purple_iris": "8ml",
+                "royal_orris_root": "4ml"
+              },
+              "amethyst_heart": {
+                "amethyst_accord": "5ml",
+                "purple_velvet_molecules": "3ml",
+                "noble_woods_blend": "8ml"
+              },
+              "royal_base": {
+                "purple_patchouli": "10ml",
+                "royal_musk": "6ml",
+                "precious_amber": "8ml"
+              },
+              "concentration": "28% Parfum - 왕실급 농도"
+            }
+          }
+        },
+        "lavender_purple": {
+          "hex": "#967BB6",
+          "fragrance_profile": {
+            "calming_essence": "라벤더의 진정 효과",
+            "dominant_notes": ["lavender_fields", "purple_sage", "calm_herbs"],
+            "therapeutic_elements": ["aromatherapy_blend", "relaxation_complex", "sleep_inducing"],
+            "base_foundation": ["soft_woods", "gentle_musk", "powdery_amber"]
+          },
+          "wellness_applications": {
+            "sleep_aid": "수면 유도 블렌드",
+            "stress_reduction": "스트레스 감소 효과",
+            "meditation_support": "명상 지원 향"
+          }
+        },
+        "deep_violet": {
+          "hex": "#8B00FF",
+          "fragrance_profile": {
+            "mysterious_depth": "깊은 보라의 신비",
+            "dominant_notes": ["dark_violets", "mysterious_woods", "twilight_accord"],
+            "mystical_elements": ["incense", "mystical_resins", "evening_mist"],
+            "base_foundation": ["dark_patchouli", "mysterious_musk", "deep_amber"]
+          },
+          "atmospheric_moods": {
+            "twilight_magic": "황혼의 마법적 분위기",
+            "midnight_mystery": "자정의 신비로움",
+            "spiritual_depth": "영적 깊이감"
+          }
+        }
+      },
+      "orange_spectrum": {
+        "bright_orange": {
+          "hex": "#FFA500",
+          "fragrance_profile": {
+            "vibrant_energy": "오렌지의 활기찬 에너지",
+            "dominant_notes": ["sweet_orange", "tangerine", "orange_blossom"],
+            "energetic_elements": ["ginger", "cardamom", "bright_spices"],
+            "base_foundation": ["warm_amber", "soft_woods", "energetic_musk"]
+          },
+          "korean_citrus_heritage": {
+            "jeju_tangerine": "제주 감귤의 달콤함",
+            "autumn_persimmon": "가을 감의 풍성함",
+            "traditional_yuzu": "전통 유자의 향긋함"
+          }
+        },
+        "coral_orange": {
+          "hex": "#FF7F50",
+          "fragrance_profile": {
+            "ocean_sunset": "바다 석양의 따뜻함",
+            "dominant_notes": ["coral_essence", "sea_breeze", "sunset_accord"],
+            "marine_florals": ["sea_lily", "beach_rose", "salt_flowers"],
+            "base_foundation": ["driftwood", "sea_amber", "coastal_musk"]
+          },
+          "coastal_inspiration": {
+            "busan_sunset": "부산 해운대 석양",
+            "west_coast_evening": "서해안 저녁노을",
+            "island_romance": "섬의 로맨틱한 분위기"
+          }
+        },
+        "burnt_orange": {
+          "hex": "#CC5500",
+          "fragrance_profile": {
+            "autumn_warmth": "가을의 깊은 따뜻함",
+            "dominant_notes": ["burnt_orange_peel", "autumn_leaves", "warm_spices"],
+            "cozy_elements": ["cinnamon", "nutmeg", "vanilla_warm"],
+            "base_foundation": ["aged_woods", "amber_resin", "comfort_musk"]
+          },
+          "seasonal_comfort": {
+            "fireside_warmth": "벽난로 옆의 따뜻함",
+            "autumn_forest": "가을 숲의 아늑함",
+            "harvest_celebration": "수확의 기쁨"
+          }
+        }
+      },
+      "pink_spectrum": {
+        "rose_pink": {
+          "hex": "#FF69B4",
+          "fragrance_profile": {
+            "romantic_femininity": "장미빛 로맨스",
+            "dominant_notes": ["pink_rose", "rose_petals", "romantic_florals"],
+            "soft_elements": ["peony", "pink_peony", "soft_musk"],
+            "base_foundation": ["rose_wood", "pink_amber", "gentle_vanilla"]
+          },
+          "korean_beauty_culture": {
+            "cherry_blossom_season": "벚꽃 시즌의 로맨스",
+            "traditional_beauty": "전통 미인의 우아함",
+            "modern_femininity": "현대적 여성미"
+          }
+        },
+        "hot_pink": {
+          "hex": "#FF1493",
+          "fragrance_profile": {
+            "bold_confidence": "대담한 자신감",
+            "dominant_notes": ["hot_pink_accord", "bold_florals", "confident_musk"],
+            "energetic_elements": ["pink_pepper", "energetic_citrus", "vibrant_spices"],
+            "base_foundation": ["strong_woods", "bold_amber", "assertive_musk"]
+          },
+          "empowerment_theme": {
+            "girl_power": "걸 파워 에너지",
+            "confidence_boost": "자신감 부스터",
+            "bold_statement": "강렬한 개성 표현"
+          }
+        },
+        "dusty_pink": {
+          "hex": "#D2B2A0",
+          "fragrance_profile": {
+            "vintage_elegance": "빈티지 우아함",
+            "dominant_notes": ["dusty_rose", "vintage_florals", "powdery_notes"],
+            "nostalgic_elements": ["old_roses", "powder_room", "vintage_musk"],
+            "base_foundation": ["aged_sandalwood", "vintage_amber", "nostalgic_woods"]
+          },
+          "vintage_inspiration": {
+            "grandmother_garden": "할머니 정원의 추억",
+            "vintage_perfume": "빈티지 향수의 향수",
+            "timeless_beauty": "시대를 초월한 아름다움"
+          }
+        }
+      },
+      "black_white_grey": {
+        "pure_white": {
+          "hex": "#FFFFFF",
+          "fragrance_profile": {
+            "absolute_purity": "절대적 순수함",
+            "dominant_notes": ["white_flowers", "clean_linen", "pure_air"],
+            "minimalist_elements": ["white_tea", "transparent_musk", "clean_molecules"],
+            "base_foundation": ["white_woods", "pure_amber", "crystalline_musk"]
+          },
+          "purity_concept": {
+            "korean_white_porcelain": "백자의 순수한 아름다움",
+            "temple_purity": "사찰의 청정함",
+            "snow_mountain": "설산의 깨끗함"
+          }
+        },
+        "charcoal_black": {
+          "hex": "#36454F",
+          "fragrance_profile": {
+            "mysterious_depth": "신비로운 깊이",
+            "dominant_notes": ["black_tea", "charcoal_accord", "dark_woods"],
+            "sophisticated_elements": ["black_pepper", "dark_amber", "mystery_musk"],
+            "base_foundation": ["ebony_wood", "black_amber", "deep_musk"]
+          },
+          "korean_black_aesthetics": {
+            "ink_painting": "수묵화의 깊이",
+            "black_pottery": "흑자의 무게감",
+            "night_seoul": "서울 밤의 도시미"
+          }
+        },
+        "pearl_grey": {
+          "hex": "#E5E4E2",
+          "fragrance_profile": {
+            "sophisticated_neutrality": "세련된 중성",
+            "dominant_notes": ["grey_tea", "neutral_woods", "balanced_musk"],
+            "elegant_elements": ["pearl_essence", "silk_accord", "refined_amber"],
+            "base_foundation": ["grey_woods", "neutral_amber", "balanced_musk"]
+          },
+          "korean_minimalism": {
+            "hanok_aesthetics": "한옥의 절제미",
+            "modern_design": "현대적 미니멀리즘",
+            "zen_balance": "선의 균형감"
+          }
+        }
+      }
+    },
+    "advanced_color_mixing": {
+      "color_harmony_principles": {
+        "complementary_colors": {
+          "theory": "색상환 반대편 색의 조화",
+          "examples": {
+            "red_green": "장미와 베티버의 조화",
+            "blue_orange": "해양감과 감귤의 대비",
+            "yellow_purple": "시트러스와 바이올렛의 균형"
+          }
+        },
+        "analogous_colors": {
+          "theory": "인접한 색상들의 자연스러운 조화",
+          "examples": {
+            "blue_green_teal": "아쿠아틱 그라데이션",
+            "red_orange_yellow": "따뜻한 스파이스 블렌드",
+            "purple_pink_red": "플로럴 그라데이션"
+          }
+        },
+        "triadic_harmony": {
+          "theory": "색상환에서 120도 간격의 3색 조화",
+          "examples": {
+            "red_blue_yellow": "프라이머리 컴플렉스",
+            "orange_green_purple": "세컨더리 하모니"
+          }
+        }
+      },
+      "gradient_fragrance_creation": {
+        "sunset_gradient": {
+          "color_progression": ["deep_orange", "coral", "pink", "purple", "navy"],
+          "fragrance_progression": {
+            "opening": "밝은 오렌지 - 에너제틱 시트러스",
+            "early_development": "코랄 - 바다 플로럴",
+            "heart": "핑크 - 로맨틱 로즈",
+            "late_heart": "퍼플 - 미스터리 바이올렛",
+            "base": "네이비 - 딥 마린 우디"
+          },
+          "manufacturing_approach": {
+            "time_release_technology": "시간에 따른 단계적 향 방출",
+            "molecular_weight_sequencing": "분자량 순서에 따른 색상 변화",
+            "encapsulation_technique": "마이크로캡슐화로 색상별 타이밍 조절"
+          }
+        },
+        "aurora_gradient": {
+          "color_inspiration": "오로라의 신비로운 색채",
+          "fragrance_interpretation": {
+            "green_aurora": "노던 파인과 아이시 민트",
+            "blue_aurora": "크리스탈 아쿠아틱",
+            "purple_aurora": "코스믹 바이올렛",
+            "pink_aurora": "에테리얼 로즈"
+          }
+        }
+      }
+    },
+    "cultural_color_adaptations": {
+      "korean_traditional_colors": {
+        "오방색_five_colors": {
+          "적색_red": {
+            "meaning": "남쪽, 여름, 기쁨",
+            "fragrance_interpretation": "축제의 즐거움, 생명력",
+            "key_notes": ["korean_red_pepper", "traditional_spices", "celebration_florals"]
+          },
+          "청색_blue": {
+            "meaning": "동쪽, 봄, 새로운 시작",
+            "fragrance_interpretation": "새벽의 신선함, 희망",
+            "key_notes": ["morning_dew", "spring_blossoms", "fresh_bamboo"]
+          },
+          "황색_yellow": {
+            "meaning": "중앙, 토양, 안정",
+            "fragrance_interpretation": "대지의 풍요로움",
+            "key_notes": ["golden_rice", "earth_minerals", "harvest_honey"]
+          },
+          "백색_white": {
+            "meaning": "서쪽, 가을, 순수",
+            "fragrance_interpretation": "정화와 성찰",
+            "key_notes": ["white_chrysanthemum", "clean_mountain_air", "pure_water"]
+          },
+          "흑색_black": {
+            "meaning": "북쪽, 겨울, 깊이",
+            "fragrance_interpretation": "내적 성찰, 지혜",
+            "key_notes": ["black_sesame", "deep_woods", "winter_silence"]
+          }
+        },
+        "traditional_dye_colors": {
+          "쪽빛_indigo": {
+            "traditional_process": "쪽 염료로 물들인 깊은 파랑",
+            "fragrance_creation": {
+              "top_notes": ["indigo_leaves", "deep_blue_flowers"],
+              "middle_notes": ["traditional_herbs", "natural_dyes"],
+              "base_notes": ["aged_fabrics", "artisan_woods"]
+            }
+          },
+          "황토색_ochre": {
+            "traditional_process": "황토로 만든 자연스러운 갈색",
+            "fragrance_creation": {
+              "earth_connection": "대지와의 연결감",
+              "natural_minerals": "천연 미네랄 향",
+              "grounding_effect": "안정감과 근본성"
+            }
+          }
+        }
+      },
+      "seasonal_color_preferences": {
+        "korean_spring": {
+          "representative_colors": ["cherry_blossom_pink", "new_leaf_green", "sky_blue"],
+          "fragrance_themes": ["renewal", "freshness", "gentle_awakening"],
+          "cultural_elements": ["벚꽃축제", "새싹", "봄비"]
+        },
+        "korean_summer": {
+          "representative_colors": ["ocean_blue", "forest_green", "sun_yellow"],
+          "fragrance_themes": ["cooling", "refreshing", "energizing"],
+          "cultural_elements": ["바다휴가", "녹음", "여름밤"]
+        },
+        "korean_autumn": {
+          "representative_colors": ["maple_red", "golden_yellow", "autumn_brown"],
+          "fragrance_themes": ["warmth", "richness", "nostalgia"],
+          "cultural_elements": ["단풍", "추수", "코스모스"]
+        },
+        "korean_winter": {
+          "representative_colors": ["snow_white", "pine_green", "charcoal_grey"],
+          "fragrance_themes": ["coziness", "depth", "contemplation"],
+          "cultural_elements": ["눈景", "온돌", "겨울정적"]
+        }
+      }
+    },
+    "professional_application_guidelines": {
+      "color_consultation_process": {
+        "step_1_color_analysis": "고객의 선호 색상 스펙트럼 분석",
+        "step_2_emotion_mapping": "색상과 연결된 감정 및 기억 탐색",
+        "step_3_lifestyle_consideration": "라이프스타일과 색상 선호도 매칭",
+        "step_4_fragrance_translation": "색상을 향료 언어로 번역",
+        "step_5_prototype_creation": "초기 향 샘플 제작",
+        "step_6_refinement": "피드백 기반 세밀 조정",
+        "step_7_final_formulation": "최종 제형 완성"
+      },
+      "quality_control_standards": {
+        "color_accuracy": "요청된 색상의 정확한 향적 해석",
+        "emotional_coherence": "색상이 주는 감정과 향이 주는 감정의 일치",
+        "cultural_appropriateness": "문화적 맥락에서의 적절성",
+        "technical_feasibility": "실제 제조 가능성 검증",
+        "safety_compliance": "안전성 및 규제 준수",
+        "longevity_performance": "지속력과 발현성 최적화"
+      },
+      "documentation_requirements": {
+        "color_reference": "정확한 색상 코드 및 샘플",
+        "inspiration_source": "색상 선택의 영감 소스",
+        "fragrance_formula": "상세한 조향 공식",
+        "development_notes": "개발 과정의 기록",
+        "testing_results": "품질 테스트 결과",
+        "cultural_research": "문화적 배경 연구 자료"
+      }
+    }
+  }
+}

@@ -1,0 +1,445 @@
+{
+  "training_data": [
+    {
+      "id": "TRAIN_001",
+      "input": "봄날 아침에 착용할 수 있는 상쾌하고 깨끗한 향수를 만들어주세요. 너무 무겁지 않고 오피스에서도 사용할 수 있으면 좋겠어요.",
+      "output": {
+        "fragrance_name": "Morning Dew Garden",
+        "korean_name": "아침 이슬 정원",
+        "concept": "봄 아침의 상쾌함과 직장에서의 세련미를 동시에 표현",
+        "fragrance_family": "fresh_floral",
+        "concentration": "eau_de_toilette",
+        "target_concentration": 12,
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "bergamot", "percentage": 35, "reason": "상쾌한 시작감을 위한 베르가못"},
+            {"note": "green_mandarin", "percentage": 25, "reason": "부드러운 감귤의 싱그러움"},
+            {"note": "petitgrain", "percentage": 20, "reason": "오피스 환경에 적합한 그린함"}
+          ],
+          "middle_notes": [
+            {"note": "lily_of_the_valley", "percentage": 40, "reason": "봄의 순수함을 표현하는 은방울꽃"},
+            {"note": "freesia", "percentage": 30, "reason": "깨끗하고 투명한 꽃향기"},
+            {"note": "green_leaves", "percentage": 20, "reason": "자연스러운 그린 노트"}
+          ],
+          "base_notes": [
+            {"note": "white_musk", "percentage": 50, "reason": "깨끗하고 은은한 마무리"},
+            {"note": "light_woods", "percentage": 30, "reason": "안정감 있는 우디함"},
+            {"note": "transparent_amber", "percentage": 20, "reason": "따뜻하지만 가벼운 베이스"}
+          ]
+        },
+        "characteristics": {
+          "longevity": 4,
+          "sillage": 3,
+          "projection": 2,
+          "mood": ["fresh", "clean", "professional"]
+        },
+        "usage_guide": {
+          "best_season": ["spring", "early_summer"],
+          "time_of_day": ["morning", "afternoon"],
+          "occasions": ["office", "daily", "casual_meeting"]
+        }
+      }
+    },
+    {
+      "id": "TRAIN_002",
+      "input": "저녁 데이트에 완벽한 로맨틱하고 세련된 향수를 원해요. 남성이 좋아할만한 여성스럽지만 너무 달지 않은 향으로 부탁드려요.",
+      "output": {
+        "fragrance_name": "Velvet Romance",
+        "korean_name": "벨벳 로맨스",
+        "concept": "우아한 여성미와 은은한 관능미의 조화",
+        "fragrance_family": "oriental_floral",
+        "concentration": "eau_de_parfum",
+        "target_concentration": 16,
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "pink_grapefruit", "percentage": 30, "reason": "상쾌하면서도 달콤한 시작"},
+            {"note": "blackcurrant", "percentage": 25, "reason": "세련된 베리의 톡 쏘는 매력"},
+            {"note": "pink_pepper", "percentage": 20, "reason": "스파이시한 포인트로 흥미 유발"}
+          ],
+          "middle_notes": [
+            {"note": "damask_rose", "percentage": 35, "reason": "로맨틱함의 핵심인 다마스크 장미"},
+            {"note": "peony", "percentage": 25, "reason": "부드럽고 여성스러운 모란"},
+            {"note": "red_berries", "percentage": 20, "reason": "달지 않은 자연스러운 과일향"}
+          ],
+          "base_notes": [
+            {"note": "cashmeran", "percentage": 35, "reason": "벨벳 같은 부드러움"},
+            {"note": "vanilla_orchid", "percentage": 25, "reason": "은은한 달콤함"},
+            {"note": "soft_musk", "percentage": 25, "reason": "관능적이지만 우아한 마무리"},
+            {"note": "blonde_woods", "percentage": 15, "reason": "세련된 우디 베이스"}
+          ]
+        },
+        "characteristics": {
+          "longevity": 7,
+          "sillage": 6,
+          "projection": 5,
+          "mood": ["romantic", "sophisticated", "alluring"]
+        },
+        "usage_guide": {
+          "best_season": ["autumn", "winter", "spring_evening"],
+          "time_of_day": ["evening", "night"],
+          "occasions": ["date", "romantic_dinner", "cocktail_party"]
+        }
+      }
+    },
+    {
+      "id": "TRAIN_003",
+      "input": "여름에 스포츠나 운동할 때 착용할 상쾌하고 시원한 향수 만들어주세요. 너무 강하지 않고 운동 후에도 불쾌하지 않았으면 좋겠어요.",
+      "output": {
+        "fragrance_name": "Arctic Sport Breeze",
+        "korean_name": "북극 스포츠 바람",
+        "concept": "운동 시에도 상쾌함을 유지하는 시원한 바람의 향",
+        "fragrance_family": "aquatic_aromatic",
+        "concentration": "eau_de_toilette",
+        "target_concentration": 8,
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "spearmint", "percentage": 40, "reason": "강렬한 시원함을 주는 스피어민트"},
+            {"note": "eucalyptus", "percentage": 30, "reason": "상쾌하고 깨끗한 유칼립투스"},
+            {"note": "icy_citrus", "percentage": 30, "reason": "얼음같이 차가운 감귤류"}
+          ],
+          "middle_notes": [
+            {"note": "sea_breeze", "percentage": 50, "reason": "바다 바람의 시원함"},
+            {"note": "ozone", "percentage": 30, "reason": "깨끗한 오존의 상쾌함"},
+            {"note": "cucumber", "percentage": 20, "reason": "수분감 있는 오이의 시원함"}
+          ],
+          "base_notes": [
+            {"note": "clean_musk", "percentage": 60, "reason": "깨끗하고 가벼운 머스크"},
+            {"note": "mineral_notes", "percentage": 25, "reason": "미네랄의 깔끔함"},
+            {"note": "transparent_woods", "percentage": 15, "reason": "가벼운 우디 베이스"}
+          ]
+        },
+        "characteristics": {
+          "longevity": 3,
+          "sillage": 2,
+          "projection": 2,
+          "mood": ["energetic", "cooling", "clean"]
+        },
+        "usage_guide": {
+          "best_season": ["summer"],
+          "time_of_day": ["morning", "afternoon"],
+          "occasions": ["sport", "gym", "outdoor_activity", "beach"]
+        }
+      }
+    },
+    {
+      "id": "TRAIN_004",
+      "input": "가을 저녁에 어울리는 따뜻하고 포근한 향수를 만들고 싶어요. 커피나 바닐라 같은 달콤한 향이 들어갔으면 좋겠고, 남녀 모두 사용할 수 있으면 좋겠어요.",
+      "output": {
+        "fragrance_name": "Autumn Cafe Embrace",
+        "korean_name": "가을 카페 포옹",
+        "concept": "가을 저녁 카페의 따뜻하고 달콤한 분위기",
+        "fragrance_family": "gourmand_oriental",
+        "concentration": "eau_de_parfum",
+        "target_concentration": 18,
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "cinnamon", "percentage": 35, "reason": "따뜻한 계피의 스파이시함"},
+            {"note": "cardamom", "percentage": 25, "reason": "이국적인 카다몬의 향신료"},
+            {"note": "orange_zest", "percentage": 20, "reason": "상큼한 오렌지 제스트"}
+          ],
+          "middle_notes": [
+            {"note": "coffee_absolute", "percentage": 40, "reason": "진한 커피의 깊은 향"},
+            {"note": "hazelnut", "percentage": 30, "reason": "고소한 헤이즐넛"},
+            {"note": "caramel", "percentage": 20, "reason": "부드러운 캐러멜의 달콤함"}
+          ],
+          "base_notes": [
+            {"note": "vanilla_bean", "percentage": 35, "reason": "깊고 진한 바닐라빈"},
+            {"note": "tonka_bean", "percentage": 25, "reason": "따뜻한 톤카빈"},
+            {"note": "sandalwood", "percentage": 20, "reason": "크리미한 샌달우드"},
+            {"note": "amber", "percentage": 20, "reason": "포근한 앰버"}
+          ]
+        },
+        "characteristics": {
+          "longevity": 8,
+          "sillage": 6,
+          "projection": 5,
+          "mood": ["cozy", "warm", "comforting"]
+        },
+        "usage_guide": {
+          "best_season": ["autumn", "winter"],
+          "time_of_day": ["afternoon", "evening"],
+          "occasions": ["cafe", "cozy_evening", "date", "casual_dinner"]
+        }
+      }
+    },
+    {
+      "id": "TRAIN_005",
+      "input": "직장에서 사용할 수 있는 신뢰감 있고 전문적인 향수를 원해요. 너무 개성 강하지 않으면서도 세련되고 깔끔한 느낌이면 좋겠어요.",
+      "output": {
+        "fragrance_name": "Executive Confidence",
+        "korean_name": "임원진의 신뢰",
+        "concept": "프로페셔널한 환경에 적합한 신뢰감 있는 향",
+        "fragrance_family": "woody_aromatic",
+        "concentration": "eau_de_toilette",
+        "target_concentration": 10,
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "bergamot", "percentage": 40, "reason": "깔끔하고 신뢰감 있는 베르가못"},
+            {"note": "lemon", "percentage": 30, "reason": "상쾌한 레몬의 청량감"},
+            {"note": "lavender", "percentage": 30, "reason": "안정감 있는 라벤더"}
+          ],
+          "middle_notes": [
+            {"note": "geranium", "percentage": 35, "reason": "균형잡힌 제라늄"},
+            {"note": "rosemary", "percentage": 30, "reason": "집중력을 높이는 로즈마리"},
+            {"note": "sage", "percentage": 25, "reason": "지혜로운 세이지"}
+          ],
+          "base_notes": [
+            {"note": "cedar", "percentage": 40, "reason": "안정적이고 신뢰감 있는 시더"},
+            {"note": "vetiver", "percentage": 30, "reason": "세련된 베티버"},
+            {"note": "white_musk", "percentage": 20, "reason": "깔끔한 마무리의 화이트 머스크"},
+            {"note": "iris", "percentage": 10, "reason": "우아함을 더하는 아이리스"}
+          ]
+        },
+        "characteristics": {
+          "longevity": 6,
+          "sillage": 4,
+          "projection": 3,
+          "mood": ["professional", "confident", "trustworthy"]
+        },
+        "usage_guide": {
+          "best_season": ["spring", "autumn", "winter"],
+          "time_of_day": ["morning", "afternoon"],
+          "occasions": ["office", "business_meeting", "professional_event"]
+        }
+      }
+    },
+    {
+      "id": "TRAIN_006",
+      "input": "한국 전통의 아름다움을 담은 향수를 만들어주세요. 동양적이면서도 현대적인 감각이 있었으면 좋겠어요.",
+      "output": {
+        "fragrance_name": "Seoul Harmony",
+        "korean_name": "서울 하모니",
+        "concept": "한국의 전통미와 현대적 세련미의 조화",
+        "fragrance_family": "oriental_floral",
+        "concentration": "eau_de_parfum",
+        "target_concentration": 15,
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "yuzu", "percentage": 35, "reason": "동양적인 유자의 상쾌함"},
+            {"note": "korean_pear", "percentage": 25, "reason": "한국 배의 달콤함"},
+            {"note": "green_tea", "percentage": 20, "reason": "한국 차 문화의 향"}
+          ],
+          "middle_notes": [
+            {"note": "mugunghwa", "percentage": 40, "reason": "한국의 국화 무궁화"},
+            {"note": "lotus", "percentage": 30, "reason": "연꽃의 순수한 아름다움"},
+            {"note": "bamboo", "percentage": 20, "reason": "대나무의 청아함"}
+          ],
+          "base_notes": [
+            {"note": "hinoki_cypress", "percentage": 35, "reason": "편백나무의 온화함"},
+            {"note": "korean_pine", "percentage": 25, "reason": "소나무의 정갈함"},
+            {"note": "soft_incense", "percentage": 20, "reason": "은은한 향의 신비로움"},
+            {"note": "silk_musk", "percentage": 20, "reason": "비단처럼 부드러운 머스크"}
+          ]
+        },
+        "characteristics": {
+          "longevity": 7,
+          "sillage": 5,
+          "projection": 4,
+          "mood": ["harmonious", "elegant", "cultural"]
+        },
+        "usage_guide": {
+          "best_season": ["spring", "autumn"],
+          "time_of_day": ["afternoon", "evening"],
+          "occasions": ["cultural_event", "formal_dinner", "art_gallery"]
+        }
+      }
+    },
+    {
+      "id": "TRAIN_007",
+      "input": "젊고 트렌디한 10-20대가 좋아할만한 달콤하고 상큼한 향수 만들어주세요. 인스타그램에 올리고 싶을 정도로 예쁜 향이면 좋겠어요.",
+      "output": {
+        "fragrance_name": "Instagram Pink",
+        "korean_name": "인스타그램 핑크",
+        "concept": "젊음과 트렌디함이 가득한 SNS 감성 향수",
+        "fragrance_family": "fruity_floral",
+        "concentration": "eau_de_toilette",
+        "target_concentration": 12,
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "pink_grapefruit", "percentage": 30, "reason": "상큼한 핑크 자몽"},
+            {"note": "raspberry", "percentage": 25, "reason": "달콤한 라즈베리"},
+            {"note": "cotton_candy", "percentage": 20, "reason": "솜사탕의 달콤함"}
+          ],
+          "middle_notes": [
+            {"note": "peony", "percentage": 35, "reason": "예쁜 핑크 모란꽃"},
+            {"note": "cherry_blossom", "percentage": 30, "reason": "벚꽃의 로맨틱함"},
+            {"note": "macaroon", "percentage": 25, "reason": "마카롱의 달콤함"}
+          ],
+          "base_notes": [
+            {"note": "vanilla_sugar", "percentage": 40, "reason": "바닐라 설탕의 달콤함"},
+            {"note": "pink_musk", "percentage": 35, "reason": "사랑스러운 핑크 머스크"},
+            {"note": "cashmere", "percentage": 25, "reason": "부드러운 캐시미어"}
+          ]
+        },
+        "characteristics": {
+          "longevity": 5,
+          "sillage": 4,
+          "projection": 4,
+          "mood": ["sweet", "youthful", "trendy"]
+        },
+        "usage_guide": {
+          "best_season": ["spring", "summer"],
+          "time_of_day": ["morning", "afternoon"],
+          "occasions": ["casual", "shopping", "friend_meeting", "date"]
+        }
+      }
+    },
+    {
+      "id": "TRAIN_008",
+      "input": "겨울 밤에 어울리는 깊이 있고 신비로운 향수를 원해요. 우드나 스파이스가 들어간 강렬하면서도 세련된 향으로 부탁해요.",
+      "output": {
+        "fragrance_name": "Midnight Enigma",
+        "korean_name": "한밤의 수수께끼",
+        "concept": "겨울 밤의 신비로움과 깊이를 담은 향",
+        "fragrance_family": "woody_spicy",
+        "concentration": "eau_de_parfum",
+        "target_concentration": 20,
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "black_pepper", "percentage": 35, "reason": "강렬한 블랙 페퍼의 스파이시함"},
+            {"note": "cardamom", "percentage": 25, "reason": "이국적인 카다몬"},
+            {"note": "bergamot", "percentage": 20, "reason": "세련된 베르가못"}
+          ],
+          "middle_notes": [
+            {"note": "saffron", "percentage": 40, "reason": "고급스러운 사프란"},
+            {"note": "rose", "percentage": 30, "reason": "신비로운 장미"},
+            {"note": "cinnamon", "percentage": 20, "reason": "따뜻한 계피"}
+          ],
+          "base_notes": [
+            {"note": "oud", "percentage": 35, "reason": "깊고 신비로운 우드"},
+            {"note": "sandalwood", "percentage": 25, "reason": "크리미한 샌달우드"},
+            {"note": "amber", "percentage": 20, "reason": "따뜻한 앰버"},
+            {"note": "dark_musk", "percentage": 20, "reason": "어둠의 머스크"}
+          ]
+        },
+        "characteristics": {
+          "longevity": 10,
+          "sillage": 8,
+          "projection": 7,
+          "mood": ["mysterious", "intense", "sophisticated"]
+        },
+        "usage_guide": {
+          "best_season": ["winter", "autumn"],
+          "time_of_day": ["evening", "night"],
+          "occasions": ["formal_event", "opera", "winter_party", "luxury_dinner"]
+        }
+      }
+    },
+    {
+      "id": "TRAIN_009",
+      "input": "임신 중이라 너무 강한 향은 피하고 싶어요. 부드럽고 자연스러우면서도 기분 좋은 향수 만들어주세요.",
+      "output": {
+        "fragrance_name": "Gentle Bloom",
+        "korean_name": "부드러운 꽃피움",
+        "concept": "임신 중에도 안전하고 편안한 자연의 향",
+        "fragrance_family": "soft_floral",
+        "concentration": "eau_de_toilette",
+        "target_concentration": 6,
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "chamomile", "percentage": 40, "reason": "진정 효과가 있는 카모마일"},
+            {"note": "sweet_orange", "percentage": 30, "reason": "부드러운 스위트 오렌지"},
+            {"note": "lavender", "percentage": 30, "reason": "안정감을 주는 라벤더"}
+          ],
+          "middle_notes": [
+            {"note": "cotton_flower", "percentage": 50, "reason": "부드러운 목화꽃"},
+            {"note": "white_tea", "percentage": 30, "reason": "은은한 화이트 티"},
+            {"note": "apple_blossom", "percentage": 20, "reason": "상큼한 사과꽃"}
+          ],
+          "base_notes": [
+            {"note": "clean_musk", "percentage": 60, "reason": "깨끗하고 순한 머스크"},
+            {"note": "soft_woods", "percentage": 25, "reason": "부드러운 우드"},
+            {"note": "vanilla_milk", "percentage": 15, "reason": "은은한 바닐라 밀크"}
+          ]
+        },
+        "characteristics": {
+          "longevity": 3,
+          "sillage": 2,
+          "projection": 1,
+          "mood": ["gentle", "comforting", "safe"]
+        },
+        "usage_guide": {
+          "best_season": ["all_season"],
+          "time_of_day": ["morning", "afternoon"],
+          "occasions": ["daily", "home", "gentle_moments"]
+        }
+      }
+    },
+    {
+      "id": "TRAIN_010",
+      "input": "남자친구와 함께 쓸 수 있는 커플 향수 만들어주세요. 둘 다 착용해도 어색하지 않으면서 로맨틱한 느낌이면 좋겠어요.",
+      "output": {
+        "fragrance_name": "Together Forever",
+        "korean_name": "함께하는 영원",
+        "concept": "커플이 함께 나눌 수 있는 사랑의 향",
+        "fragrance_family": "unisex_romantic",
+        "concentration": "eau_de_parfum",
+        "target_concentration": 14,
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "bergamot", "percentage": 35, "reason": "성별 구분 없는 베르가못"},
+            {"note": "pink_grapefruit", "percentage": 25, "reason": "상큼한 핑크 자몽"},
+            {"note": "white_pepper", "percentage": 20, "reason": "은은한 화이트 페퍼"}
+          ],
+          "middle_notes": [
+            {"note": "rose", "percentage": 40, "reason": "사랑을 상징하는 장미"},
+            {"note": "geranium", "percentage": 30, "reason": "균형잡힌 제라늄"},
+            {"note": "lily", "percentage": 20, "reason": "순수한 백합"}
+          ],
+          "base_notes": [
+            {"note": "cedar", "percentage": 35, "reason": "안정적인 시더"},
+            {"note": "white_musk", "percentage": 30, "reason": "깨끗한 화이트 머스크"},
+            {"note": "vanilla", "percentage": 20, "reason": "달콤한 바닐라"},
+            {"note": "amber", "percentage": 15, "reason": "따뜻한 앰버"}
+          ]
+        },
+        "characteristics": {
+          "longevity": 6,
+          "sillage": 5,
+          "projection": 4,
+          "mood": ["romantic", "harmonious", "loving"]
+        },
+        "usage_guide": {
+          "best_season": ["spring", "summer", "autumn"],
+          "time_of_day": ["afternoon", "evening"],
+          "occasions": ["date", "couple_time", "romantic_walk", "anniversary"]
+        }
+      }
+    }
+  ],
+  "prompt_patterns": {
+    "user_request_types": [
+      "occasion_based": "특정 상황을 위한 향수 (데이트, 업무, 운동 등)",
+      "mood_based": "기분이나 느낌 기반 (로맨틱, 상쾌, 신비로운 등)",
+      "ingredient_preference": "특정 재료 선호 (바닐라, 시트러스, 우드 등)",
+      "demographic_target": "특정 대상층 (젊은층, 전문직, 커플 등)",
+      "seasonal_request": "계절 기반 요청 (봄, 여름, 가을, 겨울)",
+      "cultural_inspiration": "문화적 영감 (한국적, 동양적, 서양적 등)",
+      "lifestyle_based": "라이프스타일 기반 (운동, 업무, 휴식 등)",
+      "special_needs": "특별한 요구사항 (임신, 알레르기, 민감함 등)"
+    ],
+    "response_structure": {
+      "fragrance_name": "영문 이름",
+      "korean_name": "한국어 이름",
+      "concept": "향수의 핵심 컨셉",
+      "fragrance_family": "향수 계열",
+      "concentration": "농도 유형",
+      "target_concentration": "목표 농도 (%)",
+      "notes_breakdown": {
+        "top_notes": "상향 (15-30분 지속)",
+        "middle_notes": "중향 (30분-2시간 지속)",
+        "base_notes": "기저향 (2-8시간+ 지속)"
+      },
+      "characteristics": "향수의 특성 (지속력, 확산력 등)",
+      "usage_guide": "사용 가이드 (계절, 시간, 상황)"
+    }
+  },
+  "training_guidelines": {
+    "note_compatibility": "향 노트 간의 조화 고려",
+    "cultural_sensitivity": "한국 문화와 선호도 반영",
+    "practical_application": "실제 사용 상황 고려",
+    "safety_consideration": "안전성과 알레르기 고려",
+    "trend_awareness": "최신 향수 트렌드 반영",
+    "personalization": "개인의 취향과 상황 맞춤화"
+  }
+}

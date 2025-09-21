@@ -1,0 +1,400 @@
+{
+  "fragrance_brands": [
+    {
+      "brand_id": "BR001",
+      "name": "Chanel",
+      "korean_name": "샤넬",
+      "country": "France",
+      "founded_year": 1910,
+      "brand_category": "luxury",
+      "brand_style": ["classic", "elegant", "timeless"],
+      "signature_ingredients": ["jasmine", "rose", "sandalwood"],
+      "brand_philosophy": "럭셔리와 우아함의 완벽한 조화",
+      "popular_collections": ["Les Exclusifs", "Coco Collection", "Chance Collection"],
+      "products": [
+        {
+          "product_id": "PR001",
+          "name": "Chanel No. 5",
+          "korean_name": "샤넬 넘버 5",
+          "launch_year": 1921,
+          "perfumer": "Ernest Beaux",
+          "type": "eau_de_parfum",
+          "concentration": 18,
+          "fragrance_family": "floral_aldehyde",
+          "gender": "feminine",
+          "description": "세계에서 가장 유명한 향수, 여성스러움의 상징",
+          "long_description": "1921년 코코 샤넬이 창조한 전설의 향수. 알데히드의 반짝임과 일랑일랑, 자스민의 꽃향기, 그리고 샌달우드의 따뜻함이 어우러진 불멸의 클래식입니다.",
+          "target_age": "25-60",
+          "price_range": "luxury",
+          "popularity_score": 9.8,
+          "notes": {
+            "top": ["bergamot", "lemon", "aldehydes", "neroli"],
+            "middle": ["jasmine", "rose", "lily_of_the_valley", "ylang_ylang"],
+            "base": ["sandalwood", "vanilla", "amber", "musk"]
+          },
+          "characteristics": {
+            "longevity": 8,
+            "sillage": 8,
+            "projection": 7
+          },
+          "occasions": ["formal", "special_event", "evening", "signature_scent"],
+          "seasons": ["spring", "autumn", "winter"],
+          "time_of_day": ["afternoon", "evening"]
+        },
+        {
+          "product_id": "PR002",
+          "name": "Coco Mademoiselle",
+          "korean_name": "코코 마드모아젤",
+          "launch_year": 2001,
+          "perfumer": "Jacques Polge",
+          "type": "eau_de_parfum",
+          "concentration": 15,
+          "fragrance_family": "oriental_fresh",
+          "gender": "feminine",
+          "description": "현대 여성을 위한 세련되고 자유로운 향",
+          "long_description": "젊고 현대적인 여성을 위한 샤넬의 모던 클래식. 오렌지의 상쾌함과 장미의 우아함, 그리고 파촐리의 깊이가 조화롭게 어우러집니다.",
+          "target_age": "20-45",
+          "price_range": "luxury",
+          "popularity_score": 9.5,
+          "notes": {
+            "top": ["orange", "grapefruit", "bergamot", "pink_pepper"],
+            "middle": ["rose", "jasmine", "mimosa", "lychee"],
+            "base": ["patchouli", "vanilla", "white_musk", "tonka_bean"]
+          },
+          "characteristics": {
+            "longevity": 7,
+            "sillage": 6,
+            "projection": 5
+          },
+          "occasions": ["daily", "office", "date", "casual"],
+          "seasons": ["spring", "summer", "autumn"],
+          "time_of_day": ["morning", "afternoon", "early_evening"]
+        }
+      ]
+    },
+    {
+      "brand_id": "BR002",
+      "name": "Dior",
+      "korean_name": "디올",
+      "country": "France",
+      "founded_year": 1946,
+      "brand_category": "luxury",
+      "brand_style": ["elegant", "sophisticated", "feminine"],
+      "signature_ingredients": ["rose", "jasmine", "lily_of_the_valley"],
+      "brand_philosophy": "여성스러움과 우아함의 극치",
+      "popular_collections": ["Miss Dior", "J'adore", "Sauvage"],
+      "products": [
+        {
+          "product_id": "PR003",
+          "name": "Miss Dior",
+          "korean_name": "미스 디올",
+          "launch_year": 1947,
+          "perfumer": "Jean Carles",
+          "type": "eau_de_parfum",
+          "concentration": 16,
+          "fragrance_family": "chypre_floral",
+          "gender": "feminine",
+          "description": "디올의 첫 향수, 우아함의 전형",
+          "long_description": "크리스찬 디올이 처음 선보인 향수로, 여성스러움과 우아함을 완벽하게 표현합니다. 가르데니아와 자스민의 관능적인 조화가 특징입니다.",
+          "target_age": "25-55",
+          "price_range": "luxury",
+          "popularity_score": 9.3,
+          "notes": {
+            "top": ["mandarin", "blood_orange", "pink_pepper"],
+            "middle": ["damascus_rose", "peony", "lily_of_the_valley"],
+            "base": ["patchouli", "rosewood", "musk"]
+          },
+          "characteristics": {
+            "longevity": 8,
+            "sillage": 7,
+            "projection": 6
+          },
+          "occasions": ["formal", "romantic", "evening", "special_event"],
+          "seasons": ["spring", "autumn"],
+          "time_of_day": ["afternoon", "evening"]
+        },
+        {
+          "product_id": "PR004",
+          "name": "Sauvage",
+          "korean_name": "소바지",
+          "launch_year": 2015,
+          "perfumer": "François Demachy",
+          "type": "eau_de_toilette",
+          "concentration": 12,
+          "fragrance_family": "aromatic_fresh",
+          "gender": "masculine",
+          "description": "야생적이고 자유로운 남성의 향",
+          "long_description": "현대 남성의 자유로운 정신을 담은 향수. 베르가못의 상쾌함과 앰브록산의 미네랄한 느낌, 그리고 바닐라의 따뜻함이 조화를 이룹니다.",
+          "target_age": "20-45",
+          "price_range": "luxury",
+          "popularity_score": 9.7,
+          "notes": {
+            "top": ["calabrian_bergamot", "pink_pepper"],
+            "middle": ["sichuan_pepper", "lavender", "star_anise"],
+            "base": ["ambroxan", "cedar", "vanilla"]
+          },
+          "characteristics": {
+            "longevity": 6,
+            "sillage": 7,
+            "projection": 8
+          },
+          "occasions": ["daily", "sport", "casual", "office"],
+          "seasons": ["spring", "summer", "autumn"],
+          "time_of_day": ["morning", "afternoon"]
+        }
+      ]
+    },
+    {
+      "brand_id": "BR003",
+      "name": "Tom Ford",
+      "korean_name": "톰 포드",
+      "country": "United States",
+      "founded_year": 2006,
+      "brand_category": "luxury",
+      "brand_style": ["bold", "sensual", "modern"],
+      "signature_ingredients": ["oud", "tobacco", "vanilla"],
+      "brand_philosophy": "럭셔리와 관능미의 현대적 해석",
+      "popular_collections": ["Private Blend", "Signature Collection", "Oud Collection"],
+      "products": [
+        {
+          "product_id": "PR005",
+          "name": "Black Orchid",
+          "korean_name": "블랙 오키드",
+          "launch_year": 2006,
+          "perfumer": "Tom Ford & David Apel",
+          "type": "eau_de_parfum",
+          "concentration": 20,
+          "fragrance_family": "oriental_floral",
+          "gender": "unisex",
+          "description": "신비롭고 관능적인 검은 난초의 향",
+          "long_description": "톰 포드의 데뷔작이자 대표작. 검은 난초의 신비로운 아름다움을 향으로 표현한 대담하고 관능적인 향수입니다.",
+          "target_age": "25-50",
+          "price_range": "luxury",
+          "popularity_score": 9.1,
+          "notes": {
+            "top": ["blackcurrant", "ylang_ylang", "bergamot"],
+            "middle": ["black_orchid", "fruity_notes", "spicy_notes"],
+            "base": ["patchouli", "vanilla", "incense", "sandalwood"]
+          },
+          "characteristics": {
+            "longevity": 9,
+            "sillage": 8,
+            "projection": 7
+          },
+          "occasions": ["evening", "date_night", "special_event", "club"],
+          "seasons": ["autumn", "winter"],
+          "time_of_day": ["evening", "night"]
+        },
+        {
+          "product_id": "PR006",
+          "name": "Oud Wood",
+          "korean_name": "우드 우드",
+          "launch_year": 2007,
+          "perfumer": "Richard Herpin",
+          "type": "eau_de_parfum",
+          "concentration": 18,
+          "fragrance_family": "woody_oriental",
+          "gender": "unisex",
+          "description": "동서양이 만나는 우아한 우드의 향",
+          "long_description": "중동의 신비로운 우드와 서양의 세련미가 만난 작품. 부드럽고 크리미한 우드 향이 편안함과 고급스러움을 동시에 선사합니다.",
+          "target_age": "30-60",
+          "price_range": "luxury",
+          "popularity_score": 8.9,
+          "notes": {
+            "top": ["oud", "rosewood", "cardamom"],
+            "middle": ["oud", "sandalwood", "rose"],
+            "base": ["oud", "vanilla", "amber"]
+          },
+          "characteristics": {
+            "longevity": 8,
+            "sillage": 6,
+            "projection": 5
+          },
+          "occasions": ["formal", "business", "evening", "signature_scent"],
+          "seasons": ["autumn", "winter"],
+          "time_of_day": ["afternoon", "evening"]
+        }
+      ]
+    },
+    {
+      "brand_id": "BR004",
+      "name": "Maison Francis Kurkdjian",
+      "korean_name": "메종 프랑시스 쿠르키얀",
+      "country": "France",
+      "founded_year": 2009,
+      "brand_category": "niche",
+      "brand_style": ["artistic", "sophisticated", "modern"],
+      "signature_ingredients": ["rose", "saffron", "cedar"],
+      "brand_philosophy": "향수를 통한 예술적 표현",
+      "popular_collections": ["Baccarat Rouge", "Aqua Collection", "OUD Collection"],
+      "products": [
+        {
+          "product_id": "PR007",
+          "name": "Baccarat Rouge 540",
+          "korean_name": "바카라 루즈 540",
+          "launch_year": 2015,
+          "perfumer": "Francis Kurkdjian",
+          "type": "eau_de_parfum",
+          "concentration": 20,
+          "fragrance_family": "oriental_floral",
+          "gender": "unisex",
+          "description": "크리스털처럼 투명하고 빛나는 레드 크리스털의 향",
+          "long_description": "바카라 크리스털의 250주년을 기념하여 만들어진 명작. 사프란의 스파이시함과 앰버그리스의 깊이, 그리고 시더의 우아함이 조화를 이룹니다.",
+          "target_age": "25-55",
+          "price_range": "luxury",
+          "popularity_score": 9.6,
+          "notes": {
+            "top": ["saffron", "jasmine"],
+            "middle": ["amberwood", "ambergris"],
+            "base": ["cedar", "fir_resin"]
+          },
+          "characteristics": {
+            "longevity": 9,
+            "sillage": 9,
+            "projection": 8
+          },
+          "occasions": ["special_event", "evening", "luxury", "signature_scent"],
+          "seasons": ["autumn", "winter"],
+          "time_of_day": ["afternoon", "evening", "night"]
+        }
+      ]
+    },
+    {
+      "brand_id": "BR005",
+      "name": "Le Labo",
+      "korean_name": "르 라보",
+      "country": "United States",
+      "founded_year": 2006,
+      "brand_category": "niche",
+      "brand_style": ["artisanal", "minimalist", "urban"],
+      "signature_ingredients": ["sandalwood", "rose", "iris"],
+      "brand_philosophy": "수작업으로 만드는 프리미엄 향수",
+      "popular_collections": ["City Exclusive", "Classic Collection"],
+      "products": [
+        {
+          "product_id": "PR008",
+          "name": "Santal 33",
+          "korean_name": "산탈 33",
+          "launch_year": 2011,
+          "perfumer": "Frank Voelkl",
+          "type": "eau_de_parfum",
+          "concentration": 15,
+          "fragrance_family": "woody_aromatic",
+          "gender": "unisex",
+          "description": "현대적이고 세련된 샌달우드의 향",
+          "long_description": "뉴욕의 감성을 담은 모던 클래식. 샌달우드의 크리미함과 카다몬의 스파이시함, 그리고 바이올렛의 파우더리함이 도시적 세련미를 연출합니다.",
+          "target_age": "25-45",
+          "price_range": "high_end",
+          "popularity_score": 9.0,
+          "notes": {
+            "top": ["cardamom", "iris", "violet"],
+            "middle": ["sandalwood", "papyrus", "amyris"],
+            "base": ["cedarwood", "leather", "amber"]
+          },
+          "characteristics": {
+            "longevity": 7,
+            "sillage": 6,
+            "projection": 5
+          },
+          "occasions": ["daily", "urban", "artistic", "signature_scent"],
+          "seasons": ["spring", "autumn", "winter"],
+          "time_of_day": ["afternoon", "evening"]
+        }
+      ]
+    }
+  ],
+  "korean_brands": [
+    {
+      "brand_id": "KR001",
+      "name": "Tamburins",
+      "korean_name": "탬버린즈",
+      "country": "South Korea",
+      "founded_year": 2017,
+      "brand_category": "premium",
+      "brand_style": ["minimal", "modern", "korean"],
+      "signature_ingredients": ["fig", "mimosa", "cypress"],
+      "brand_philosophy": "한국적 감성의 현대적 해석",
+      "popular_collections": ["Signature Collection", "Limited Edition"],
+      "products": [
+        {
+          "product_id": "KP001",
+          "name": "Nude Pour Femme",
+          "korean_name": "누드 푸르 팜므",
+          "launch_year": 2020,
+          "perfumer": "Tamburins Team",
+          "type": "eau_de_parfum",
+          "concentration": 14,
+          "fragrance_family": "woody_floral",
+          "gender": "feminine",
+          "description": "자연스럽고 세련된 한국 여성의 향",
+          "long_description": "한국 여성의 자연스러운 아름다움을 향으로 표현한 작품. 베르가못의 상쾌함과 피오니의 우아함, 그리고 시더의 안정감이 조화를 이룹니다.",
+          "target_age": "20-40",
+          "price_range": "mid_range",
+          "popularity_score": 8.2,
+          "notes": {
+            "top": ["bergamot", "green_tea", "yuzu"],
+            "middle": ["peony", "lotus", "bamboo"],
+            "base": ["cedar", "white_musk", "hinoki"]
+          },
+          "characteristics": {
+            "longevity": 6,
+            "sillage": 4,
+            "projection": 3
+          },
+          "occasions": ["daily", "office", "casual", "korean_style"],
+          "seasons": ["spring", "summer"],
+          "time_of_day": ["morning", "afternoon"]
+        }
+      ]
+    }
+  ],
+  "brand_categories": {
+    "luxury": {
+      "description": "최고급 프리미엄 브랜드",
+      "price_range": "200,000원 이상",
+      "characteristics": ["heritage", "exclusivity", "premium_ingredients"]
+    },
+    "high_end": {
+      "description": "고급 브랜드",
+      "price_range": "100,000-200,000원",
+      "characteristics": ["quality", "sophistication", "brand_recognition"]
+    },
+    "premium": {
+      "description": "프리미엄 브랜드",
+      "price_range": "50,000-100,000원",
+      "characteristics": ["modern", "accessible_luxury", "trendy"]
+    },
+    "mid_range": {
+      "description": "중급 브랜드",
+      "price_range": "30,000-50,000원",
+      "characteristics": ["everyday_luxury", "good_quality", "accessible"]
+    },
+    "niche": {
+      "description": "니치 브랜드",
+      "price_range": "150,000원 이상",
+      "characteristics": ["artistic", "unique", "small_production"]
+    }
+  },
+  "market_insights": {
+    "korean_market_preferences": {
+      "popular_families": ["fresh", "floral", "light_woody", "aquatic"],
+      "avoided_notes": ["heavy_oriental", "strong_animalic", "overpowering_spices"],
+      "seasonal_trends": {
+        "spring": "cherry_blossom_inspired",
+        "summer": "marine_and_citrus",
+        "autumn": "warm_woody",
+        "winter": "cozy_gourmand"
+      },
+      "age_demographics": {
+        "20s": ["trendy", "fresh", "affordable"],
+        "30s": ["sophisticated", "versatile", "premium"],
+        "40s+": ["classic", "elegant", "luxury"]
+      }
+    },
+    "global_trends": {
+      "2024": ["sustainable", "gender_neutral", "personalized", "wellness_focused"],
+      "emerging_notes": ["green_tea", "bamboo", "sake", "hinoki"],
+      "declining_notes": ["heavy_musks", "synthetic_aldehydes"]
+    }
+  }
+}

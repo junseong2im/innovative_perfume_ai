@@ -1,0 +1,313 @@
+{
+  "blending_rules": {
+    "note_compatibility_matrix": {
+      "citrus": {
+        "excellent_with": ["floral", "green", "aquatic", "aromatic"],
+        "good_with": ["fruity", "light_woods"],
+        "avoid_with": ["heavy_oriental", "animalic"],
+        "percentage_guidelines": {
+          "top_notes": "20-40%",
+          "middle_notes": "5-15%",
+          "base_notes": "rarely_used"
+        }
+      },
+      "floral": {
+        "excellent_with": ["fruity", "green", "light_woods", "soft_oriental"],
+        "good_with": ["citrus", "aquatic", "powdery"],
+        "avoid_with": ["heavy_spices", "marine"],
+        "percentage_guidelines": {
+          "top_notes": "10-25%",
+          "middle_notes": "30-60%",
+          "base_notes": "5-20%"
+        }
+      },
+      "woody": {
+        "excellent_with": ["spicy", "oriental", "aromatic", "amber"],
+        "good_with": ["floral", "citrus", "green"],
+        "avoid_with": ["heavy_aquatic", "very_sweet_fruity"],
+        "percentage_guidelines": {
+          "top_notes": "5-15%",
+          "middle_notes": "10-30%",
+          "base_notes": "30-70%"
+        }
+      },
+      "oriental": {
+        "excellent_with": ["spicy", "woody", "amber", "vanilla"],
+        "good_with": ["floral", "gourmand"],
+        "avoid_with": ["fresh_citrus", "light_aquatic"],
+        "percentage_guidelines": {
+          "top_notes": "rarely_used",
+          "middle_notes": "15-40%",
+          "base_notes": "40-80%"
+        }
+      },
+      "spicy": {
+        "excellent_with": ["woody", "oriental", "amber"],
+        "good_with": ["citrus", "fruity"],
+        "avoid_with": ["delicate_florals", "aquatic"],
+        "percentage_guidelines": {
+          "top_notes": "5-20%",
+          "middle_notes": "10-35%",
+          "base_notes": "5-25%"
+        }
+      },
+      "green": {
+        "excellent_with": ["citrus", "aromatic", "aquatic"],
+        "good_with": ["floral", "light_woods"],
+        "avoid_with": ["heavy_oriental", "gourmand"],
+        "percentage_guidelines": {
+          "top_notes": "15-35%",
+          "middle_notes": "20-50%",
+          "base_notes": "5-20%"
+        }
+      },
+      "aquatic": {
+        "excellent_with": ["citrus", "green", "marine"],
+        "good_with": ["light_florals", "ozonic"],
+        "avoid_with": ["heavy_oriental", "gourmand", "animalic"],
+        "percentage_guidelines": {
+          "top_notes": "10-30%",
+          "middle_notes": "30-60%",
+          "base_notes": "10-40%"
+        }
+      },
+      "gourmand": {
+        "excellent_with": ["vanilla", "spicy", "fruity"],
+        "good_with": ["floral", "oriental"],
+        "avoid_with": ["aquatic", "green", "marine"],
+        "percentage_guidelines": {
+          "top_notes": "5-20%",
+          "middle_notes": "15-40%",
+          "base_notes": "30-70%"
+        }
+      }
+    },
+    "concentration_guidelines": {
+      "parfum": {
+        "total_percentage": "20-40%",
+        "alcohol_percentage": "60-80%",
+        "water_percentage": "0-20%",
+        "characteristics": ["longest_lasting", "most_expensive", "least_projection"],
+        "typical_distribution": {
+          "top_notes": "15-25%",
+          "middle_notes": "30-50%",
+          "base_notes": "25-55%"
+        }
+      },
+      "eau_de_parfum": {
+        "total_percentage": "15-20%",
+        "alcohol_percentage": "80-85%",
+        "water_percentage": "0-5%",
+        "characteristics": ["good_longevity", "moderate_projection", "premium"],
+        "typical_distribution": {
+          "top_notes": "20-30%",
+          "middle_notes": "30-50%",
+          "base_notes": "20-50%"
+        }
+      },
+      "eau_de_toilette": {
+        "total_percentage": "5-15%",
+        "alcohol_percentage": "80-92%",
+        "water_percentage": "3-15%",
+        "characteristics": ["moderate_longevity", "good_projection", "daily_wear"],
+        "typical_distribution": {
+          "top_notes": "25-35%",
+          "middle_notes": "30-45%",
+          "base_notes": "20-45%"
+        }
+      },
+      "eau_de_cologne": {
+        "total_percentage": "2-5%",
+        "alcohol_percentage": "70-90%",
+        "water_percentage": "5-25%",
+        "characteristics": ["short_longevity", "fresh", "inexpensive"],
+        "typical_distribution": {
+          "top_notes": "40-60%",
+          "middle_notes": "20-40%",
+          "base_notes": "10-30%"
+        }
+      }
+    },
+    "seasonal_blending_principles": {
+      "spring": {
+        "preferred_families": ["floral", "green", "light_citrus", "fresh"],
+        "key_notes": ["cherry_blossom", "peony", "lily_of_the_valley", "green_leaves"],
+        "avoid": ["heavy_orientals", "dark_woods", "strong_spices"],
+        "concentration_preference": "eau_de_toilette",
+        "projection_level": "moderate",
+        "typical_formula": {
+          "top_notes": "bergamot(25%) + green_mandarin(20%) + petitgrain(15%)",
+          "middle_notes": "peony(35%) + lily_of_the_valley(25%) + green_notes(20%)",
+          "base_notes": "white_musk(40%) + light_woods(35%) + soft_amber(25%)"
+        }
+      },
+      "summer": {
+        "preferred_families": ["citrus", "aquatic", "marine", "light_floral"],
+        "key_notes": ["lemon", "grapefruit", "sea_breeze", "cucumber", "mint"],
+        "avoid": ["heavy_woods", "strong_vanilla", "dense_orientals"],
+        "concentration_preference": "eau_de_toilette",
+        "projection_level": "light_to_moderate",
+        "typical_formula": {
+          "top_notes": "lemon(30%) + grapefruit(25%) + mint(15%)",
+          "middle_notes": "sea_breeze(40%) + marine(30%) + cucumber(20%)",
+          "base_notes": "white_musk(50%) + driftwood(30%) + transparent_amber(20%)"
+        }
+      },
+      "autumn": {
+        "preferred_families": ["spicy", "woody", "gourmand", "warm_oriental"],
+        "key_notes": ["cinnamon", "cardamom", "sandalwood", "vanilla", "amber"],
+        "avoid": ["light_citrus", "aquatic", "cold_notes"],
+        "concentration_preference": "eau_de_parfum",
+        "projection_level": "moderate_to_strong",
+        "typical_formula": {
+          "top_notes": "bergamot(30%) + cinnamon(25%) + cardamom(20%)",
+          "middle_notes": "rose(30%) + clove(25%) + nutmeg(20%)",
+          "base_notes": "sandalwood(35%) + vanilla(30%) + amber(25%)"
+        }
+      },
+      "winter": {
+        "preferred_families": ["oriental", "woody", "gourmand", "amber"],
+        "key_notes": ["oud", "vanilla", "amber", "tonka_bean", "sandalwood"],
+        "avoid": ["light_citrus", "aquatic", "thin_florals"],
+        "concentration_preference": "eau_de_parfum_or_parfum",
+        "projection_level": "strong",
+        "typical_formula": {
+          "top_notes": "bergamot(25%) + black_pepper(20%) + cardamom(20%)",
+          "middle_notes": "rose(25%) + saffron(25%) + clove(20%)",
+          "base_notes": "oud(30%) + vanilla(25%) + amber(25%) + sandalwood(20%)"
+        }
+      }
+    },
+    "gender_blending_guidelines": {
+      "masculine": {
+        "preferred_families": ["woody", "aromatic", "spicy", "fresh"],
+        "signature_notes": ["cedar", "vetiver", "bergamot", "black_pepper", "lavender"],
+        "avoid": ["sweet_florals", "heavy_vanilla", "powdery_notes"],
+        "structure_emphasis": "strong_base_notes",
+        "typical_ratios": {
+          "top_notes": "25-35%",
+          "middle_notes": "25-35%",
+          "base_notes": "30-50%"
+        }
+      },
+      "feminine": {
+        "preferred_families": ["floral", "fruity", "soft_oriental", "powdery"],
+        "signature_notes": ["rose", "jasmine", "peach", "vanilla", "powder"],
+        "avoid": ["harsh_woods", "strong_leather", "heavy_tobacco"],
+        "structure_emphasis": "rich_middle_notes",
+        "typical_ratios": {
+          "top_notes": "20-30%",
+          "middle_notes": "40-60%",
+          "base_notes": "20-40%"
+        }
+      },
+      "unisex": {
+        "preferred_families": ["woody", "green", "citrus", "balanced_oriental"],
+        "signature_notes": ["bergamot", "cedar", "white_musk", "iris", "sandalwood"],
+        "avoid": ["extreme_sweetness", "overly_masculine_woods", "very_feminine_florals"],
+        "structure_emphasis": "balanced_pyramid",
+        "typical_ratios": {
+          "top_notes": "25-35%",
+          "middle_notes": "30-45%",
+          "base_notes": "25-45%"
+        }
+      }
+    },
+    "common_blending_mistakes": {
+      "overdoing_top_notes": {
+        "problem": "너무 많은 탑 노트로 인한 불균형",
+        "solution": "탑 노트는 전체의 20-35%로 제한",
+        "example": "시트러스 5개 대신 2-3개로 집중"
+      },
+      "weak_base": {
+        "problem": "약한 베이스로 인한 짧은 지속력",
+        "solution": "베이스 노트를 최소 20% 이상 사용",
+        "example": "머스크, 앰버, 우드 중 최소 2개 조합"
+      },
+      "incompatible_notes": {
+        "problem": "조화되지 않는 노트 조합",
+        "solution": "호환성 매트릭스 참조",
+        "example": "아쿠아틱과 구르망드 피하기"
+      },
+      "monotone_structure": {
+        "problem": "단조로운 향의 전개",
+        "solution": "각 레벨에서 대조적 요소 추가",
+        "example": "달콤함에 스파이시한 요소 추가"
+      }
+    },
+    "advanced_techniques": {
+      "layering": {
+        "definition": "여러 향을 층층이 쌓아 복잡함 연출",
+        "technique": "유사한 계열 내에서 점진적 변화",
+        "example": "베르가못 → 네롤리 → 자스민 → 일랑일랑"
+      },
+      "bridging": {
+        "definition": "서로 다른 계열을 연결하는 중간 노트 사용",
+        "technique": "두 계열의 공통분모 노트 활용",
+        "example": "시트러스와 우디를 베르가못-제라늄으로 연결"
+      },
+      "contrast": {
+        "definition": "대조적 요소로 흥미로움 증대",
+        "technique": "주요 테마와 대조되는 소량의 노트 추가",
+        "example": "플로럴 향수에 후추 한 방울"
+      },
+      "modulation": {
+        "definition": "시간에 따른 향의 변화 설계",
+        "technique": "각 단계별 다른 캐릭터 부여",
+        "example": "프레시 시작 → 플로럴 중심 → 우디 마무리"
+      }
+    },
+    "quality_control_parameters": {
+      "balance_check": {
+        "top_notes_ratio": "20-35%",
+        "middle_notes_ratio": "30-50%",
+        "base_notes_ratio": "20-50%",
+        "total_should_equal": "100%"
+      },
+      "longevity_prediction": {
+        "weak_base": "1-3 hours",
+        "moderate_base": "4-6 hours",
+        "strong_base": "6-12 hours",
+        "very_strong_base": "12+ hours"
+      },
+      "sillage_factors": {
+        "light": "molecular_weight_low + alcohol_content_high",
+        "moderate": "balanced_volatility + moderate_concentration",
+        "strong": "heavy_molecules + high_concentration",
+        "overpowering": "too_many_strong_notes + excessive_concentration"
+      },
+      "harmony_evaluation": {
+        "excellent": "모든 노트가 자연스럽게 조화",
+        "good": "대부분 조화, 약간의 거친 부분",
+        "fair": "일부 노트가 돋보이거나 충돌",
+        "poor": "여러 노트가 따로 놀거나 불쾌함"
+      }
+    }
+  },
+  "formulation_calculator": {
+    "base_formula_100ml": {
+      "perfume_oil_total": "15-20ml (eau_de_parfum)",
+      "ethanol_96%": "75-80ml",
+      "distilled_water": "0-5ml",
+      "fixative": "0.5-1ml",
+      "antioxidant": "0.1ml"
+    },
+    "note_distribution_calculator": {
+      "total_oil_weight": "100%",
+      "top_notes_calculation": "total_oil * 0.20_to_0.35",
+      "middle_notes_calculation": "total_oil * 0.30_to_0.50",
+      "base_notes_calculation": "total_oil * 0.20_to_0.50"
+    },
+    "dilution_ratios": {
+      "neat_oils": "100% concentration",
+      "10%_dilution": "90% alcohol + 10% oil",
+      "1%_dilution": "99% alcohol + 1% oil",
+      "common_dilutions": {
+        "rose_absolute": "10%",
+        "jasmine_absolute": "10%",
+        "oud": "5%",
+        "vanilla_absolute": "20%"
+      }
+    }
+  }
+}

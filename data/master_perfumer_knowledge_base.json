@@ -1,0 +1,251 @@
+{
+  "master_perfumer_knowledge": {
+    "fundamental_principles": {
+      "olfactory_pyramid": {
+        "description": "향수의 3단계 구조 - 탑, 미들, 베이스",
+        "evaporation_timeline": {
+          "top_notes": "0-15분: 첫 인상을 결정하는 가장 휘발성 높은 향들",
+          "middle_notes": "15분-2시간: 향수의 핵심 성격을 이루는 심장부",
+          "base_notes": "2-8시간+: 지속력과 깊이를 제공하는 기저부"
+        },
+        "molecular_weight_theory": "분자량이 낮을수록 빨리 증발, 높을수록 오래 지속"
+      },
+      "scent_families": {
+        "traditional_classification": {
+          "fresh": ["citrus", "green", "aquatic"],
+          "floral": ["soliflore", "floral_bouquet", "soft_floral"],
+          "oriental": ["soft_oriental", "oriental", "woody_oriental"],
+          "woody": ["woody", "mossy_woods", "dry_woods"]
+        },
+        "modern_classification": {
+          "gourmand": "음식을 연상시키는 달콤한 계열",
+          "niche_categories": ["ozonic", "mineral", "smoky", "metallic"]
+        }
+      },
+      "perfumery_mathematics": {
+        "golden_ratio": "베이스:미들:탑 = 3:5:2 (기본 비율)",
+        "concentration_formulas": {
+          "parfum": "향료 20-40% + 에탄올 60-80%",
+          "edp": "향료 15-20% + 에탄올 80-85%",
+          "edt": "향료 5-15% + 에탄올 85-95%",
+          "edc": "향료 2-5% + 에탄올 70-90% + 물 5-25%"
+        }
+      }
+    },
+    "advanced_techniques": {
+      "overdose_technique": {
+        "definition": "특정 노트를 의도적으로 과도하게 사용하여 시그니처 효과 창출",
+        "examples": {
+          "iso_e_super_overdose": "Molecule 01처럼 단일 분자를 대량 사용",
+          "rose_overdose": "La Vie Est Belle처럼 장미를 50% 이상 사용",
+          "vanilla_overdose": "Angel처럼 바닐라를 극대화"
+        },
+        "risks": "과도하면 두통 유발, 향의 불균형",
+        "success_factors": "고품질 원료, 정밀한 비율 조절"
+      },
+      "molecular_perfumery": {
+        "definition": "천연 원료 대신 합성 분자로 새로운 향 창조",
+        "key_molecules": {
+          "iso_e_super": "따뜻하고 벨벳 같은 우디함",
+          "hedione": "자스민의 핵심 분자, 투명하고 밝은 느낌",
+          "ambroxan": "앰버그리스의 합성 버전, 깨끗한 해양감",
+          "timberol": "신선한 우디 감각",
+          "cashmeran": "캐시미어 같은 부드러움"
+        }
+      },
+      "faceting": {
+        "definition": "하나의 노트를 여러 각도에서 표현하는 기법",
+        "rose_faceting_example": {
+          "dewy_rose": "페닐에틸알코올로 상쾌한 장미",
+          "jammy_rose": "로즈 앱솔루트로 잼 같은 달콤함",
+          "spicy_rose": "유제놀로 클로브 향의 장미",
+          "powdery_rose": "제라늄으로 파우더리한 장미"
+        }
+      },
+      "juxtaposition": {
+        "definition": "상반된 성질의 노트를 나란히 배치하여 긴장감 창출",
+        "successful_combinations": {
+          "sweet_salty": "바닐라 + 앰버그리스",
+          "fresh_animalic": "베르가못 + 시벳",
+          "soft_sharp": "머스크 + 핑크 페퍼",
+          "light_heavy": "프리지아 + 우드"
+        }
+      }
+    },
+    "cultural_olfactory_preferences": {
+      "korean_market": {
+        "preferred_characteristics": ["clean", "soft", "not_overpowering", "office_friendly"],
+        "popular_notes": {
+          "citrus": ["yuzu", "korean_citron", "green_tangerine"],
+          "floral": ["cherry_blossom", "mugunghwa", "lotus"],
+          "green": ["bamboo", "green_tea", "pine"],
+          "woody": ["hinoki", "korean_pine", "sandalwood"]
+        },
+        "avoided_notes": ["heavy_animalic", "too_sweet_gourmand", "overpowering_spices"],
+        "seasonal_preferences": {
+          "spring": "cherry_blossom_inspired_fresh_florals",
+          "summer": "clean_aquatic_with_minimal_sillage",
+          "autumn": "warm_woody_with_tea_notes",
+          "winter": "cozy_gourmand_with_eastern_spices"
+        }
+      },
+      "global_trends_2024": {
+        "sustainability_focus": "천연 원료, 재생 가능한 성분 선호",
+        "gender_neutrality": "남녀 구분 없는 유니섹스 향 증가",
+        "wellness_connection": "아로마테라피 효과 강조",
+        "personalization": "개인 맞춤형 향수 서비스 확산"
+      }
+    },
+    "technical_formulation": {
+      "solubility_principles": {
+        "alcohol_soluble": "대부분의 향료, 특히 에스테르류",
+        "oil_soluble": "지용성 향료, 앱솔루트류",
+        "water_soluble": "일부 알데히드, 산류",
+        "emulsification": "물과 기름 성분을 섞는 기법"
+      },
+      "stability_factors": {
+        "light_sensitivity": "감광성 성분 보호 필요 (바닐라, 베르가못)",
+        "oxidation_prevention": "항산화제 첨가 (토코페롤, BHT)",
+        "ph_control": "산성도 조절로 변색 방지",
+        "temperature_stability": "고온에서의 향료 분해 방지"
+      },
+      "maceration_process": {
+        "definition": "향료들이 서로 조화롭게 섞이도록 하는 숙성 과정",
+        "minimum_period": "2-4주",
+        "optimal_period": "3-6개월",
+        "storage_conditions": "서늘하고 어두운 곳, 일정한 온도",
+        "quality_check": "주기적인 후각 평가와 조정"
+      }
+    },
+    "quality_evaluation_criteria": {
+      "olfactory_assessment": {
+        "first_impression": "0-5분: 탑 노트의 임팩트와 조화",
+        "development": "5-30분: 미들 노트로의 자연스러운 전개",
+        "heart": "30분-2시간: 향수의 핵심 캐릭터",
+        "drydown": "2시간+: 베이스 노트의 아름다운 마무리"
+      },
+      "technical_parameters": {
+        "longevity_scale": {
+          "poor": "1-2시간",
+          "weak": "2-4시간",
+          "moderate": "4-6시간",
+          "good": "6-8시간",
+          "excellent": "8-12시간",
+          "exceptional": "12+시간"
+        },
+        "sillage_measurement": {
+          "intimate": "피부에서 10cm",
+          "moderate": "팔 길이 정도",
+          "heavy": "1-2미터",
+          "nuclear": "방 전체 (과도함)"
+        },
+        "projection_timeline": {
+          "initial": "처음 30분간의 확산력",
+          "mid": "1-4시간의 지속적 확산",
+          "final": "마지막 단계의 은은한 확산"
+        }
+      }
+    },
+    "common_formulation_challenges": {
+      "discoloration": {
+        "causes": ["바닐라 산화", "감귤류 베르가못텐", "철분 오염"],
+        "prevention": ["항산화제 �첨가", "UV 차단", "순수한 원료 사용"],
+        "solutions": ["킬레이트제 사용", "정제 과정", "안정화제 첨가"]
+      },
+      "poor_longevity": {
+        "causes": ["베이스 노트 부족", "휘발성 원료 과다", "용제 문제"],
+        "solutions": ["베이스 강화", "픽서티브 추가", "농도 조정"]
+      },
+      "harsh_projection": {
+        "causes": ["탑 노트 과다", "강한 분자 과다", "부조화"],
+        "solutions": ["부드러운 노트 추가", "희석", "순화제 사용"]
+      },
+      "muddy_blend": {
+        "causes": ["너무 많은 성분", "비호환 노트", "비율 불균형"],
+        "solutions": ["단순화", "호환성 확인", "비율 재조정"]
+      }
+    },
+    "professional_workflow": {
+      "creation_process": {
+        "step_1_briefing": "고객 요구사항 분석, 타겟 시장 연구",
+        "step_2_concept": "향수 컨셉 설정, 무드보드 작성",
+        "step_3_sketching": "초기 향료 스케치, 조합 가능성 탐색",
+        "step_4_trials": "소량 시험 제작, 반복 테스트",
+        "step_5_refinement": "비율 조정, 완성도 향상",
+        "step_6_testing": "안정성 테스트, 관능 평가",
+        "step_7_production": "대량 생산 공식 확정"
+      },
+      "documentation": {
+        "formula_sheet": "정확한 비율과 원료명 기록",
+        "batch_record": "제조 과정과 조건 기록",
+        "evaluation_notes": "관능 평가 결과",
+        "modification_log": "변경 사항과 이유"
+      }
+    },
+    "sustainability_practices": {
+      "ethical_sourcing": {
+        "fair_trade": "공정 거래 원료 사용",
+        "biodiversity": "생물 다양성 보호",
+        "local_communities": "지역 공동체 지원"
+      },
+      "environmental_impact": {
+        "renewable_sources": "재생 가능한 원료 선호",
+        "waste_reduction": "제조 과정 폐기물 최소화",
+        "packaging": "친환경 포장재 사용"
+      },
+      "innovation_directions": {
+        "biotechnology": "발효, 효소를 이용한 향료 생산",
+        "upcycling": "부산물을 활용한 새로운 향료",
+        "green_chemistry": "친환경적 합성 방법"
+      }
+    },
+    "business_considerations": {
+      "cost_optimization": {
+        "expensive_materials": "로즈, 자스민, 우드 - 효율적 사용",
+        "cost_effective_alternatives": "합성 대체재 활용",
+        "bulk_purchasing": "대량 구매로 원가 절감"
+      },
+      "market_positioning": {
+        "luxury_segment": "희귀 원료, 복잡한 조성",
+        "mass_market": "안정적 원료, 단순한 구조",
+        "niche_market": "독특한 컨셉, 아티스틱 접근"
+      },
+      "regulatory_compliance": {
+        "ifra_standards": "국제향료협회 안전 기준 준수",
+        "allergen_declaration": "알레르기 유발 성분 표시",
+        "regional_regulations": "지역별 규제 사항 확인"
+      }
+    }
+  },
+  "ai_training_guidelines": {
+    "understanding_user_intent": {
+      "mood_keywords": {
+        "romantic": ["rose", "jasmine", "vanilla", "soft_musk"],
+        "fresh": ["citrus", "green", "aquatic", "clean"],
+        "sophisticated": ["woody", "iris", "amber", "balanced"],
+        "energetic": ["citrus", "mint", "spicy", "vibrant"],
+        "comforting": ["vanilla", "amber", "sandalwood", "warm"]
+      },
+      "occasion_mapping": {
+        "office": ["light", "clean", "professional", "non_offensive"],
+        "date": ["romantic", "sensual", "memorable", "attractive"],
+        "sport": ["fresh", "light", "non_interfering", "cooling"],
+        "evening": ["deeper", "more_complex", "longer_lasting"],
+        "daily": ["versatile", "moderate", "pleasant", "reliable"]
+      }
+    },
+    "formulation_logic": {
+      "start_with_base": "베이스 노트로 기본 캐릭터 설정",
+      "add_heart": "미들 노트로 개성과 복잡성 부여",
+      "crown_with_top": "탑 노트로 첫인상과 매력 완성",
+      "balance_check": "전체적 조화와 비율 점검",
+      "cultural_adapt": "한국 시장 특성에 맞게 조정"
+    },
+    "quality_assurance": {
+      "coherence_check": "모든 노트가 컨셉에 부합하는지 확인",
+      "practical_feasibility": "실제 제조 가능한 조합인지 검토",
+      "market_appropriateness": "타겟 시장에 적합한지 평가",
+      "safety_consideration": "알레르기나 부작용 가능성 점검"
+    }
+  }
+}

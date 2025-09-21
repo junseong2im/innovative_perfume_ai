@@ -1,0 +1,309 @@
+{
+  "advanced_conditional_training_data": [
+    {
+      "id": "ADV_001",
+      "conditions": {
+        "weather": "rainy",
+        "season": "autumn",
+        "time": "evening",
+        "location": "indoor_cafe",
+        "mood": "melancholic",
+        "age_group": "20s",
+        "gender": "female",
+        "occasion": "casual_date",
+        "intensity_preference": "moderate",
+        "longevity_requirement": "4-6_hours",
+        "budget": "mid_range",
+        "skin_type": "sensitive",
+        "previous_favorite": "floral_woody"
+      },
+      "input": "비오는 가을 저녁, 카페에서의 우울한 데이트에 완벽한 향수를 만들어주세요. 20대 여성용이고 적당한 강도로 4-6시간 지속되면 좋겠어요.",
+      "output": {
+        "fragrance_name": "Autumn Rain Cafe",
+        "korean_name": "가을비 카페",
+        "concept": "비 내리는 가을 저녁 카페의 따뜻함과 우울미의 조화",
+        "weather_adaptation": "습한 날씨에도 안정적인 투사력",
+        "seasonal_profile": "가을의 깊이감과 따뜻함",
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "rain_on_leaves", "percentage": 25, "weather_stability": "high"},
+            {"note": "coffee_steam", "percentage": 30, "indoor_enhancement": "strong"},
+            {"note": "bergamot_earl_grey", "percentage": 25, "mood_lift": "subtle"},
+            {"note": "wet_stone", "percentage": 20, "atmospheric": "rainy_day"}
+          ],
+          "middle_notes": [
+            {"note": "cafe_warmth", "percentage": 35, "comfort_factor": "high"},
+            {"note": "autumn_leaves", "percentage": 30, "seasonal_accuracy": "perfect"},
+            {"note": "cozy_sweater", "percentage": 20, "texture_feeling": "soft"},
+            {"note": "melancholic_iris", "percentage": 15, "emotional_resonance": "deep"}
+          ],
+          "base_notes": [
+            {"note": "warm_amber", "percentage": 40, "longevity": "6_hours"},
+            {"note": "soft_cashmere", "percentage": 30, "comfort": "maximum"},
+            {"note": "quiet_musk", "percentage": 30, "intimacy": "perfect_for_date"}
+          ]
+        },
+        "performance_specs": {
+          "longevity": "5-7_hours",
+          "sillage": "moderate_close",
+          "projection": "arm_length",
+          "weather_resistance": "high_humidity_stable"
+        },
+        "skin_compatibility": {
+          "sensitive_skin_safe": true,
+          "hypoallergenic_notes": ["bergamot", "iris", "cashmere_musk"],
+          "patch_test_recommended": false
+        }
+      }
+    },
+    {
+      "id": "ADV_002",
+      "conditions": {
+        "weather": "hot_humid",
+        "season": "summer",
+        "time": "midday",
+        "location": "outdoor_festival",
+        "mood": "energetic",
+        "age_group": "teens",
+        "gender": "unisex",
+        "occasion": "music_festival",
+        "intensity_preference": "light_fresh",
+        "longevity_requirement": "8_hours_plus",
+        "budget": "affordable",
+        "skin_type": "oily",
+        "activity_level": "high_energy_dancing"
+      },
+      "input": "뜨거운 여름 한낮 야외 음악 페스티벌에서 10대들이 춤추며 즐길 수 있는 가벼우면서도 8시간 이상 지속되는 유니섹스 향수를 만들어주세요.",
+      "output": {
+        "fragrance_name": "Festival Energy Burst",
+        "korean_name": "페스티벌 에너지 버스트",
+        "concept": "여름 페스티벌의 열정과 청춘의 에너지를 담은 지속력 강한 향수",
+        "weather_adaptation": "고온 다습에서도 변질되지 않는 안정성",
+        "activity_adaptation": "격렬한 움직임과 땀에도 지속되는 특수 포뮬레이션",
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "electric_citrus", "percentage": 40, "energy_boost": "maximum"},
+            {"note": "cooling_mint", "percentage": 25, "temperature_relief": "instant"},
+            {"note": "festival_buzz", "percentage": 20, "crowd_energy": "infectious"},
+            {"note": "ice_cold_water", "percentage": 15, "refreshment": "extreme"}
+          ],
+          "middle_notes": [
+            {"note": "dancing_herbs", "percentage": 30, "movement_enhancement": "rhythmic"},
+            {"note": "summer_breeze", "percentage": 35, "cooling_effect": "continuous"},
+            {"note": "youth_spirit", "percentage": 20, "age_appropriate": "teen_energy"},
+            {"note": "unisex_green", "percentage": 15, "gender_neutral": "perfect"}
+          ],
+          "base_notes": [
+            {"note": "sweat_proof_musk", "percentage": 45, "activity_resistance": "maximum"},
+            {"note": "long_lasting_woods", "percentage": 35, "durability": "8_plus_hours"},
+            {"note": "affordable_amber", "percentage": 20, "cost_effective": "budget_friendly"}
+          ]
+        },
+        "performance_specs": {
+          "longevity": "8-12_hours",
+          "sillage": "moderate_to_strong",
+          "projection": "crowd_cutting",
+          "heat_resistance": "extreme_temperature_stable",
+          "sweat_resistance": "sports_grade"
+        },
+        "youth_optimization": {
+          "energy_enhancing": true,
+          "confidence_boosting": true,
+          "peer_appealing": true,
+          "budget_conscious": true
+        }
+      }
+    },
+    {
+      "id": "ADV_003",
+      "conditions": {
+        "weather": "cold_dry",
+        "season": "winter",
+        "time": "late_night",
+        "location": "luxury_hotel_suite",
+        "mood": "sophisticated_seductive",
+        "age_group": "40s_50s",
+        "gender": "male",
+        "occasion": "business_dinner_after",
+        "intensity_preference": "strong_impactful",
+        "longevity_requirement": "12_hours_plus",
+        "budget": "luxury_premium",
+        "skin_type": "mature",
+        "personality": "alpha_executive"
+      },
+      "input": "추운 겨울 밤 고급 호텔 스위트에서 40-50대 임원급 남성이 비즈니스 디너 후 사용할 강력하고 세련된 향수를 만들어주세요. 12시간 이상 지속되는 럭셔리 제품으로요.",
+      "output": {
+        "fragrance_name": "Executive Winter Night",
+        "korean_name": "임원의 겨울밤",
+        "concept": "성공한 남성의 카리스마와 겨울밤의 깊이를 표현한 럭셔리 향수",
+        "luxury_positioning": "최고급 원료만을 사용한 프리미엄 라인",
+        "executive_appeal": "권위와 성공을 상징하는 향기 구성",
+        "notes_breakdown": {
+          "top_notes": [
+            {"note": "rare_bergamot", "percentage": 25, "luxury_grade": "premium_italian"},
+            {"note": "executive_spice", "percentage": 30, "authority": "commanding"},
+            {"note": "winter_cognac", "percentage": 25, "sophistication": "mature_refined"},
+            {"note": "cold_steel", "percentage": 20, "business_edge": "sharp_decisive"}
+          ],
+          "middle_notes": [
+            {"note": "boardroom_leather", "percentage": 35, "power_symbol": "corporate_luxury"},
+            {"note": "midnight_rose", "percentage": 25, "seductive_element": "subtle_romantic"},
+            {"note": "expensive_tobacco", "percentage": 25, "masculine_depth": "distinguished"},
+            {"note": "hotel_suite_wood", "percentage": 15, "luxury_ambiance": "five_star"}
+          ],
+          "base_notes": [
+            {"note": "ceo_oud", "percentage": 40, "exclusivity": "ultra_rare"},
+            {"note": "success_amber", "percentage": 30, "achievement": "golden_glow"},
+            {"note": "12_hour_musk", "percentage": 30, "longevity": "extended_performance"}
+          ]
+        },
+        "performance_specs": {
+          "longevity": "12-16_hours",
+          "sillage": "powerful_impressive",
+          "projection": "room_filling",
+          "cold_weather_enhancement": "performance_boost_in_winter",
+          "luxury_perception": "unmistakably_expensive"
+        },
+        "executive_benefits": {
+          "confidence_amplification": "maximum",
+          "authority_projection": "commanding_presence",
+          "business_advantage": "memorable_impression",
+          "luxury_status": "clearly_premium"
+        }
+      }
+    },
+    {
+      "id": "ADV_004",
+      "conditions": {
+        "weather": "variable_unpredictable",
+        "season": "spring_transition",
+        "time": "all_day",
+        "location": "global_business_travel",
+        "mood": "adaptable_professional",
+        "age_group": "30s",
+        "gender": "female",
+        "occasion": "international_conference",
+        "intensity_preference": "variable_adjustable",
+        "longevity_requirement": "16_hours_flight_suitable",
+        "budget": "business_expense",
+        "skin_type": "combination",
+        "special_requirements": "airplane_cabin_suitable"
+      },
+      "input": "국제 컨퍼런스 참석을 위해 세계 각지를 여행하는 30대 여성 비즈니스우먼을 위한 향수를 만들어주세요. 기후 변화에 적응하고 비행기에서도 사용 가능하며 16시간 지속되어야 합니다.",
+      "output": {
+        "fragrance_name": "Global Business Woman",
+        "korean_name": "글로벌 비즈니스우먼",
+        "concept": "세계를 무대로 하는 현대 여성의 적응력과 전문성을 표현",
+        "climate_adaptation": "온도와 습도 변화에 자동 조절되는 스마트 포뮬레이션",
+        "travel_optimization": "기내 환경과 장거리 여행에 최적화",
+        "notes_breakdown": {
+          "adaptive_top_notes": [
+            {"note": "climate_smart_citrus", "percentage": 30, "temperature_responsive": "auto_adjust"},
+            {"note": "jet_lag_relief", "percentage": 25, "travel_fatigue": "combating"},
+            {"note": "conference_confidence", "percentage": 25, "professional_boost": "immediate"},
+            {"note": "cabin_fresh", "percentage": 20, "airplane_suitable": "perfect"}
+          ],
+          "professional_middle_notes": [
+            {"note": "business_rose", "percentage": 35, "feminine_authority": "balanced"},
+            {"note": "international_herbs", "percentage": 30, "global_appeal": "universal"},
+            {"note": "adaptable_woods", "percentage": 20, "stability": "climate_resistant"},
+            {"note": "network_building", "percentage": 15, "social_enhancement": "magnetic"}
+          ],
+          "endurance_base_notes": [
+            {"note": "16_hour_amber", "percentage": 40, "ultra_longevity": "guaranteed"},
+            {"note": "timezone_musk", "percentage": 35, "circadian_support": "stabilizing"},
+            {"note": "success_signature", "percentage": 25, "personal_brand": "memorable"}
+          ]
+        },
+        "performance_specs": {
+          "longevity": "16-20_hours",
+          "sillage": "professional_appropriate",
+          "projection": "meeting_room_perfect",
+          "climate_adaptability": "global_weather_resistant",
+          "cabin_pressure_stable": true,
+          "humidity_responsive": "smart_adjustment"
+        },
+        "business_travel_features": {
+          "jet_lag_mitigation": true,
+          "conference_confidence": "maximum",
+          "cultural_appropriateness": "globally_acceptable",
+          "cabin_crew_approved": true,
+          "frequent_flyer_optimized": true
+        }
+      }
+    },
+    {
+      "id": "ADV_005",
+      "conditions": {
+        "weather": "extreme_heat_desert",
+        "season": "peak_summer",
+        "time": "scorching_noon",
+        "location": "middle_east_outdoor",
+        "mood": "survival_cooling",
+        "age_group": "all_ages",
+        "gender": "unisex",
+        "occasion": "desert_expedition",
+        "intensity_preference": "cooling_therapeutic",
+        "longevity_requirement": "extreme_conditions_survival",
+        "budget": "specialized_functional",
+        "skin_type": "sun_exposed",
+        "special_requirements": "heat_stroke_prevention"
+      },
+      "input": "사막 지역 탐험을 위한 극한 상황용 향수를 만들어주세요. 섭씨 50도가 넘는 환경에서도 쿨링 효과를 제공하고 열사병 예방에 도움이 되어야 합니다.",
+      "output": {
+        "fragrance_name": "Desert Survival Cooler",
+        "korean_name": "사막 생존 쿨러",
+        "concept": "극한 더위에서 생존을 돕는 기능성 쿨링 향수",
+        "medical_integration": "아로마테라피 원리를 활용한 열 스트레스 완화",
+        "survival_focus": "생존 상황에서의 실용적 효과 우선",
+        "notes_breakdown": {
+          "emergency_cooling_top": [
+            {"note": "arctic_menthol", "percentage": 40, "instant_cooling": "medical_grade"},
+            {"note": "survival_eucalyptus", "percentage": 30, "respiratory_relief": "breathing_aid"},
+            {"note": "desert_mint", "percentage": 20, "heat_shock": "prevention"},
+            {"note": "ice_simulation", "percentage": 10, "psychological_cooling": "mind_trick"}
+          ],
+          "endurance_middle": [
+            {"note": "cactus_hydration", "percentage": 35, "moisture_retention": "skin_protection"},
+            {"note": "shade_herbs", "percentage": 30, "heat_resistance": "botanical_shield"},
+            {"note": "oasis_green", "percentage": 20, "mental_relief": "hope_sustaining"},
+            {"note": "survival_adaptogen", "percentage": 15, "stress_adaptation": "physiological_support"}
+          ],
+          "extreme_endurance_base": [
+            {"note": "heat_resistant_base", "percentage": 50, "stability": "50_degree_plus"},
+            {"note": "survival_musk", "percentage": 30, "extreme_longevity": "24_hours_plus"},
+            {"note": "emergency_beacon", "percentage": 20, "location_signature": "rescue_aid"}
+          ]
+        },
+        "survival_specs": {
+          "cooling_effect": "immediate_and_lasting",
+          "heat_resistance": "extreme_temperature_stable",
+          "longevity": "24_hours_survival_grade",
+          "medical_benefits": ["heat_stress_relief", "respiratory_aid", "psychological_comfort"],
+          "emergency_features": ["location_signature", "stress_reduction", "focus_enhancement"]
+        },
+        "safety_certifications": {
+          "dermatologically_tested": "extreme_conditions",
+          "heat_stroke_prevention": "clinically_proven",
+          "desert_expedition_approved": true,
+          "military_grade": "special_forces_tested"
+        }
+      }
+    }
+  ],
+  "advanced_training_parameters": {
+    "conditional_embedding_dimensions": 512,
+    "multi_condition_attention_heads": 16,
+    "adaptive_generation_layers": 12,
+    "performance_prediction_accuracy": 95,
+    "edge_case_handling": "comprehensive",
+    "real_time_adaptation": "enabled"
+  },
+  "training_objectives": {
+    "condition_accuracy": "perfect_match",
+    "creative_originality": "high_innovation",
+    "practical_feasibility": "realistic_formulation",
+    "edge_case_robustness": "extreme_condition_handling",
+    "performance_prediction": "precise_forecasting"
+  }
+}

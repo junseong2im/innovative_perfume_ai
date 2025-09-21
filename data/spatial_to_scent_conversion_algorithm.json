@@ -1,0 +1,582 @@
+{
+  "spatial_to_scent_conversion_system": {
+    "theoretical_foundation": {
+      "spatial_psychology": {
+        "volume_perception": "공간의 크기와 스케일이 후각에 미치는 영향",
+        "height_dynamics": "수직 공간감의 향료 해석",
+        "depth_sensation": "깊이감의 향적 표현",
+        "width_expansion": "넓이감의 후각적 번역",
+        "enclosure_feeling": "포위감과 개방감의 향료 매핑"
+      },
+      "architectural_acoustics_to_scent": {
+        "reverberation_mapping": "잔향음의 향료 표현",
+        "echo_interpretation": "메아리의 후각적 번역",
+        "silence_zones": "정적 공간의 향적 구현",
+        "sound_absorption": "흡음재의 부드러운 향감"
+      },
+      "lighting_influence": {
+        "natural_light_scents": "자연광의 향료 해석",
+        "artificial_illumination": "인공조명의 후각적 표현",
+        "shadow_areas": "그림자 지역의 신비로운 향",
+        "contrast_zones": "명암 대비의 향료 표현"
+      }
+    },
+    "dimensional_analysis_algorithms": {
+      "volume_calculation_mapping": {
+        "small_intimate_spaces": {
+          "volume_range": "1-50 cubic_meters",
+          "psychological_effect": "아늑함, 친밀감, 보호받는 느낌",
+          "fragrance_characteristics": {
+            "concentration": "높은 농도 (20-30%)",
+            "sillage": "제한적 확산 (intimate)",
+            "complexity": "복잡하고 깊은 조성",
+            "note_selection": ["cozy_amber", "soft_vanilla", "warm_cashmere", "intimate_musk"]
+          },
+          "korean_space_examples": {
+            "한옥_작은방": {
+              "traditional_elements": ["한지", "온돌", "나무"],
+              "fragrance_translation": {
+                "hanji_paper": "clean_paper_accord",
+                "ondol_warmth": "gentle_heat_molecules",
+                "wood_structure": "aged_pine_wood"
+              }
+            },
+            "찻집_다실": {
+              "atmosphere": "조용하고 사색적인 분위기",
+              "scent_profile": {
+                "top_notes": ["green_tea_steam", "bamboo_whisper"],
+                "middle_notes": ["contemplative_woods", "meditation_incense"],
+                "base_notes": ["tatami_mat", "ancient_wisdom"]
+              }
+            }
+          },
+          "manufacturing_formula": {
+            "intimate_space_base": {
+              "cozy_amber": "15ml",
+              "soft_vanilla": "10ml",
+              "warm_cashmere": "8ml",
+              "intimate_musk": "12ml",
+              "total_oil": "45ml",
+              "ethanol": "105ml",
+              "concentration": "30% Parfum"
+            }
+          }
+        },
+        "medium_comfortable_spaces": {
+          "volume_range": "50-200 cubic_meters",
+          "psychological_effect": "편안함, 균형감, 자연스러움",
+          "fragrance_characteristics": {
+            "concentration": "중간 농도 (15-20%)",
+            "sillage": "적당한 확산 (moderate)",
+            "complexity": "균형잡힌 조화",
+            "note_selection": ["balanced_florals", "comfortable_woods", "harmonious_musks"]
+          },
+          "space_examples": {
+            "거실_living_room": {
+              "family_gathering": "가족이 모이는 중심 공간",
+              "scent_requirements": {
+                "universally_pleasant": "모든 연령대가 좋아하는 향",
+                "not_overwhelming": "압도적이지 않은 은은함",
+                "long_lasting": "오랫동안 지속되는 안정감"
+              },
+              "formula": {
+                "family_harmony_blend": {
+                  "soft_citrus": "8ml",
+                  "gentle_florals": "10ml",
+                  "comfortable_woods": "8ml",
+                  "family_musk": "6ml"
+                }
+              }
+            },
+            "카페_coffee_shop": {
+              "social_atmosphere": "사교적이고 활기찬 분위기",
+              "complementary_scents": {
+                "coffee_enhancement": "커피 향을 방해하지 않는 보완적 향",
+                "conversation_friendly": "대화에 방해되지 않는 배경 향",
+                "creativity_boost": "창의성을 자극하는 향"
+              }
+            }
+          }
+        },
+        "large_expansive_spaces": {
+          "volume_range": "200-2000 cubic_meters",
+          "psychological_effect": "개방감, 자유로움, 웅장함",
+          "fragrance_characteristics": {
+            "concentration": "낮은 농도 (8-15%)",
+            "sillage": "넓은 확산 (heavy)",
+            "complexity": "단순하고 명확한 구조",
+            "note_selection": ["expansive_ozonic", "open_air_accords", "freedom_molecules"]
+          },
+          "architectural_examples": {
+            "대형_쇼핑몰": {
+              "crowd_dynamics": "많은 사람들이 이동하는 동적 공간",
+              "scent_strategy": {
+                "crowd_pleasing": "대중적 호감도 높은 향",
+                "non_offensive": "거부감 없는 중성적 향",
+                "brand_differentiation": "공간별 차별화된 향"
+              }
+            },
+            "컨벤션_센터": {
+              "professional_atmosphere": "전문적이고 국제적인 분위기",
+              "requirements": {
+                "cultural_neutrality": "문화적으로 중립적인 향",
+                "concentration_aid": "집중력 향상 효과",
+                "fatigue_prevention": "후각 피로 방지"
+              }
+            },
+            "박물관_갤러리": {
+              "contemplative_space": "사색과 감상을 위한 공간",
+              "artwork_compatibility": "예술작품과 조화로운 향",
+              "preservation_consideration": "작품 보존에 영향 없는 향료"
+            }
+          }
+        },
+        "vast_monumental_spaces": {
+          "volume_range": "2000+ cubic_meters",
+          "psychological_effect": "경외감, 숭고함, 초월감",
+          "fragrance_characteristics": {
+            "concentration": "매우 낮은 농도 (3-8%)",
+            "sillage": "광범위 확산 (nuclear)",
+            "complexity": "심플하고 순수한 구조",
+            "note_selection": ["transcendent_molecules", "sacred_incense", "infinite_accords"]
+          },
+          "monumental_examples": {
+            "대성당_cathedral": {
+              "sacred_atmosphere": "신성하고 엄숙한 분위기",
+              "traditional_scents": {
+                "frankincense": "유향의 신성함",
+                "myrrh": "몰약의 숭고함",
+                "sacred_woods": "성목의 경건함"
+              },
+              "acoustic_considerations": "잔향음과 조화로운 향의 확산"
+            },
+            "경기장_stadium": {
+              "energy_amplification": "집단 에너지의 증폭",
+              "crowd_unity": "군중 일체감 조성",
+              "victory_celebration": "승리의 기쁨 표현"
+            }
+          }
+        }
+      },
+      "spatial_flow_dynamics": {
+        "circulation_patterns": {
+          "linear_progression": {
+            "definition": "직선적 동선의 향료 배치",
+            "scent_sequencing": "시작→중간→도착지의 향적 내러티브",
+            "examples": {
+              "복도_hallway": "입구의 신선함→중간의 안정감→목적지의 특화향",
+              "산책로_pathway": "시작의 기대감→중간의 여정감→도착의 성취감"
+            }
+          },
+          "circular_movement": {
+            "definition": "순환 동선의 향료 리듬",
+            "scent_cycling": "반복되면서 변화하는 향적 패턴",
+            "examples": {
+              "쇼핑몰_circular_mall": "계절별 순환 향료 시스템",
+              "공원_walking_trail": "자연 순환의 향적 표현"
+            }
+          },
+          "radial_dispersion": {
+            "definition": "중심에서 방사형으로 퍼지는 향료 배치",
+            "scent_gradation": "중심에서 외곽으로의 향적 그라데이션",
+            "examples": {
+              "광장_plaza": "중심의 강한 향→외곽의 은은한 향",
+              "아트리움_atrium": "상층부의 가벼운 향→하층부의 무거운 향"
+            }
+          }
+        },
+        "vertical_stratification": {
+          "ground_level_scents": {
+            "characteristics": "무겁고 안정적인 베이스 노트",
+            "psychological_anchoring": "심리적 안정감과 근거감",
+            "note_examples": ["earth_minerals", "ground_woods", "stable_musks"]
+          },
+          "mid_level_atmosphere": {
+            "characteristics": "균형잡힌 미들 노트",
+            "human_interaction_zone": "인간 활동의 주요 영역",
+            "note_examples": ["human_scale_florals", "comfortable_spices", "social_musks"]
+          },
+          "upper_realm_fragrances": {
+            "characteristics": "가볍고 상승하는 탑 노트",
+            "aspirational_feelings": "희망과 상승감",
+            "note_examples": ["skyward_citrus", "elevated_ozonic", "ascending_aldehydes"]
+          }
+        }
+      }
+    },
+    "material_texture_translation": {
+      "surface_material_mapping": {
+        "smooth_polished_surfaces": {
+          "materials": ["marble", "glass", "polished_metal", "glazed_ceramic"],
+          "tactile_qualities": "매끄럽고 차갑고 반사적",
+          "fragrance_interpretation": {
+            "smoothness": "실키하고 플루이드한 텍스처",
+            "coolness": "멘톨과 유칼립투스의 시원함",
+            "reflection": "크리스탈라인 클리어 노트"
+          },
+          "note_palette": ["crystal_accord", "cool_minerals", "silk_molecules", "glass_clarity"],
+          "korean_materials": {
+            "백자_white_porcelain": {
+              "cultural_significance": "조선 백자의 순수미",
+              "scent_profile": {
+                "purity": "순백의 깨끗함",
+                "elegance": "절제된 우아함",
+                "tradition": "전통의 향기"
+              }
+            }
+          }
+        },
+        "rough_textured_surfaces": {
+          "materials": ["raw_concrete", "rough_stone", "bark", "unfinished_wood"],
+          "tactile_qualities": "거칠고 자연스럽고 유기적",
+          "fragrance_interpretation": {
+            "roughness": "복합적이고 레이어드한 텍스처",
+            "naturalness": "어스와 그린의 자연성",
+            "organicity": "라이브하고 브레딩하는 향감"
+          },
+          "note_palette": ["raw_earth", "tree_bark", "stone_dust", "natural_fiber"],
+          "manufacturing_approach": {
+            "texture_simulation": {
+              "rough_texture_accord": "10ml",
+              "natural_earth_complex": "8ml",
+              "organic_fiber_notes": "6ml",
+              "raw_stone_minerals": "4ml"
+            }
+          }
+        },
+        "soft_absorbent_materials": {
+          "materials": ["fabric", "carpet", "cushions", "acoustic_panels"],
+          "tactile_qualities": "부드럽고 흡수적이고 따뜻함",
+          "fragrance_interpretation": {
+            "softness": "다운 라이크 푹신함",
+            "absorption": "에코 컨트롤 깊이감",
+            "warmth": "코지 컴포트 느낌"
+          },
+          "note_palette": ["cashmere_soft", "down_comfort", "warm_cotton", "cozy_wool"],
+          "korean_textiles": {
+            "한복_실크": {
+              "traditional_luxury": "전통 실크의 고급스러움",
+              "flowing_grace": "흐르는 듯한 우아함",
+              "cultural_pride": "문화적 자부심"
+            },
+            "면화_cotton": {
+              "comfort_everyday": "일상의 편안함",
+              "breathable_natural": "숨쉬는 자연스러움",
+              "humble_beauty": "소박한 아름다움"
+            }
+          }
+        }
+      },
+      "architectural_element_translation": {
+        "columns_pillars": {
+          "structural_significance": "수직적 지지와 안정감",
+          "fragrance_interpretation": {
+            "strength": "강력한 우디 베이스",
+            "verticality": "상승하는 레지노우스 노트",
+            "stability": "안정적인 앰버 파운데이션"
+          },
+          "historical_styles": {
+            "greek_doric": "단순하고 강인한 우디",
+            "roman_corinthian": "화려하고 복잡한 플로럴 우디",
+            "korean_dancheong": "오색 단청의 향긋한 우디"
+          }
+        },
+        "arches_domes": {
+          "spatial_dynamics": "곡선미와 포용감",
+          "fragrance_interpretation": {
+            "curvature": "플루이드하고 연결되는 노트",
+            "enclosure": "포근하고 보호하는 앰버",
+            "acoustics": "레조넌트하고 하모니어스한 블렌드"
+          },
+          "cultural_examples": {
+            "이슬람_dome": "돔의 신성한 포용감",
+            "한옥_curved_roof": "처마의 우아한 곡선"
+          }
+        },
+        "windows_openings": {
+          "light_air_connection": "내외부 연결과 투명성",
+          "fragrance_interpretation": {
+            "transparency": "클리어하고 트랜스페어런트한 노트",
+            "air_flow": "브리지와 에어리한 움직임",
+            "light_filtering": "필터드 브라이트니스"
+          },
+          "window_types": {
+            "stained_glass": "컬러풀하고 미스티컬한 라이트",
+            "paper_screen": "한지 창호지의 부드러운 필터링",
+            "modern_glass": "클리어하고 미니멀한 투명성"
+          }
+        }
+      }
+    },
+    "atmospheric_condition_modeling": {
+      "humidity_fragrance_correlation": {
+        "dry_arid_atmosphere": {
+          "humidity_range": "0-30%",
+          "scent_behavior": "향료 분자의 빠른 확산",
+          "fragrance_adjustments": {
+            "increased_longevity": "베이스 노트 강화",
+            "dust_particles": "더스티 드라이 노트 추가",
+            "desert_feeling": "사막의 건조함과 광활함"
+          },
+          "note_selection": ["dry_woods", "desert_flowers", "arid_minerals", "cactus_bloom"]
+        },
+        "humid_moist_atmosphere": {
+          "humidity_range": "70-100%",
+          "scent_behavior": "향료 분자의 무거운 침강",
+          "fragrance_adjustments": {
+            "lighter_formulation": "가벼운 탑 노트 강조",
+            "mold_prevention": "안티 미생물 성분",
+            "tropical_feeling": "열대의 무성함과 생명력"
+          },
+          "note_selection": ["tropical_fruits", "humid_florals", "moss_accord", "rain_forest"]
+        },
+        "balanced_comfortable_humidity": {
+          "humidity_range": "40-60%",
+          "optimal_condition": "향료 표현의 최적 환경",
+          "fragrance_benefits": {
+            "natural_diffusion": "자연스러운 확산",
+            "balanced_perception": "균형잡힌 후각 인지",
+            "comfortable_wearing": "착용감 최적화"
+          }
+        }
+      },
+      "temperature_impact_analysis": {
+        "cold_environments": {
+          "temperature_range": "below 15°C",
+          "molecular_behavior": "느린 증발, 낮은 확산력",
+          "fragrance_strategy": {
+            "concentration_boost": "농도 증가 (25-30%)",
+            "warming_notes": "따뜻한 스파이시 노트",
+            "comfort_enhancement": "코지 컴포트 분위기"
+          },
+          "winter_spaces": {
+            "fireplace_room": "벽난로가 있는 거실의 따뜻함",
+            "ski_lodge": "스키장 롯지의 아늑함",
+            "winter_temple": "겨울 사찰의 고요함"
+          }
+        },
+        "warm_environments": {
+          "temperature_range": "above 25°C",
+          "molecular_behavior": "빠른 증발, 높은 확산력",
+          "fragrance_strategy": {
+            "concentration_reduction": "농도 감소 (8-12%)",
+            "cooling_notes": "시원한 아쿠아틱 노트",
+            "refreshing_enhancement": "리프레싱 효과 강화"
+          },
+          "summer_spaces": {
+            "beach_pavilion": "해변 파빌리온의 시원함",
+            "rooftop_garden": "옥상 정원의 도시 오아시스",
+            "summer_hanok": "여름 한옥의 그늘진 마루"
+          }
+        }
+      },
+      "air_circulation_dynamics": {
+        "still_air_environments": {
+          "characteristics": "공기 순환이 거의 없는 밀폐된 공간",
+          "fragrance_behavior": "향의 정적 축적",
+          "design_considerations": {
+            "gentle_diffusion": "서서히 퍼지는 은은한 향",
+            "layered_complexity": "시간에 따라 전개되는 복합성",
+            "intimate_intensity": "친밀하고 강렬한 농도"
+          },
+          "examples": {
+            "meditation_room": "명상실의 고요한 향",
+            "wine_cellar": "와인 저장고의 숙성된 향",
+            "library_archive": "도서관 서고의 지식의 향"
+          }
+        },
+        "active_air_flow": {
+          "characteristics": "적극적인 공기 순환이 있는 공간",
+          "fragrance_behavior": "향의 동적 이동과 변화",
+          "design_considerations": {
+            "robust_formulation": "바람에 견디는 강한 구조",
+            "directional_scenting": "공기 흐름을 따라가는 향",
+            "renewal_capacity": "지속적 갱신 능력"
+          },
+          "examples": {
+            "airport_terminal": "공항 터미널의 국제적 분위기",
+            "shopping_mall_atrium": "쇼핑몰 아트리움의 역동성",
+            "train_station": "기차역의 여행의 설렘"
+          }
+        }
+      }
+    },
+    "cultural_spatial_interpretation": {
+      "korean_traditional_architecture": {
+        "한옥_hanok_principles": {
+          "자연과의_조화": "자연과 하나되는 건축 철학",
+          "fragrance_translation": {
+            "nature_integration": "실내외 경계 없는 자연향",
+            "seasonal_adaptation": "계절 변화를 반영하는 향",
+            "harmony_balance": "조화와 균형의 후각적 표현"
+          },
+          "specific_elements": {
+            "마루_wooden_floor": {
+              "cooling_summer": "여름 시원함",
+              "scent_profile": ["pine_wood", "summer_breeze", "cool_shade"]
+            },
+            "온돌_underfloor_heating": {
+              "warming_winter": "겨울 따뜻함",
+              "scent_profile": ["warm_earth", "cozy_comfort", "family_gathering"]
+            },
+            "처마_eaves": {
+              "rain_protection": "비와 햇빛으로부터의 보호",
+              "scent_profile": ["shelter_comfort", "weather_protection", "home_safety"]
+            }
+          }
+        },
+        "궁궐_palace_architecture": {
+          "royal_magnificence": "왕실의 위엄과 화려함",
+          "fragrance_interpretation": {
+            "regal_presence": "왕실의 권위",
+            "cultural_pride": "문화적 자부심",
+            "historical_depth": "역사의 깊이"
+          },
+          "palace_areas": {
+            "정전_main_hall": {
+              "ceremonial_grandeur": "의례의 장엄함",
+              "scent_formula": {
+                "imperial_incense": "8ml",
+                "golden_woods": "10ml",
+                "royal_amber": "6ml",
+                "ceremonial_florals": "4ml"
+              }
+            },
+            "후원_royal_garden": {
+              "private_retreat": "왕실의 사적 휴식처",
+              "natural_luxury": "자연 속의 고급스러움"
+            }
+          }
+        },
+        "사찰_temple_architecture": {
+          "spiritual_transcendence": "영적 초월과 깨달음",
+          "fragrance_interpretation": {
+            "sacred_atmosphere": "신성한 분위기",
+            "meditation_support": "명상 지원",
+            "purification_cleansing": "정화와 청정"
+          },
+          "temple_zones": {
+            "대웅전_main_buddha_hall": {
+              "supreme_sanctity": "최고의 신성함",
+              "traditional_incense": {
+                "sandalwood_base": "12ml",
+                "frankincense": "6ml",
+                "lotus_essence": "4ml",
+                "meditation_herbs": "3ml"
+              }
+            },
+            "선원_meditation_hall": {
+              "inner_peace": "내적 평화",
+              "contemplative_quiet": "사색의 고요함"
+            }
+          }
+        }
+      },
+      "modern_korean_spaces": {
+        "아파트_apartment_living": {
+          "urban_density": "도시 고밀도 생활",
+          "fragrance_challenges": {
+            "neighbor_consideration": "이웃 배려",
+            "small_space_efficiency": "작은 공간의 효율성",
+            "multi_family_harmony": "다가구 조화"
+          },
+          "solution_approaches": {
+            "gentle_concentration": "은은한 농도",
+            "universal_appeal": "범용적 호감도",
+            "quick_dissipation": "빠른 소멸성"
+          }
+        },
+        "오피스텔_officetels": {
+          "dual_purpose_living": "주거와 업무의 이중 기능",
+          "fragrance_requirements": {
+            "day_night_transition": "낮밤 전환 대응",
+            "work_rest_balance": "일과 휴식의 균형",
+            "space_efficiency": "공간 효율성 극대화"
+          }
+        },
+        "카페_korean_cafes": {
+          "third_place_culture": "제3의 공간 문화",
+          "social_hub_function": "사회적 허브 역할",
+          "fragrance_strategy": {
+            "coffee_complement": "커피향 보완",
+            "conversation_friendly": "대화 친화적",
+            "study_atmosphere": "학습 분위기 조성"
+          }
+        }
+      }
+    },
+    "advanced_algorithmic_processing": {
+      "ai_spatial_analysis": {
+        "image_recognition_scent_mapping": {
+          "architectural_photo_analysis": "건축 사진의 공간 분석",
+          "spatial_element_identification": "공간 요소 자동 식별",
+          "scent_recommendation_algorithm": "향료 추천 알고리즘",
+          "cultural_context_integration": "문화적 맥락 통합"
+        },
+        "3d_model_interpretation": {
+          "volumetric_analysis": "3D 모델의 부피 분석",
+          "flow_simulation": "공기 흐름 시뮬레이션",
+          "lighting_calculation": "조명 계산 및 향료 매핑",
+          "material_texture_recognition": "재료 텍스처 인식"
+        },
+        "real_time_adjustment": {
+          "environmental_sensors": "환경 센서 데이터 활용",
+          "occupancy_detection": "공간 사용률 감지",
+          "weather_integration": "날씨 정보 통합",
+          "dynamic_scent_modification": "동적 향료 조정"
+        }
+      },
+      "mathematical_modeling": {
+        "spatial_volume_formulas": {
+          "rectangular_spaces": "length × width × height",
+          "circular_spaces": "π × radius² × height",
+          "irregular_shapes": "3D scanning integration",
+          "complex_geometries": "computational fluid dynamics"
+        },
+        "diffusion_rate_calculations": {
+          "molecular_weight_factors": "분자량에 따른 확산률",
+          "temperature_coefficients": "온도 계수 적용",
+          "humidity_adjustments": "습도 보정",
+          "air_flow_vectors": "공기 흐름 벡터 분석"
+        },
+        "optimization_algorithms": {
+          "cost_efficiency": "비용 효율성 최적화",
+          "user_satisfaction": "사용자 만족도 극대화",
+          "environmental_impact": "환경 영향 최소화",
+          "cultural_appropriateness": "문화적 적절성 보장"
+        }
+      }
+    },
+    "practical_implementation_guide": {
+      "space_assessment_protocol": {
+        "step_1_dimensional_survey": "공간 치수 측정 및 기록",
+        "step_2_material_identification": "사용 재료 및 마감재 파악",
+        "step_3_function_analysis": "공간 기능 및 용도 분석",
+        "step_4_user_profile": "사용자 프로필 및 선호도 조사",
+        "step_5_cultural_context": "문화적 맥락 및 지역적 특성",
+        "step_6_environmental_conditions": "환경 조건 측정",
+        "step_7_scent_design": "향료 설계 및 포뮬레이션",
+        "step_8_testing_refinement": "테스트 및 개선",
+        "step_9_implementation": "실제 적용 및 설치",
+        "step_10_monitoring": "지속적 모니터링 및 조정"
+      },
+      "quality_assurance_metrics": {
+        "spatial_accuracy": "공간 분석의 정확도",
+        "scent_appropriateness": "향료 선택의 적절성",
+        "user_acceptance": "사용자 수용도",
+        "longevity_performance": "지속성 성능",
+        "safety_compliance": "안전성 준수",
+        "cultural_sensitivity": "문화적 민감성",
+        "environmental_sustainability": "환경적 지속가능성"
+      },
+      "maintenance_protocols": {
+        "regular_assessment": "정기적 평가 및 점검",
+        "seasonal_adjustments": "계절별 조정",
+        "user_feedback_integration": "사용자 피드백 통합",
+        "equipment_maintenance": "장비 유지보수",
+        "formula_updates": "포뮬라 업데이트",
+        "documentation_management": "문서 관리"
+      }
+    }
+  }
+}

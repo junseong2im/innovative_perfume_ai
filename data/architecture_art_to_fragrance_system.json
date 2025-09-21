@@ -1,0 +1,425 @@
+{
+  "architecture_to_fragrance_system": {
+    "concept": "건축물의 시각적, 공간적, 문화적 특성을 후각적 경험으로 번역",
+    "methodology": "건축 요소별 향료 매핑 + 공간감 구현 + 역사적 맥락 반영",
+
+    "architectural_elements_mapping": {
+      "materials": {
+        "stone": {
+          "marble": {
+            "fragrance_equivalent": ["white_musk", "iris", "mineral_notes", "cool_air"],
+            "characteristics": "차갑고 순수하며 고귀한 느낌",
+            "examples": "파르테논 신전, 링컨 기념관",
+            "fragrance_structure": {
+              "base_notes": ["white_musk_40%", "mineral_salt_30%", "iris_20%", "transparent_amber_10%"]
+            }
+          },
+          "granite": {
+            "fragrance_equivalent": ["stone", "metallic_notes", "cedar", "cold_air"],
+            "characteristics": "견고하고 영원불멸의 느낌",
+            "examples": "이집트 피라미드, 러시모어산"
+          },
+          "limestone": {
+            "fragrance_equivalent": ["powdery_notes", "soft_musk", "chalk", "sea_breeze"],
+            "characteristics": "부드럽고 따뜻한 돌의 느낌",
+            "examples": "노트르담 대성당, 코츠월드 마을"
+          }
+        },
+        "wood": {
+          "oak": {
+            "fragrance_equivalent": ["oak_absolute", "whiskey_notes", "leather", "amber"],
+            "characteristics": "전통적이고 견고한 느�iem",
+            "examples": "일본 전통 가옥, 유럽 교회"
+          },
+          "bamboo": {
+            "fragrance_equivalent": ["bamboo", "green_tea", "fresh_air", "zen_notes"],
+            "characteristics": "가볍고 선명하며 동양적",
+            "examples": "한국 한옥, 일본 다실"
+          },
+          "cedar": {
+            "fragrance_equivalent": ["cedar", "sandalwood", "incense", "meditation"],
+            "characteristics": "신성하고 영적인 느낌",
+            "examples": "일본 신사, 레바논 삼나무 건물"
+          }
+        },
+        "metal": {
+          "steel": {
+            "fragrance_equivalent": ["metallic_notes", "ozone", "industrial", "modern"],
+            "characteristics": "미래적이고 차가운 느낌",
+            "examples": "에펠탑, 현대 마천루"
+          },
+          "copper": {
+            "fragrance_equivalent": ["copper_notes", "verdigris", "patina", "aged_metal"],
+            "characteristics": "시간이 흐른 고급스러움",
+            "examples": "자유의 여신상, 구리 지붕 건물"
+          },
+          "gold": {
+            "fragrance_equivalent": ["saffron", "honey", "amber", "luxury"],
+            "characteristics": "화려하고 신성한 느낌",
+            "examples": "황금 사원, 비잔틴 건축"
+          }
+        },
+        "glass": {
+          "clear_glass": {
+            "fragrance_equivalent": ["crystal_notes", "transparency", "light_musk", "air"],
+            "characteristics": "투명하고 현대적",
+            "examples": "애플 스토어, 루브르 피라미드"
+          },
+          "stained_glass": {
+            "fragrance_equivalent": ["rainbow_florals", "incense", "church_atmosphere", "mystical"],
+            "characteristics": "신비롭고 영적인 색채감",
+            "examples": "샤르트르 대성당, 사그라다 파밀리아"
+          }
+        }
+      },
+
+      "spatial_characteristics": {
+        "height": {
+          "soaring_vertical": {
+            "fragrance_structure": "light_top_notes_dominant",
+            "notes": ["bergamot", "grapefruit", "eucalyptus", "mountain_air"],
+            "examples": "고딕 성당, 마천루",
+            "psychological_effect": "영적 고양감, 자유로움"
+          },
+          "ground_hugging": {
+            "fragrance_structure": "heavy_base_notes_dominant",
+            "notes": ["patchouli", "oakmoss", "earth", "mushroom"],
+            "examples": "프랭크 로이드 라이트 주택",
+            "psychological_effect": "안정감, 대지와의 연결"
+          }
+        },
+        "openness": {
+          "vast_open_space": {
+            "fragrance_characteristics": "expansive_and_airy",
+            "notes": ["ozone", "sea_breeze", "wide_sky", "freedom"],
+            "examples": "개방형 광장, 아트리움",
+            "sillage": "strong_projection"
+          },
+          "intimate_enclosed": {
+            "fragrance_characteristics": "concentrated_and_warm",
+            "notes": ["vanilla", "amber", "sandalwood", "cozy"],
+            "examples": "개인 서재, 작은 예배당",
+            "sillage": "close_to_skin"
+          }
+        },
+        "light_quality": {
+          "bright_daylight": {
+            "notes": ["citrus", "white_florals", "clean_linen", "sunshine"],
+            "examples": "대형 창문, 유리 건물"
+          },
+          "dim_atmospheric": {
+            "notes": ["incense", "oud", "candlewax", "mystery"],
+            "examples": "지하 성당, 촛불 공간"
+          },
+          "colored_light": {
+            "notes": "색상별 향료 매핑 적용",
+            "examples": "스테인드글라스 건물"
+          }
+        }
+      },
+
+      "architectural_styles": {
+        "gothic": {
+          "fragrance_concept": "영적 고양과 신성함",
+          "signature_notes": ["frankincense", "myrrh", "stone", "heights"],
+          "structure": {
+            "top": "frankincense_30% + bergamot_25% + mountain_air_25% + church_bells_20%",
+            "middle": "rose_absolute_40% + incense_30% + stone_dust_20% + prayers_10%",
+            "base": "oud_35% + sandalwood_30% + amber_20% + eternity_15%"
+          },
+          "examples": "노트르담, 쾰른 대성당, 사그라다 파밀리아"
+        },
+        "modernist": {
+          "fragrance_concept": "순수함과 기능성",
+          "signature_notes": ["white_musk", "steel", "glass", "minimalism"],
+          "structure": {
+            "top": "bergamot_40% + ozone_30% + metallic_20% + clarity_10%",
+            "middle": "white_tea_50% + iris_30% + concrete_20%",
+            "base": "white_musk_60% + light_woods_25% + transparency_15%"
+          },
+          "examples": "바우하우스, 미스 반 데어 로에 건물"
+        },
+        "traditional_korean": {
+          "fragrance_concept": "자연과의 조화, 단아함",
+          "signature_notes": ["pine", "bamboo", "clay", "harmony"],
+          "structure": {
+            "top": "yuzu_30% + pine_needles_25% + mountain_mist_25% + serenity_20%",
+            "middle": "white_chrysanthemum_35% + bamboo_30% + clay_tiles_20% + meditation_15%",
+            "base": "korean_pine_40% + hinoki_25% + earth_20% + ancestral_wisdom_15%"
+          },
+          "examples": "창덕궁, 불국사, 전통 한옥"
+        },
+        "japanese_zen": {
+          "fragrance_concept": "무(無)와 정적, 선적 사고",
+          "signature_notes": ["hinoki", "tatami", "incense", "emptiness"],
+          "structure": {
+            "top": "yuzu_25% + mountain_water_25% + clean_air_25% + mindfulness_25%",
+            "middle": "tatami_40% + green_tea_30% + bamboo_fountain_20% + silence_10%",
+            "base": "hinoki_50% + sandalwood_25% + temple_incense_15% + enlightenment_10%"
+          },
+          "examples": "료안지, 긴카쿠지, 다도 정원"
+        }
+      }
+    },
+
+    "famous_buildings_as_fragrances": [
+      {
+        "building": "Taj Mahal",
+        "location": "인도 아그라",
+        "fragrance_interpretation": {
+          "name": "Eternal Love in White Marble",
+          "korean_name": "하얀 대리석 속 영원한 사랑",
+          "concept": "무굴 황제의 애절한 사랑과 이슬람 건축의 완벽한 조화",
+          "structure": {
+            "top_notes": {
+              "white_flowers": {
+                "percentage": 40,
+                "reason": "하얀 대리석과 순수한 사랑",
+                "components": ["jasmine_sambac_20%", "tuberose_15%", "orange_blossom_5%"]
+              },
+              "indian_spices": {
+                "percentage": 30,
+                "reason": "무굴 제국의 이국적 향신료",
+                "components": ["cardamom_15%", "saffron_10%", "rose_water_5%"]
+              },
+              "marble_coolness": {
+                "percentage": 30,
+                "reason": "차가운 대리석의 촉감",
+                "components": ["mineral_notes_20%", "cool_air_10%"]
+              }
+            },
+            "middle_notes": {
+              "mughal_garden": {
+                "percentage": 50,
+                "reason": "무굴 정원의 향기로운 꽃들",
+                "components": ["damask_rose_30%", "jasmine_grandiflorum_20%"]
+              },
+              "precious_woods": {
+                "percentage": 30,
+                "reason": "건축에 사용된 고급 목재",
+                "components": ["sandalwood_20%", "rosewood_10%"]
+              },
+              "water_reflection": {
+                "percentage": 20,
+                "reason": "반사 수로의 잔잔한 물",
+                "components": ["water_lily_15%", "aquatic_5%"]
+              }
+            },
+            "base_notes": {
+              "eternal_love": {
+                "percentage": 40,
+                "reason": "영원히 지속되는 사랑",
+                "components": ["white_musk_25%", "amber_15%"]
+              },
+              "sacred_incense": {
+                "percentage": 35,
+                "reason": "이슬람 사원의 신성한 향",
+                "components": ["frankincense_20%", "myrrh_15%"]
+              },
+              "time_and_memory": {
+                "percentage": 25,
+                "reason": "시간을 초월한 기억",
+                "components": ["aged_oud_15%", "ancient_stones_10%"]
+              }
+            }
+          },
+          "manufacturing_notes": {
+            "concentration": "parfum_25%",
+            "aging_period": "1년 (사랑의 깊이만큼)",
+            "limited_edition": "361개 한정 (건축 기간 22년 × 16.4)"
+          }
+        }
+      },
+      {
+        "building": "Eiffel Tower",
+        "location": "프랑스 파리",
+        "fragrance_interpretation": {
+          "name": "Iron Lady of Paris",
+          "korean_name": "파리의 철의 여인",
+          "concept": "19세기 산업혁명과 파리지엔의 우아함이 만나는 지점",
+          "structure": {
+            "top_notes": {
+              "parisian_morning": {
+                "percentage": 45,
+                "components": ["bergamot_25%", "champagne_bubbles_10%", "croissant_10%"]
+              },
+              "industrial_innovation": {
+                "percentage": 35,
+                "components": ["metallic_ozone_20%", "steel_girders_15%"]
+              },
+              "height_and_perspective": {
+                "percentage": 20,
+                "components": ["bird's_eye_view_15%", "wind_at_height_5%"]
+              }
+            },
+            "middle_notes": {
+              "french_elegance": {
+                "percentage": 40,
+                "components": ["french_rose_25%", "violet_15%"]
+              },
+              "seine_river": {
+                "percentage": 30,
+                "components": ["river_water_20%", "limestone_banks_10%"]
+              },
+              "cafe_culture": {
+                "percentage": 30,
+                "components": ["coffee_absolute_15%", "cigarette_smoke_10%", "conversation_5%"]
+              }
+            },
+            "base_notes": {
+              "wrought_iron": {
+                "percentage": 40,
+                "components": ["iron_oxide_25%", "industrial_heritage_15%"]
+              },
+              "parisian_nights": {
+                "percentage": 35,
+                "components": ["amber_street_lights_20%", "romantic_musk_15%"]
+              },
+              "timeless_icon": {
+                "percentage": 25,
+                "components": ["eternal_fame_15%", "tourist_dreams_10%"]
+              }
+            }
+          }
+        }
+      },
+      {
+        "building": "Sagrada Familia",
+        "location": "스페인 바르셀로나",
+        "fragrance_interpretation": {
+          "name": "Gaudi's Divine Vision",
+          "korean_name": "가우디의 신성한 환상",
+          "concept": "자연과 신성함이 하나로 융합된 건축적 기도",
+          "structure": {
+            "top_notes": {
+              "organic_forms": {
+                "percentage": 40,
+                "components": ["tree_branches_15%", "flower_petals_15%", "honeycomb_10%"]
+              },
+              "stained_glass_light": {
+                "percentage": 35,
+                "components": ["rainbow_prism_20%", "colored_light_15%"]
+              },
+              "construction_eternal": {
+                "percentage": 25,
+                "components": ["stone_dust_15%", "creative_energy_10%"]
+              }
+            },
+            "middle_notes": {
+              "nature_worship": {
+                "percentage": 45,
+                "components": ["forest_cathedral_25%", "spanish_wildflowers_20%"]
+              },
+              "catalan_spirit": {
+                "percentage": 30,
+                "components": ["mediterranean_herbs_20%", "sea_breeze_10%"]
+              },
+              "artistic_passion": {
+                "percentage": 25,
+                "components": ["sculptor's_clay_15%", "vision_manifest_10%"]
+              }
+            },
+            "base_notes": {
+              "divine_aspiration": {
+                "percentage": 40,
+                "components": ["frankincense_25%", "mystical_oud_15%"]
+              },
+              "unfinished_masterpiece": {
+                "percentage": 35,
+                "components": ["work_in_progress_20%", "eternal_becoming_15%"]
+              },
+              "gaudi_legacy": {
+                "percentage": 25,
+                "components": ["genius_signature_15%", "architectural_revolution_10%"]
+              }
+            }
+          }
+        }
+      }
+    ],
+
+    "color_to_fragrance_mapping": {
+      "warm_colors": {
+        "red": {
+          "fragrance_notes": ["rose", "cinnamon", "red_berries", "blood_orange"],
+          "emotional_response": "passion, energy, love",
+          "intensity": "high"
+        },
+        "orange": {
+          "fragrance_notes": ["orange_blossom", "peach", "amber", "marigold"],
+          "emotional_response": "joy, creativity, warmth",
+          "intensity": "medium-high"
+        },
+        "yellow": {
+          "fragrance_notes": ["lemon", "mimosa", "honeysuckle", "golden_honey"],
+          "emotional_response": "happiness, optimism, energy",
+          "intensity": "bright"
+        }
+      },
+      "cool_colors": {
+        "blue": {
+          "fragrance_notes": ["marine", "eucalyptus", "blue_lotus", "ozone"],
+          "emotional_response": "calm, trust, clarity",
+          "intensity": "cool"
+        },
+        "green": {
+          "fragrance_notes": ["grass", "mint", "basil", "forest"],
+          "emotional_response": "nature, growth, harmony",
+          "intensity": "fresh"
+        },
+        "purple": {
+          "fragrance_notes": ["lavender", "violet", "plum", "iris"],
+          "emotional_response": "mystery, spirituality, luxury",
+          "intensity": "deep"
+        }
+      },
+      "neutral_colors": {
+        "white": {
+          "fragrance_notes": ["white_musk", "lily", "cotton", "clean_air"],
+          "emotional_response": "purity, peace, simplicity",
+          "intensity": "subtle"
+        },
+        "black": {
+          "fragrance_notes": ["oud", "dark_chocolate", "charcoal", "night"],
+          "emotional_response": "mystery, elegance, power",
+          "intensity": "intense"
+        },
+        "gray": {
+          "fragrance_notes": ["stone", "smoke", "metallic", "rain"],
+          "emotional_response": "balance, sophistication, calm",
+          "intensity": "moderate"
+        }
+      }
+    },
+
+    "art_movement_fragrances": {
+      "impressionism": {
+        "characteristics": "light, ephemeral, captures moments",
+        "signature_notes": ["water_lily", "light_citrus", "soft_florals", "morning_mist"],
+        "example_formula": {
+          "top": "bergamot_30% + water_drops_25% + light_breeze_25% + moment_captured_20%",
+          "middle": "water_lily_40% + impressionist_garden_30% + fleeting_beauty_30%",
+          "base": "soft_musk_50% + fading_light_30% + memory_trace_20%"
+        }
+      },
+      "expressionism": {
+        "characteristics": "emotional intensity, bold, distorted reality",
+        "signature_notes": ["bold_spices", "dramatic_florals", "intense_woods", "emotional_chaos"],
+        "example_formula": {
+          "top": "black_pepper_35% + electric_citrus_30% + raw_emotion_35%",
+          "middle": "dramatic_rose_40% + tortured_soul_30% + artistic_pain_30%",
+          "base": "dark_woods_45% + existential_angst_30% + passionate_musk_25%"
+        }
+      },
+      "minimalism": {
+        "characteristics": "simplicity, purity, essential elements only",
+        "signature_notes": ["single_note_focus", "white_space", "silence", "essence"],
+        "example_formula": {
+          "structure": "단일 노트 또는 2-3개 노트만 사용",
+          "philosophy": "less_is_more",
+          "examples": "pure_sandalwood_80% + white_space_20%"
+        }
+      }
+    }
+  }
+}

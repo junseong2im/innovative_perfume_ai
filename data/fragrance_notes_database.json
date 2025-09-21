@@ -1,0 +1,443 @@
+{
+  "fragrance_notes": {
+    "citrus": {
+      "category": "citrus",
+      "korean_name": "시트러스",
+      "description": "상큼하고 활기찬 감귤류 계열",
+      "notes": {
+        "bergamot": {
+          "name": "bergamot",
+          "korean_name": "베르가못",
+          "description": "우아하고 세련된 시트러스, 얼그레이 차의 향",
+          "strength": 7,
+          "longevity": 4,
+          "mood": ["fresh", "elegant", "sophisticated"],
+          "season": ["spring", "summer"],
+          "time_of_day": ["morning", "afternoon"],
+          "accords": ["citrus", "aromatic"]
+        },
+        "lemon": {
+          "name": "lemon",
+          "korean_name": "레몬",
+          "description": "상큼하고 청량한 레몬의 향",
+          "strength": 8,
+          "longevity": 3,
+          "mood": ["energetic", "fresh", "clean"],
+          "season": ["spring", "summer"],
+          "time_of_day": ["morning"],
+          "accords": ["citrus", "fresh"]
+        },
+        "grapefruit": {
+          "name": "grapefruit",
+          "korean_name": "자몽",
+          "description": "씁쓸하면서도 상큼한 자몽의 향",
+          "strength": 7,
+          "longevity": 4,
+          "mood": ["energetic", "fresh", "sporty"],
+          "season": ["spring", "summer"],
+          "time_of_day": ["morning", "afternoon"],
+          "accords": ["citrus", "bitter"]
+        },
+        "orange": {
+          "name": "orange",
+          "korean_name": "오렌지",
+          "description": "달콤하고 따뜻한 오렌지의 향",
+          "strength": 6,
+          "longevity": 4,
+          "mood": ["cheerful", "warm", "comforting"],
+          "season": ["spring", "autumn"],
+          "time_of_day": ["morning", "afternoon"],
+          "accords": ["citrus", "sweet"]
+        },
+        "lime": {
+          "name": "lime",
+          "korean_name": "라임",
+          "description": "톡 쏘는 듯한 신선함의 라임",
+          "strength": 8,
+          "longevity": 3,
+          "mood": ["energetic", "fresh", "tropical"],
+          "season": ["summer"],
+          "time_of_day": ["morning", "afternoon"],
+          "accords": ["citrus", "green"]
+        }
+      }
+    },
+    "floral": {
+      "category": "floral",
+      "korean_name": "플로럴",
+      "description": "우아하고 로맨틱한 꽃향기 계열",
+      "notes": {
+        "rose": {
+          "name": "rose",
+          "korean_name": "장미",
+          "description": "클래식하고 로맨틱한 장미의 향",
+          "strength": 8,
+          "longevity": 7,
+          "mood": ["romantic", "elegant", "feminine"],
+          "season": ["spring", "summer"],
+          "time_of_day": ["afternoon", "evening"],
+          "accords": ["floral", "romantic"]
+        },
+        "jasmine": {
+          "name": "jasmine",
+          "korean_name": "자스민",
+          "description": "관능적이고 매혹적인 자스민 꽃의 향",
+          "strength": 9,
+          "longevity": 8,
+          "mood": ["sensual", "exotic", "intoxicating"],
+          "season": ["summer", "autumn"],
+          "time_of_day": ["evening", "night"],
+          "accords": ["floral", "white_floral"]
+        },
+        "lily": {
+          "name": "lily",
+          "korean_name": "백합",
+          "description": "순수하고 청순한 백합의 향",
+          "strength": 6,
+          "longevity": 6,
+          "mood": ["pure", "innocent", "fresh"],
+          "season": ["spring", "summer"],
+          "time_of_day": ["morning", "afternoon"],
+          "accords": ["floral", "white_floral"]
+        },
+        "peony": {
+          "name": "peony",
+          "korean_name": "모란",
+          "description": "부드럽고 여성스러운 모란꽃의 향",
+          "strength": 5,
+          "longevity": 5,
+          "mood": ["gentle", "feminine", "soft"],
+          "season": ["spring"],
+          "time_of_day": ["morning", "afternoon"],
+          "accords": ["floral", "soft"]
+        },
+        "lavender": {
+          "name": "lavender",
+          "korean_name": "라벤더",
+          "description": "진정시키고 편안한 라벤더의 향",
+          "strength": 6,
+          "longevity": 6,
+          "mood": ["calming", "relaxing", "peaceful"],
+          "season": ["spring", "summer"],
+          "time_of_day": ["evening", "night"],
+          "accords": ["floral", "aromatic"]
+        },
+        "neroli": {
+          "name": "neroli",
+          "korean_name": "네롤리",
+          "description": "오렌지 꽃의 우아하고 상쾌한 향",
+          "strength": 7,
+          "longevity": 6,
+          "mood": ["elegant", "fresh", "bridal"],
+          "season": ["spring", "summer"],
+          "time_of_day": ["morning", "afternoon"],
+          "accords": ["floral", "citrus"]
+        }
+      }
+    },
+    "woody": {
+      "category": "woody",
+      "korean_name": "우디",
+      "description": "따뜻하고 깊이 있는 나무 계열",
+      "notes": {
+        "sandalwood": {
+          "name": "sandalwood",
+          "korean_name": "샌달우드",
+          "description": "크리미하고 부드러운 백단향의 향",
+          "strength": 7,
+          "longevity": 8,
+          "mood": ["warm", "comforting", "meditative"],
+          "season": ["autumn", "winter"],
+          "time_of_day": ["afternoon", "evening"],
+          "accords": ["woody", "creamy"]
+        },
+        "cedar": {
+          "name": "cedar",
+          "korean_name": "시더",
+          "description": "드라이하고 남성적인 삼나무의 향",
+          "strength": 6,
+          "longevity": 7,
+          "mood": ["masculine", "confident", "grounding"],
+          "season": ["autumn", "winter"],
+          "time_of_day": ["afternoon", "evening"],
+          "accords": ["woody", "dry"]
+        },
+        "patchouli": {
+          "name": "patchouli",
+          "korean_name": "파촐리",
+          "description": "흙냄새와 허브가 혼재하는 깊은 향",
+          "strength": 9,
+          "longevity": 9,
+          "mood": ["earthy", "mysterious", "bohemian"],
+          "season": ["autumn", "winter"],
+          "time_of_day": ["evening", "night"],
+          "accords": ["woody", "earthy"]
+        },
+        "vetiver": {
+          "name": "vetiver",
+          "korean_name": "베티버",
+          "description": "스모키하고 그린한 뿌리의 향",
+          "strength": 7,
+          "longevity": 8,
+          "mood": ["sophisticated", "masculine", "earthy"],
+          "season": ["summer", "autumn"],
+          "time_of_day": ["afternoon", "evening"],
+          "accords": ["woody", "green"]
+        },
+        "oud": {
+          "name": "oud",
+          "korean_name": "우드",
+          "description": "동양적이고 신비로운 침향의 향",
+          "strength": 10,
+          "longevity": 10,
+          "mood": ["luxurious", "exotic", "powerful"],
+          "season": ["autumn", "winter"],
+          "time_of_day": ["evening", "night"],
+          "accords": ["woody", "oriental"]
+        }
+      }
+    },
+    "oriental": {
+      "category": "oriental",
+      "korean_name": "오리엔탈",
+      "description": "이국적이고 관능적인 동양 계열",
+      "notes": {
+        "vanilla": {
+          "name": "vanilla",
+          "korean_name": "바닐라",
+          "description": "달콤하고 따뜻한 바닐라의 향",
+          "strength": 8,
+          "longevity": 8,
+          "mood": ["sweet", "comforting", "gourmand"],
+          "season": ["autumn", "winter"],
+          "time_of_day": ["evening", "night"],
+          "accords": ["sweet", "gourmand"]
+        },
+        "amber": {
+          "name": "amber",
+          "korean_name": "앰버",
+          "description": "따뜻하고 포근한 호박의 향",
+          "strength": 7,
+          "longevity": 8,
+          "mood": ["warm", "sensual", "cozy"],
+          "season": ["autumn", "winter"],
+          "time_of_day": ["afternoon", "evening"],
+          "accords": ["oriental", "warm"]
+        },
+        "musk": {
+          "name": "musk",
+          "korean_name": "머스크",
+          "description": "관능적이고 피부같은 머스크의 향",
+          "strength": 6,
+          "longevity": 9,
+          "mood": ["sensual", "intimate", "skin-like"],
+          "season": ["all"],
+          "time_of_day": ["evening", "night"],
+          "accords": ["musky", "animalic"]
+        },
+        "tonka_bean": {
+          "name": "tonka_bean",
+          "korean_name": "톤카빈",
+          "description": "바닐라와 아몬드가 혼재하는 달콤한 향",
+          "strength": 7,
+          "longevity": 8,
+          "mood": ["sweet", "warm", "gourmand"],
+          "season": ["autumn", "winter"],
+          "time_of_day": ["evening", "night"],
+          "accords": ["sweet", "gourmand"]
+        }
+      }
+    },
+    "green": {
+      "category": "green",
+      "korean_name": "그린",
+      "description": "신선하고 자연스러운 녹색 계열",
+      "notes": {
+        "grass": {
+          "name": "grass",
+          "korean_name": "잔디",
+          "description": "싱그러운 풀잎의 향",
+          "strength": 5,
+          "longevity": 4,
+          "mood": ["fresh", "natural", "outdoor"],
+          "season": ["spring", "summer"],
+          "time_of_day": ["morning", "afternoon"],
+          "accords": ["green", "fresh"]
+        },
+        "basil": {
+          "name": "basil",
+          "korean_name": "바질",
+          "description": "허브의 상쾌하고 스파이시한 향",
+          "strength": 6,
+          "longevity": 5,
+          "mood": ["fresh", "aromatic", "culinary"],
+          "season": ["spring", "summer"],
+          "time_of_day": ["morning", "afternoon"],
+          "accords": ["green", "aromatic"]
+        },
+        "mint": {
+          "name": "mint",
+          "korean_name": "민트",
+          "description": "시원하고 청량한 박하의 향",
+          "strength": 7,
+          "longevity": 4,
+          "mood": ["cooling", "fresh", "energizing"],
+          "season": ["summer"],
+          "time_of_day": ["morning", "afternoon"],
+          "accords": ["green", "aromatic"]
+        }
+      }
+    },
+    "aquatic": {
+      "category": "aquatic",
+      "korean_name": "아쿠아틱",
+      "description": "바다와 물의 청량함을 표현한 계열",
+      "notes": {
+        "sea_breeze": {
+          "name": "sea_breeze",
+          "korean_name": "바다 바람",
+          "description": "시원한 바다 바람의 향",
+          "strength": 6,
+          "longevity": 5,
+          "mood": ["fresh", "clean", "oceanic"],
+          "season": ["spring", "summer"],
+          "time_of_day": ["morning", "afternoon"],
+          "accords": ["aquatic", "fresh"]
+        },
+        "marine": {
+          "name": "marine",
+          "korean_name": "마린",
+          "description": "깊고 푸른 바다의 향",
+          "strength": 5,
+          "longevity": 6,
+          "mood": ["fresh", "clean", "sporty"],
+          "season": ["spring", "summer"],
+          "time_of_day": ["morning", "afternoon"],
+          "accords": ["aquatic", "ozonic"]
+        }
+      }
+    },
+    "spicy": {
+      "category": "spicy",
+      "korean_name": "스파이시",
+      "description": "따뜻하고 자극적인 향신료 계열",
+      "notes": {
+        "black_pepper": {
+          "name": "black_pepper",
+          "korean_name": "블랙 페퍼",
+          "description": "톡 쏘는 후추의 매운 향",
+          "strength": 7,
+          "longevity": 6,
+          "mood": ["spicy", "energetic", "masculine"],
+          "season": ["autumn", "winter"],
+          "time_of_day": ["afternoon", "evening"],
+          "accords": ["spicy", "warm"]
+        },
+        "cardamom": {
+          "name": "cardamom",
+          "korean_name": "카다몬",
+          "description": "달콤하면서도 스파이시한 카다몬의 향",
+          "strength": 6,
+          "longevity": 7,
+          "mood": ["exotic", "warm", "aromatic"],
+          "season": ["autumn", "winter"],
+          "time_of_day": ["afternoon", "evening"],
+          "accords": ["spicy", "aromatic"]
+        },
+        "cinnamon": {
+          "name": "cinnamon",
+          "korean_name": "계피",
+          "description": "따뜻하고 달콤한 계피의 향",
+          "strength": 8,
+          "longevity": 7,
+          "mood": ["warm", "comforting", "gourmand"],
+          "season": ["autumn", "winter"],
+          "time_of_day": ["afternoon", "evening"],
+          "accords": ["spicy", "sweet"]
+        },
+        "clove": {
+          "name": "clove",
+          "korean_name": "정향",
+          "description": "강렬하고 따뜻한 정향의 향",
+          "strength": 9,
+          "longevity": 8,
+          "mood": ["warm", "powerful", "medicinal"],
+          "season": ["autumn", "winter"],
+          "time_of_day": ["evening", "night"],
+          "accords": ["spicy", "warm"]
+        }
+      }
+    },
+    "fruity": {
+      "category": "fruity",
+      "korean_name": "프루티",
+      "description": "달콤하고 상큼한 과일 계열",
+      "notes": {
+        "apple": {
+          "name": "apple",
+          "korean_name": "사과",
+          "description": "싱그럽고 달콤한 사과의 향",
+          "strength": 6,
+          "longevity": 5,
+          "mood": ["fresh", "youthful", "crisp"],
+          "season": ["spring", "autumn"],
+          "time_of_day": ["morning", "afternoon"],
+          "accords": ["fruity", "fresh"]
+        },
+        "peach": {
+          "name": "peach",
+          "korean_name": "복숭아",
+          "description": "부드럽고 달콤한 복숭아의 향",
+          "strength": 6,
+          "longevity": 5,
+          "mood": ["sweet", "soft", "feminine"],
+          "season": ["spring", "summer"],
+          "time_of_day": ["morning", "afternoon"],
+          "accords": ["fruity", "sweet"]
+        },
+        "blackcurrant": {
+          "name": "blackcurrant",
+          "korean_name": "블랙커런트",
+          "description": "톡 쏘는 새콤한 베리의 향",
+          "strength": 7,
+          "longevity": 6,
+          "mood": ["tart", "energetic", "fruity"],
+          "season": ["spring", "summer"],
+          "time_of_day": ["morning", "afternoon"],
+          "accords": ["fruity", "tart"]
+        },
+        "pear": {
+          "name": "pear",
+          "korean_name": "배",
+          "description": "수분이 풍부하고 달콤한 배의 향",
+          "strength": 5,
+          "longevity": 4,
+          "mood": ["fresh", "juicy", "delicate"],
+          "season": ["spring", "summer"],
+          "time_of_day": ["morning", "afternoon"],
+          "accords": ["fruity", "fresh"]
+        }
+      }
+    }
+  },
+  "accords": {
+    "citrus": "상큼하고 활기찬 감귤류의 조화",
+    "floral": "우아하고 로맨틱한 꽃향기의 조화",
+    "woody": "따뜻하고 깊이 있는 나무향의 조화",
+    "oriental": "이국적이고 관능적인 동양향의 조화",
+    "green": "신선하고 자연스러운 녹색향의 조화",
+    "aquatic": "바다와 물의 청량함을 표현한 조화",
+    "spicy": "따뜻하고 자극적인 향신료의 조화",
+    "fruity": "달콤하고 상큼한 과일향의 조화",
+    "gourmand": "음식을 연상시키는 달콤한 조화",
+    "fresh": "상쾌하고 깨끗한 느낌의 조화",
+    "sweet": "달콤하고 부드러운 느낌의 조화",
+    "warm": "따뜻하고 포근한 느낌의 조화",
+    "romantic": "로맨틱하고 감성적인 조화",
+    "aromatic": "허브나 방향성 식물의 조화",
+    "musky": "관능적이고 피부같은 느낌의 조화",
+    "white_floral": "순수하고 깨끗한 흰꽃의 조화",
+    "earthy": "흙냄새와 자연스러운 느낌의 조화",
+    "ozonic": "오존층과 같은 청량하고 깨끗한 조화"
+  }
+}
