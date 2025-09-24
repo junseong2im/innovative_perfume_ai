@@ -28,6 +28,12 @@ from .exceptions import (
     ErrorCode, FragranceAIException
 )
 
+try:
+    import redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    REDIS_AVAILABLE = False
+
 logger = get_logger(__name__)
 
 
@@ -46,6 +52,14 @@ class AccessLevel(str, Enum):
     AUTHORIZED = "authorized"
     ADMIN = "admin"
     SUPER_ADMIN = "super_admin"
+
+
+class TokenType(str, Enum):
+    """토큰 타입"""
+    ACCESS = "access"
+    REFRESH = "refresh"
+    SESSION = "session"
+    CSRF = "csrf"
 
 
 class ThreatType(str, Enum):
@@ -478,14 +492,381 @@ class ApiKeyManager:
         return None
 
 
+class EnhancedJWTManager:
+    """향상된 JWT 토큰 관리자"""
+
+    def __init__(self):
+        self.secret_key = settings.secret_key
+        self.algorithm = "HS256"
+        self.access_token_expire_minutes = 15  # 짧은 수명
+        self.refresh_token_expire_days = 7
+        self.revoked_tokens: set = set()
+        self.redis_client = None
+
+        if REDIS_AVAILABLE:
+            try:
+                self.redis_client = redis.Redis(
+                    host=settings.redis.url.split("://")[1].split(":")[0],
+                    port=int(settings.redis.url.split(":")[-1]),
+                    decode_responses=True
+                )
+                self.redis_client.ping()
+            except Exception as e:
+                logger.warning(f"Redis connection failed: {e}")
+                self.redis_client = None
+
+    def create_token(
+        self,
+        user_id: str,
+        token_type: TokenType,
+        additional_claims: Optional[Dict] = None,
+        custom_expiry: Optional[timedelta] = None
+    ) -> str:
+        """토큰 생성"""
+
+        now = datetime.utcnow()
+
+        # 토큰 타입별 만료 시간
+        if custom_expiry:
+            expire = now + custom_expiry
+        elif token_type == TokenType.ACCESS:
+            expire = now + timedelta(minutes=self.access_token_expire_minutes)
+        elif token_type == TokenType.REFRESH:
+            expire = now + timedelta(days=self.refresh_token_expire_days)
+        elif token_type == TokenType.SESSION:
+            expire = now + timedelta(hours=2)  # 세션은 2시간
+        else:
+            expire = now + timedelta(minutes=5)  # CSRF는 5분
+
+        # JWT 페이로드
+        payload = {
+            "sub": user_id,
+            "type": token_type.value,
+            "iat": now,
+            "exp": expire,
+            "jti": secrets.token_urlsafe(16),  # JWT ID for revocation
+            "iss": "fragrance-ai",
+            "aud": "fragrance-ai-api"
+        }
+
+        # 추가 클레임
+        if additional_claims:
+            payload.update(additional_claims)
+
+        # 토큰 생성
+        token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
+
+        # Redis에 활성 토큰 저장 (가능한 경우)
+        if self.redis_client and token_type in [TokenType.ACCESS, TokenType.SESSION]:
+            try:
+                key = f"active_token:{payload['jti']}"
+                ttl = int((expire - now).total_seconds())
+                self.redis_client.setex(key, ttl, user_id)
+            except Exception as e:
+                logger.error(f"Failed to store token in Redis: {e}")
+
+        return token
+
+    def verify_token(
+        self,
+        token: str,
+        expected_type: Optional[TokenType] = None,
+        verify_exp: bool = True
+    ) -> Optional[Dict]:
+        """토큰 검증"""
+
+        try:
+            # JWT 디코드
+            payload = jwt.decode(
+                token,
+                self.secret_key,
+                algorithms=[self.algorithm],
+                options={"verify_exp": verify_exp},
+                audience="fragrance-ai-api",
+                issuer="fragrance-ai"
+            )
+
+            # 토큰 타입 검증
+            if expected_type and payload.get("type") != expected_type.value:
+                logger.warning(f"Invalid token type: expected {expected_type.value}, got {payload.get('type')}")
+                return None
+
+            # 토큰 폐기 여부 확인
+            jti = payload.get("jti")
+            if jti:
+                # 메모리에서 확인
+                if jti in self.revoked_tokens:
+                    logger.warning(f"Token is revoked: {jti}")
+                    return None
+
+                # Redis에서 확인 (가능한 경우)
+                if self.redis_client:
+                    try:
+                        key = f"revoked_token:{jti}"
+                        if self.redis_client.exists(key):
+                            logger.warning(f"Token is revoked in Redis: {jti}")
+                            return None
+                    except Exception as e:
+                        logger.error(f"Failed to check token in Redis: {e}")
+
+            return payload
+
+        except jwt.ExpiredSignatureError:
+            logger.warning("Token has expired")
+            return None
+        except jwt.InvalidTokenError as e:
+            logger.warning(f"Invalid token: {e}")
+            return None
+
+    def revoke_token(self, token: str):
+        """토큰 폐기"""
+
+        try:
+            # 토큰 디코드 (만료 검증 없이)
+            payload = self.verify_token(token, verify_exp=False)
+            if not payload:
+                return False
+
+            jti = payload.get("jti")
+            if not jti:
+                return False
+
+            # 메모리에 추가
+            self.revoked_tokens.add(jti)
+
+            # Redis에 추가 (가능한 경우)
+            if self.redis_client:
+                try:
+                    key = f"revoked_token:{jti}"
+                    # 원래 만료 시간까지 저장
+                    exp = payload.get("exp")
+                    if exp:
+                        ttl = exp - datetime.utcnow().timestamp()
+                        if ttl > 0:
+                            self.redis_client.setex(key, int(ttl), "1")
+                except Exception as e:
+                    logger.error(f"Failed to revoke token in Redis: {e}")
+
+            logger.info(f"Token revoked: {jti}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to revoke token: {e}")
+            return False
+
+    def create_token_pair(self, user_id: str, additional_claims: Optional[Dict] = None) -> Dict[str, str]:
+        """액세스/리프레시 토큰 쌍 생성"""
+
+        access_token = self.create_token(
+            user_id,
+            TokenType.ACCESS,
+            additional_claims
+        )
+
+        refresh_token = self.create_token(
+            user_id,
+            TokenType.REFRESH,
+            additional_claims
+        )
+
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "Bearer",
+            "expires_in": self.access_token_expire_minutes * 60
+        }
+
+    def refresh_access_token(self, refresh_token: str) -> Optional[str]:
+        """리프레시 토큰으로 액세스 토큰 재발급"""
+
+        payload = self.verify_token(refresh_token, TokenType.REFRESH)
+        if not payload:
+            return None
+
+        # 새 액세스 토큰 생성
+        new_access_token = self.create_token(
+            payload["sub"],
+            TokenType.ACCESS,
+            {k: v for k, v in payload.items() if k not in ["sub", "type", "iat", "exp", "jti"]}
+        )
+
+        return new_access_token
+
+
+class SessionManager:
+    """세션 관리자"""
+
+    def __init__(self):
+        self.sessions: Dict[str, Dict] = {}
+        self.redis_client = None
+
+        if REDIS_AVAILABLE:
+            try:
+                self.redis_client = redis.Redis(
+                    host=settings.redis.url.split("://")[1].split(":")[0],
+                    port=int(settings.redis.url.split(":")[-1]),
+                    decode_responses=False  # 바이너리 데이터 처리
+                )
+                self.redis_client.ping()
+            except Exception as e:
+                logger.warning(f"Redis connection failed for sessions: {e}")
+                self.redis_client = None
+
+    def create_session(
+        self,
+        user_id: str,
+        ip_address: str,
+        user_agent: str,
+        additional_data: Optional[Dict] = None
+    ) -> str:
+        """세션 생성"""
+
+        session_id = secrets.token_urlsafe(32)
+
+        session_data = {
+            "session_id": session_id,
+            "user_id": user_id,
+            "ip_address": ip_address,
+            "user_agent": user_agent,
+            "created_at": datetime.utcnow().isoformat(),
+            "last_activity": datetime.utcnow().isoformat(),
+            "is_active": True
+        }
+
+        if additional_data:
+            session_data.update(additional_data)
+
+        # Redis에 저장 (가능한 경우)
+        if self.redis_client:
+            try:
+                key = f"session:{session_id}"
+                self.redis_client.setex(
+                    key,
+                    7200,  # 2시간
+                    json.dumps(session_data)
+                )
+            except Exception as e:
+                logger.error(f"Failed to store session in Redis: {e}")
+                # 메모리에 저장
+                self.sessions[session_id] = session_data
+        else:
+            # 메모리에 저장
+            self.sessions[session_id] = session_data
+
+        logger.info(f"Session created for user {user_id}: {session_id[:8]}...")
+        return session_id
+
+    def get_session(self, session_id: str) -> Optional[Dict]:
+        """세션 조회"""
+
+        # Redis에서 조회 (가능한 경우)
+        if self.redis_client:
+            try:
+                key = f"session:{session_id}"
+                data = self.redis_client.get(key)
+                if data:
+                    session_data = json.loads(data)
+                    # 마지막 활동 시간 업데이트
+                    session_data["last_activity"] = datetime.utcnow().isoformat()
+                    self.redis_client.setex(key, 7200, json.dumps(session_data))
+                    return session_data
+            except Exception as e:
+                logger.error(f"Failed to get session from Redis: {e}")
+
+        # 메모리에서 조회
+        if session_id in self.sessions:
+            session_data = self.sessions[session_id]
+            # 마지막 활동 시간 업데이트
+            session_data["last_activity"] = datetime.utcnow().isoformat()
+            return session_data
+
+        return None
+
+    def invalidate_session(self, session_id: str) -> bool:
+        """세션 무효화"""
+
+        success = False
+
+        # Redis에서 삭제 (가능한 경우)
+        if self.redis_client:
+            try:
+                key = f"session:{session_id}"
+                if self.redis_client.delete(key):
+                    success = True
+            except Exception as e:
+                logger.error(f"Failed to delete session from Redis: {e}")
+
+        # 메모리에서 삭제
+        if session_id in self.sessions:
+            del self.sessions[session_id]
+            success = True
+
+        if success:
+            logger.info(f"Session invalidated: {session_id[:8]}...")
+
+        return success
+
+
+class CSRFProtection:
+    """CSRF 보호"""
+
+    def __init__(self):
+        self.token_length = 32
+        self.tokens: Dict[str, Tuple[str, datetime]] = {}
+        self.token_lifetime = timedelta(minutes=30)
+
+    def generate_token(self, session_id: str) -> str:
+        """CSRF 토큰 생성"""
+
+        token = secrets.token_urlsafe(self.token_length)
+        self.tokens[token] = (session_id, datetime.utcnow())
+
+        # 오래된 토큰 정리
+        self._cleanup_old_tokens()
+
+        return token
+
+    def verify_token(self, token: str, session_id: str) -> bool:
+        """CSRF 토큰 검증"""
+
+        if token not in self.tokens:
+            return False
+
+        stored_session_id, created_at = self.tokens[token]
+
+        # 세션 ID 일치 확인
+        if stored_session_id != session_id:
+            return False
+
+        # 만료 시간 확인
+        if datetime.utcnow() - created_at > self.token_lifetime:
+            del self.tokens[token]
+            return False
+
+        return True
+
+    def _cleanup_old_tokens(self):
+        """오래된 토큰 정리"""
+
+        now = datetime.utcnow()
+        expired_tokens = [
+            token for token, (_, created_at) in self.tokens.items()
+            if now - created_at > self.token_lifetime
+        ]
+
+        for token in expired_tokens:
+            del self.tokens[token]
+
+
 class RateLimiter:
-    """레이트 리미터"""
-    
+    """향상된 레이트 리미터 (Redis 지원)"""
+
     def __init__(self):
         self.requests: Dict[str, List[float]] = defaultdict(list)
         self.blocked_ips: Dict[str, float] = {}
         self.lock = threading.Lock()
-        
+        self.redis_client = None
+
         # 기본 제한값들
         self.default_limits = {
             "requests_per_minute": 60,
@@ -493,12 +874,49 @@ class RateLimiter:
             "burst_limit": 10,
             "block_duration_minutes": 30
         }
+
+        # 역할별 제한값
+        self.role_limits = {
+            AccessLevel.SUPER_ADMIN: {
+                "requests_per_minute": 300,
+                "requests_per_hour": 10000
+            },
+            AccessLevel.ADMIN: {
+                "requests_per_minute": 200,
+                "requests_per_hour": 5000
+            },
+            AccessLevel.AUTHORIZED: {
+                "requests_per_minute": 100,
+                "requests_per_hour": 2000
+            },
+            AccessLevel.AUTHENTICATED: {
+                "requests_per_minute": 60,
+                "requests_per_hour": 1000
+            },
+            AccessLevel.PUBLIC: {
+                "requests_per_minute": 30,
+                "requests_per_hour": 300
+            }
+        }
+
+        if REDIS_AVAILABLE:
+            try:
+                self.redis_client = redis.Redis(
+                    host=settings.redis.url.split("://")[1].split(":")[0],
+                    port=int(settings.redis.url.split(":")[-1]),
+                    decode_responses=True
+                )
+                self.redis_client.ping()
+            except Exception as e:
+                logger.warning(f"Redis connection failed for rate limiting: {e}")
+                self.redis_client = None
     
     def is_allowed(
         self,
         key: str,
         limit_per_minute: int = None,
-        limit_per_hour: int = None
+        limit_per_hour: int = None,
+        access_level: Optional[AccessLevel] = None
     ) -> Tuple[bool, Dict[str, Any]]:
         """요청 허용 여부 확인"""
         
@@ -512,11 +930,19 @@ class RateLimiter:
                 else:
                     del self.blocked_ips[key]
             
-            # 기본값 설정
-            if limit_per_minute is None:
-                limit_per_minute = self.default_limits["requests_per_minute"]
-            if limit_per_hour is None:
-                limit_per_hour = self.default_limits["requests_per_hour"]
+            # 역할 기반 제한값 설정
+            if access_level and access_level in self.role_limits:
+                role_limits = self.role_limits[access_level]
+                if limit_per_minute is None:
+                    limit_per_minute = role_limits["requests_per_minute"]
+                if limit_per_hour is None:
+                    limit_per_hour = role_limits["requests_per_hour"]
+            else:
+                # 기본값 설정
+                if limit_per_minute is None:
+                    limit_per_minute = self.default_limits["requests_per_minute"]
+                if limit_per_hour is None:
+                    limit_per_hour = self.default_limits["requests_per_hour"]
             
             # 요청 기록 정리 (1시간 이전 기록 제거)
             hour_ago = current_time - 3600
@@ -906,6 +1332,9 @@ class SecurityMonitor:
 password_validator = PasswordValidator()
 encryption_manager = EncryptionManager()
 api_key_manager = ApiKeyManager()
+jwt_manager = EnhancedJWTManager()
+session_manager = SessionManager()
+csrf_protection = CSRFProtection()
 rate_limiter = RateLimiter()
 security_monitor = SecurityMonitor()
 
@@ -917,6 +1346,9 @@ class SecurityManager:
         self.password_validator = password_validator
         self.encryption_manager = encryption_manager
         self.api_key_manager = api_key_manager
+        self.jwt_manager = jwt_manager
+        self.session_manager = session_manager
+        self.csrf_protection = csrf_protection
         self.rate_limiter = rate_limiter
         self.security_monitor = security_monitor
 
@@ -932,9 +1364,71 @@ class SecurityManager:
         """API 키 검증"""
         return self.api_key_manager.validate_api_key(api_key)
 
-    def check_rate_limit(self, identifier: str, **kwargs) -> bool:
+    def check_rate_limit(self, identifier: str, **kwargs) -> Tuple[bool, Dict]:
         """속도 제한 확인"""
-        return self.rate_limiter.check_rate_limit(identifier, **kwargs)
+        return self.rate_limiter.is_allowed(identifier, **kwargs)
+
+    def create_jwt_token(self, user_id: str, token_type: TokenType, **kwargs) -> str:
+        """JWT 토큰 생성"""
+        return self.jwt_manager.create_token(user_id, token_type, **kwargs)
+
+    def verify_jwt_token(self, token: str, **kwargs) -> Optional[Dict]:
+        """JWT 토큰 검증"""
+        return self.jwt_manager.verify_token(token, **kwargs)
+
+    def create_session(self, user_id: str, ip_address: str, user_agent: str, **kwargs) -> str:
+        """세션 생성"""
+        return self.session_manager.create_session(user_id, ip_address, user_agent, **kwargs)
+
+    def get_session(self, session_id: str) -> Optional[Dict]:
+        """세션 조회"""
+        return self.session_manager.get_session(session_id)
+
+    def generate_csrf_token(self, session_id: str) -> str:
+        """CSRF 토큰 생성"""
+        return self.csrf_protection.generate_token(session_id)
+
+    def verify_csrf_token(self, token: str, session_id: str) -> bool:
+        """CSRF 토큰 검증"""
+        return self.csrf_protection.verify_token(token, session_id)
+
+    def verify_admin_privileges(
+        self,
+        token: str,
+        required_level: AccessLevel = AccessLevel.ADMIN,
+        ip_address: Optional[str] = None
+    ) -> Tuple[bool, Optional[Dict]]:
+        """관리자 권한 검증"""
+
+        # JWT 토큰 검증
+        payload = self.jwt_manager.verify_token(token, TokenType.ACCESS)
+        if not payload:
+            return False, None
+
+        # 접근 레벨 확인
+        user_level = payload.get("access_level")
+        if not user_level:
+            return False, None
+
+        # 레벨 비교 (enum 순서 기반)
+        level_order = {
+            AccessLevel.PUBLIC: 0,
+            AccessLevel.AUTHENTICATED: 1,
+            AccessLevel.AUTHORIZED: 2,
+            AccessLevel.ADMIN: 3,
+            AccessLevel.SUPER_ADMIN: 4
+        }
+
+        if level_order.get(AccessLevel(user_level), 0) < level_order.get(required_level, 3):
+            logger.warning(f"Insufficient privileges: {user_level} < {required_level}")
+            return False, None
+
+        # IP 주소 검증 (선택적)
+        if ip_address and payload.get("ip_address") and payload["ip_address"] != ip_address:
+            logger.warning(f"IP address mismatch: {payload['ip_address']} != {ip_address}")
+            return False, None
+
+        return True, payload
 
     def log_security_event(self, **kwargs):
         """보안 이벤트 로깅"""

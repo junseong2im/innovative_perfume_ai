@@ -269,6 +269,97 @@ class QuotaManager:
 # Global quota manager instance
 quota_manager = QuotaManager()
 
+
+def get_current_admin_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+) -> Dict[str, Any]:
+    """관리자 권한 확인 (강화된 보안)"""
+
+    try:
+        if not credentials:
+            raise EnhancedAuthenticationError(
+                detail="관리자 인증이 필요합니다",
+                error_code="ADMIN_AUTH_REQUIRED"
+            )
+
+        token = credentials.credentials
+
+        # 통합 보안 관리자로 관리자 권한 검증
+        is_valid, payload = security_manager.verify_admin_privileges(
+            token=token,
+            required_level=AccessLevel.ADMIN,
+            ip_address=request.client.host if request.client else None
+        )
+
+        if not is_valid:
+            raise EnhancedAuthorizationError(
+                detail="관리자 권한이 없습니다",
+                error_code="INSUFFICIENT_ADMIN_PRIVILEGE"
+            )
+
+        # 세션 검증 (HTTP-Only 쿠키 기반)
+        session_cookie = request.cookies.get("session_id")
+        if session_cookie:
+            session_data = security_manager.get_session(session_cookie)
+            if not session_data or not session_data.get("is_active"):
+                raise EnhancedAuthenticationError(
+                    detail="유효하지 않은 세션입니다",
+                    error_code="INVALID_SESSION"
+                )
+
+            # CSRF 토큰 검증 (POST/PUT/DELETE 요청)
+            if request.method in ["POST", "PUT", "DELETE", "PATCH"]:
+                csrf_token = request.headers.get("X-CSRF-Token")
+                if not csrf_token or not security_manager.verify_csrf_token(csrf_token, session_cookie):
+                    raise EnhancedAuthorizationError(
+                        detail="CSRF 토큰 검증 실패",
+                        error_code="CSRF_VALIDATION_FAILED"
+                    )
+
+        # Rate limiting (관리자도 적용, 더 관대한 제한)
+        rate_limit_key = f"{request.client.host if request.client else 'unknown'}:{payload['sub']}"
+        is_allowed, rate_info = security_manager.check_rate_limit(
+            identifier=rate_limit_key,
+            access_level=AccessLevel(payload.get('access_level', AccessLevel.ADMIN.value))
+        )
+
+        if not is_allowed:
+            raise HTTPException(
+                status_code=429,
+                detail=f"요청 제한 초과: {rate_info.get('reason', 'Too many requests')}"
+            )
+
+        # 보안 이벤트 로깅
+        security_manager.log_security_event(
+            event_type="admin_access",
+            severity="medium",
+            source_ip=request.client.host if request.client else "unknown",
+            user_id=payload.get("sub"),
+            details={
+                "endpoint": str(request.url),
+                "method": request.method,
+                "access_level": payload.get("access_level")
+            }
+        )
+
+        return {
+            "user_id": payload.get("sub"),
+            "access_level": payload.get("access_level"),
+            "permissions": payload.get("permissions", []),
+            "session_id": session_cookie,
+            "ip_address": request.client.host if request.client else None
+        }
+
+    except (EnhancedAuthenticationError, EnhancedAuthorizationError, HTTPException):
+        raise
+    except Exception as e:
+        logger.error(f"Admin authentication failed: {e}")
+        raise EnhancedAuthenticationError(
+            detail="관리자 인증 처리 중 오류가 발생했습니다",
+            error_code="ADMIN_AUTH_PROCESSING_ERROR"
+        )
+
 # 서비스 인스턴스들 (싱글톤 패턴)
 _search_service_instance: Optional[SearchService] = None
 _generation_service_instance: Optional[GenerationService] = None

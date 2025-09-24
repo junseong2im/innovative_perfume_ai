@@ -1,9 +1,9 @@
-# Core Web Framework - with flexible versioning
-fastapi~=0.104.0
-uvicorn[standard]~=0.24.0
-pydantic~=2.5.0
-sqlalchemy~=2.0.20
-alembic~=1.13.0
+# Core Web Framework - with pinned versioning for security
+fastapi==0.104.1
+uvicorn[standard]==0.24.0.post1
+pydantic==2.5.3
+sqlalchemy==2.0.23
+alembic==1.13.1
 psycopg2-binary==2.9.9
 redis==5.0.1
 celery==5.3.4
@@ -15,12 +15,12 @@ bcrypt==4.1.2
 PyJWT==2.8.0
 httpx==0.25.2
 
-# AI/ML Dependencies - with compatible versioning
-torch~=2.1.0
-transformers>=4.36.0
-sentence-transformers~=2.2.0
-datasets~=2.14.0
-peft~=0.6.0
+# AI/ML Dependencies - with pinned versioning for reproducibility
+torch==2.1.2
+transformers==4.36.2
+sentence-transformers==2.2.2
+datasets==2.14.7
+peft==0.6.2
 bitsandbytes==0.41.2
 accelerate==0.24.1
 huggingface-hub==0.18.0
