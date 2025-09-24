@@ -28,14 +28,25 @@
 
 Fragrance AI는 최신 AI 기술을 활용하여 향수 레시피를 자동 생성하고, 의미 기반 검색을 제공하는 혁신적인 시스템입니다. 한국어에 특화된 AI 모델과 향수 전문 도메인 지식을 결합하여 창의적이고 실현 가능한 향수 레시피를 생성합니다.
 
+### 최근 업데이트 (2025-01-09)
+
+**보안 강화 및 프로덕션 준비 완료**
+- 서버 측 세션 기반 관리자 인증 구현
+- HttpOnly 쿠키 및 CSRF 토큰 보호 추가
+- 모든 의존성 버전 고정 (보안 및 재현성)
+- 중복 GitHub Actions 워크플로우 통합
+- 통합 테스트 및 보안 테스트 추가
+
 ### 주요 기능
 
+- **실제 LLM 통합**: Ollama 기반 실시간 AI 대화 시스템
 - **AI 향수 레시피 생성**: 창의적이고 실현 가능한 향수 조합 자동 생성
 - **의미 기반 검색**: 자연어로 원하는 향수 특성 검색
 - **품질 평가 시스템**: AI 기반 레시피 품질 자동 평가
 - **RESTful API**: 확장 가능한 웹 API 제공
 - **실시간 모니터링**: 시스템 성능 및 사용량 모니터링
 - **하이브리드 검색**: 벡터 검색과 전통적 필터링의 결합
+- **엔터프라이즈 보안**: JWT, 세션 관리, Rate Limiting, CSRF 보호
 
 ## 시스템 아키텍처
 
@@ -456,6 +467,8 @@ xychart-beta
 2. **검색 캐싱**: 복잡한 쿼리 결과 캐싱으로 50% 응답시간 단축
 3. **API 모니터링**: Prometheus/Grafana 실시간 모니터링 도입
 4. **오토스케일링**: Kubernetes HPA로 부하 대응 자동화
+5. **모델 관리**: 싱글톤 패턴으로 메모리 효율 극대화
+6. **Circuit Breaker**: 서비스 장애 전파 방지
 
 ### 성능 추이 분석
 
@@ -500,12 +513,14 @@ gantt
 
 ### 보안 기능
 
-- JWT 기반 인증
-- API Rate Limiting
-- CORS 설정
-- 입력 검증 및 새니타이제이션
-- HTTPS 강제 (프로덕션)
-- 민감 정보 암호화
+- **관리자 인증**: 서버 측 세션 기반 인증 (HttpOnly 쿠키)
+- **JWT 토큰**: 15분 만료, 토큰 폐기 기능 지원
+- **CSRF 보호**: 모든 상태 변경 작업에 토큰 검증
+- **Rate Limiting**: 역할 기반 차등 제한 (Redis 지원)
+- **IP 검증**: 세션별 IP 주소 추적 및 검증
+- **보안 이벤트 로깅**: 모든 관리자 활동 감사 추적
+- **패스워드 보안**: bcrypt 해싱, 강력한 패스워드 정책
+- **API 보안**: API 키 관리, 권한 기반 접근 제어
 
 ### 보안 모범 사례
 
@@ -545,6 +560,29 @@ gantt
 - **기능 요청**: [GitHub Discussions](https://github.com/junseong2im/innovative_perfume_ai/discussions)
 - **이메일**: junseong2im@gmail.com
 
+## 기술 스택
+
+### 백엔드
+- **FastAPI**: 고성능 비동기 웹 프레임워크
+- **PyTorch**: 딥러닝 모델 추론 및 훈련
+- **Transformers**: 최신 NLP 모델 (GPT, BERT)
+- **Ollama**: 로컬 LLM 실행 플랫폼
+- **PostgreSQL**: 메인 데이터베이스
+- **Redis**: 캐시 및 세션 저장소
+- **ChromaDB**: 벡터 데이터베이스
+
+### 프론트엔드
+- **Next.js 15**: React 기반 풀스택 프레임워크
+- **TypeScript**: 타입 안정성
+- **Tailwind CSS**: 유틸리티 기반 스타일링
+- **Framer Motion**: 애니메이션
+
+### DevOps
+- **Docker**: 컨테이너화
+- **GitHub Actions**: CI/CD 파이프라인
+- **Prometheus/Grafana**: 모니터링
+- **Kubernetes**: 오케스트레이션 (프로덕션)
+
 ## 감사의 말
 
 이 프로젝트는 다음 오픈소스 프로젝트들의 도움을 받았습니다:
@@ -553,6 +591,7 @@ gantt
 - [FastAPI](https://github.com/tiangolo/fastapi)
 - [ChromaDB](https://github.com/chroma-core/chroma)
 - [Sentence-Transformers](https://github.com/UKPLab/sentence-transformers)
+- [Ollama](https://ollama.ai)
 
 ---
 

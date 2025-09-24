@@ -276,7 +276,7 @@ from .routes.admin_auth import router as admin_auth_router  # 관리자 인증 �
 app.include_router(auth_router, prefix="/api/v2")
 app.include_router(public_recipes_router, prefix="/api/v2")
 app.include_router(generation_router, prefix="/api/v2/admin", tags=["관리자 전용"])
-app.include_router(agentic_router, prefix="/api/v2", tags=["🤖 AI Orchestrator"])  # New agentic system
+app.include_router(agentic_router, prefix="/api/v2", tags=["AI Orchestrator"])  # New agentic system
 app.include_router(customer_service_router, tags=["Customer Service"])  # Customer service routes
 app.include_router(admin_auth_router, tags=["Admin Authentication"])  # 관리자 세션 기반 인증
 
