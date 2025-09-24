@@ -46,10 +46,22 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
   };
 
   const handleQuickLogin = async (role: 'customer' | 'admin') => {
+    // Request credentials from environment or remove quick login feature
     const quickCredentials = {
-      customer: { username: 'customer', password: 'customer123' },
-      admin: { username: 'admin', password: 'admin123!' }
+      customer: {
+        username: process.env.NEXT_PUBLIC_TEST_CUSTOMER_USERNAME || '',
+        password: process.env.NEXT_PUBLIC_TEST_CUSTOMER_PASSWORD || ''
+      },
+      admin: {
+        username: process.env.NEXT_PUBLIC_TEST_ADMIN_USERNAME || '',
+        password: process.env.NEXT_PUBLIC_TEST_ADMIN_PASSWORD || ''
+      }
     };
+
+    if (!quickCredentials[role].username || !quickCredentials[role].password) {
+      setError('Quick login not configured. Please use manual login.');
+      return;
+    }
 
     setCredentials(quickCredentials[role]);
 

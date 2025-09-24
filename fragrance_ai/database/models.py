@@ -350,6 +350,95 @@ class SearchLog(Base, TimestampMixin):
         Index('ix_search_logs_created_at', 'created_at'),
     )
 
+class User(Base, TimestampMixin):
+    """사용자 모델"""
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    username = Column(String(100), nullable=False, unique=True, index=True)
+    email = Column(String(255), nullable=False, unique=True, index=True)
+
+    # 프로필 정보
+    full_name = Column(String(200))
+    phone = Column(String(50))
+    profile_image_url = Column(String(500))
+
+    # 인증 정보
+    hashed_password = Column(String(255), nullable=False)
+    is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)
+
+    # 권한
+    role = Column(String(50), default='customer')  # customer, admin, expert
+
+    # 선호도
+    preferences = Column(JSON, default=dict)
+    favorite_notes = Column(JSON, default=list)
+
+    # 관계
+    generated_recipes = relationship("GeneratedRecipe", back_populates="user", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        CheckConstraint("role IN ('customer', 'admin', 'expert')", name='check_user_role'),
+    )
+
+class GeneratedRecipe(Base, TimestampMixin):
+    """AI 생성 향수 레시피 모델 (IP 보호용)"""
+    __tablename__ = "generated_recipes"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    conversation_id = Column(String(100), nullable=False, index=True)
+
+    # 사용자 입력
+    user_prompt = Column(Text, nullable=False)
+    conversation_history = Column(JSON, default=list)
+
+    # 생성된 레시피 (마스터 출력 - IP)
+    recipe_name = Column(String(200), nullable=False)
+    recipe_description = Column(Text)
+
+    # 상세 조합 (백엔드 전용)
+    master_formula = Column(JSON, nullable=False)  # 완전한 레시피 데이터
+    top_notes = Column(JSON, default=list)
+    heart_notes = Column(JSON, default=list)
+    base_notes = Column(JSON, default=list)
+
+    # 과학적 검증 점수
+    harmony_score = Column(Float)
+    stability_score = Column(Float)
+    longevity_score = Column(Float)
+    sillage_score = Column(Float)
+    overall_score = Column(Float)
+
+    # 메타데이터
+    generation_model = Column(String(100))
+    validation_model = Column(String(100))
+    generation_timestamp = Column(DateTime(timezone=True), default=func.now())
+
+    # 상태 관리
+    is_validated = Column(Boolean, default=False)
+    is_approved = Column(Boolean, default=False)
+    admin_notes = Column(Text)
+
+    # 사용자 피드백
+    user_rating = Column(Float)
+    user_feedback = Column(Text)
+
+    # 관계
+    user = relationship("User", back_populates="generated_recipes")
+
+    __table_args__ = (
+        Index('ix_generated_recipes_user', 'user_id'),
+        Index('ix_generated_recipes_conversation', 'conversation_id'),
+        Index('ix_generated_recipes_timestamp', 'generation_timestamp'),
+        CheckConstraint('harmony_score >= 0 AND harmony_score <= 10', name='check_harmony_range'),
+        CheckConstraint('stability_score >= 0 AND stability_score <= 10', name='check_stability_range'),
+        CheckConstraint('longevity_score >= 0 AND longevity_score <= 10', name='check_longevity_range'),
+        CheckConstraint('sillage_score >= 0 AND sillage_score <= 10', name='check_sillage_range'),
+        CheckConstraint('overall_score >= 0 AND overall_score <= 10', name='check_overall_range'),
+    )
+
 class GenerationLog(Base, TimestampMixin):
     """생성 로그 모델"""
     __tablename__ = "generation_logs"

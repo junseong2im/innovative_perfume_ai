@@ -87,7 +87,7 @@ cp .env.example .env
 DATABASE_URL=postgresql://user:password@localhost/fragrance_ai
 REDIS_URL=redis://localhost:6379
 CHROMA_HOST=localhost
-CHROMA_PORT=8000
+CHROMA_PORT=8001
 ```
 
 ### 의존성 설치

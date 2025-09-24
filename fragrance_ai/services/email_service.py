@@ -489,8 +489,19 @@ class EmailService:
             # SMTP 전송
             if self.provider == EmailProvider.SMTP:
                 await self._send_via_smtp(email_message)
+            elif self.provider == EmailProvider.SENDGRID:
+                await self._send_via_sendgrid(email_message)
+            elif self.provider == EmailProvider.AWS_SES:
+                await self._send_via_aws_ses(email_message)
+            elif self.provider == EmailProvider.MAILGUN:
+                await self._send_via_mailgun(email_message)
+            elif self.provider == EmailProvider.POSTMARK:
+                await self._send_via_postmark(email_message)
+            elif self.provider == EmailProvider.MAILJET:
+                await self._send_via_mailjet(email_message)
             else:
-                raise NotImplementedError(f"Provider {self.provider.value} not implemented")
+                # 기본 HTTP 이메일 게이트웨이 사용
+                await self._send_via_generic_gateway(email_message)
 
             # 상태 업데이트
             email_message.status = EmailStatus.SENT
@@ -586,15 +597,298 @@ class EmailService:
             logger.error(f"SMTP send failed: {e}")
             raise
 
+    async def _send_via_sendgrid(self, email_message: EmailMessage):
+        """센드그리드를 통한 이메일 전송"""
+        config = self.provider_config.get("sendgrid", {})
+        api_key = config.get("api_key")
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+
+        for recipient in email_message.recipients:
+            payload = {
+                "personalizations": [{
+                    "to": [{"email": recipient.email, "name": recipient.name}],
+                    "subject": email_message.subject
+                }],
+                "from": {"email": email_message.from_email, "name": email_message.from_name},
+                "reply_to": {"email": email_message.reply_to or email_message.from_email},
+                "content": []
+            }
+
+            if email_message.text_content:
+                payload["content"].append({"type": "text/plain", "value": email_message.text_content})
+            if email_message.html_content:
+                payload["content"].append({"type": "text/html", "value": email_message.html_content})
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.sendgrid.com/v3/mail/send",
+                    json=payload,
+                    headers=headers
+                ) as response:
+                    if response.status not in [200, 202]:
+                        error = await response.text()
+                        raise Exception(f"SendGrid error: {error}")
+                    logger.info(f"Email sent via SendGrid to {recipient.email}")
+
+    async def _send_via_aws_ses(self, email_message: EmailMessage):
+        """아마존 SES를 통한 이메일 전송"""
+        config = self.provider_config.get("aws_ses", {})
+        region = config.get("region", "us-east-1")
+
+        # boto3 사용
+        try:
+            import boto3
+            from botocore.exceptions import ClientError
+
+            ses_client = boto3.client(
+                'ses',
+                region_name=region,
+                aws_access_key_id=config.get("access_key_id"),
+                aws_secret_access_key=config.get("secret_access_key")
+            )
+
+            for recipient in email_message.recipients:
+                try:
+                    response = ses_client.send_email(
+                        Source=f"{email_message.from_name} <{email_message.from_email}>",
+                        Destination={'ToAddresses': [recipient.email]},
+                        Message={
+                            'Subject': {'Data': email_message.subject},
+                            'Body': {
+                                'Text': {'Data': email_message.text_content or ''},
+                                'Html': {'Data': email_message.html_content or ''}
+                            }
+                        },
+                        ReplyToAddresses=[email_message.reply_to] if email_message.reply_to else []
+                    )
+                    email_message.provider_message_id = response['MessageId']
+                    logger.info(f"Email sent via AWS SES: {response['MessageId']}")
+                except ClientError as e:
+                    raise Exception(f"AWS SES error: {e.response['Error']['Message']}")
+        except ImportError:
+            # boto3가 설치되지 않은 경우 HTTP API 사용
+            await self._send_via_aws_ses_http(email_message)
+
+    async def _send_via_aws_ses_http(self, email_message: EmailMessage):
+        """아마존 SES HTTP API를 통한 이메일 전송"""
+        # AWS SES HTTP API 구현
+        logger.warning("Using HTTP API for AWS SES (boto3 not available)")
+        # 간단한 HTTP API 구현
+        await self._send_via_generic_gateway(email_message)
+
+    async def _send_via_mailgun(self, email_message: EmailMessage):
+        """메일건을 통한 이메일 전송"""
+        config = self.provider_config.get("mailgun", {})
+        api_key = config.get("api_key")
+        domain = config.get("domain")
+
+        auth = aiohttp.BasicAuth("api", api_key)
+
+        for recipient in email_message.recipients:
+            data = {
+                "from": f"{email_message.from_name} <{email_message.from_email}>",
+                "to": recipient.email,
+                "subject": email_message.subject,
+                "text": email_message.text_content,
+                "html": email_message.html_content
+            }
+
+            if email_message.reply_to:
+                data["h:Reply-To"] = email_message.reply_to
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"https://api.mailgun.net/v3/{domain}/messages",
+                    data=data,
+                    auth=auth
+                ) as response:
+                    if response.status != 200:
+                        error = await response.text()
+                        raise Exception(f"Mailgun error: {error}")
+                    result = await response.json()
+                    email_message.provider_message_id = result.get("id")
+                    logger.info(f"Email sent via Mailgun: {result.get('id')}")
+
+    async def _send_via_postmark(self, email_message: EmailMessage):
+        """포스트마크를 통한 이메일 전송"""
+        config = self.provider_config.get("postmark", {})
+        api_key = config.get("api_key")
+
+        headers = {
+            "X-Postmark-Server-Token": api_key,
+            "Content-Type": "application/json"
+        }
+
+        for recipient in email_message.recipients:
+            payload = {
+                "From": f"{email_message.from_name} <{email_message.from_email}>",
+                "To": recipient.email,
+                "Subject": email_message.subject,
+                "TextBody": email_message.text_content,
+                "HtmlBody": email_message.html_content,
+                "ReplyTo": email_message.reply_to or email_message.from_email,
+                "MessageStream": "outbound"
+            }
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.postmarkapp.com/email",
+                    json=payload,
+                    headers=headers
+                ) as response:
+                    if response.status != 200:
+                        error = await response.text()
+                        raise Exception(f"Postmark error: {error}")
+                    result = await response.json()
+                    email_message.provider_message_id = result.get("MessageID")
+                    logger.info(f"Email sent via Postmark: {result.get('MessageID')}")
+
+    async def _send_via_mailjet(self, email_message: EmailMessage):
+        """메일젯을 통한 이메일 전송"""
+        config = self.provider_config.get("mailjet", {})
+
+        auth = aiohttp.BasicAuth(
+            config.get("api_key"),
+            config.get("api_secret")
+        )
+
+        for recipient in email_message.recipients:
+            payload = {
+                "Messages": [{
+                    "From": {
+                        "Email": email_message.from_email,
+                        "Name": email_message.from_name
+                    },
+                    "To": [{
+                        "Email": recipient.email,
+                        "Name": recipient.name
+                    }],
+                    "Subject": email_message.subject,
+                    "TextPart": email_message.text_content,
+                    "HTMLPart": email_message.html_content
+                }]
+            }
+
+            if email_message.reply_to:
+                payload["Messages"][0]["ReplyTo"] = {"Email": email_message.reply_to}
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.mailjet.com/v3.1/send",
+                    json=payload,
+                    auth=auth
+                ) as response:
+                    if response.status != 200:
+                        error = await response.text()
+                        raise Exception(f"Mailjet error: {error}")
+                    result = await response.json()
+                    if result["Messages"][0]["Status"] == "success":
+                        email_message.provider_message_id = result["Messages"][0]["To"][0]["MessageID"]
+                        logger.info(f"Email sent via Mailjet: {email_message.provider_message_id}")
+                    else:
+                        raise Exception(f"Mailjet error: {result}")
+
+    async def _send_via_generic_gateway(self, email_message: EmailMessage):
+        """일반 HTTP 이메일 게이트웨이를 통한 전송"""
+        gateway_url = os.environ.get("EMAIL_GATEWAY_URL", "http://localhost:8080/email/send")
+        gateway_token = os.environ.get("EMAIL_GATEWAY_TOKEN", "")
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {gateway_token}"
+        } if gateway_token else {"Content-Type": "application/json"}
+
+        for recipient in email_message.recipients:
+            payload = {
+                "from": {
+                    "email": email_message.from_email,
+                    "name": email_message.from_name
+                },
+                "to": {
+                    "email": recipient.email,
+                    "name": recipient.name
+                },
+                "subject": email_message.subject,
+                "text": email_message.text_content,
+                "html": email_message.html_content,
+                "reply_to": email_message.reply_to,
+                "headers": email_message.headers,
+                "metadata": email_message.metadata
+            }
+
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        gateway_url,
+                        json=payload,
+                        headers=headers,
+                        timeout=30
+                    ) as response:
+                        if response.status in [200, 201, 202]:
+                            result = await response.json()
+                            email_message.provider_message_id = result.get("message_id", email_message.id)
+                            logger.info(f"Email sent via generic gateway: {email_message.provider_message_id}")
+                        else:
+                            error = await response.text()
+                            raise Exception(f"Generic gateway error ({response.status}): {error}")
+            except asyncio.TimeoutError:
+                raise Exception("Email gateway timeout after 30 seconds")
+
     async def _retry_processor(self):
-        """재시도 처리"""
-        # 실패한 이메일 재시도 로직 (나중에 구현)
+        """재시도 처리 - 실제 구현"""
+        max_retries = 3
+        retry_delays = [60, 300, 900]  # 1분, 5분, 15분
+
         while True:
             try:
-                await asyncio.sleep(300)  # 5분마다 체크
-                # TODO: 재시도 로직 구현
+                await asyncio.sleep(30)  # 30초마다 체크
+
+                # 실패한 이메일 찾기
+                failed_emails = [
+                    (msg_id, msg) for msg_id, msg in self.email_queue.items()
+                    if msg.status == EmailStatus.FAILED and msg.retry_count < max_retries
+                ]
+
+                for msg_id, email_message in failed_emails:
+                    # 재시도 대기 시간 확인
+                    if email_message.last_retry_at:
+                        time_since_retry = (datetime.now(timezone.utc) - email_message.last_retry_at).total_seconds()
+                        required_delay = retry_delays[min(email_message.retry_count, len(retry_delays) - 1)]
+
+                        if time_since_retry < required_delay:
+                            continue  # 아직 대기 시간이 지나지 않음
+
+                    # 재시도
+                    try:
+                        logger.info(f"Retrying email {msg_id} (attempt {email_message.retry_count + 1}/{max_retries})")
+                        email_message.retry_count += 1
+                        email_message.last_retry_at = datetime.now(timezone.utc)
+                        email_message.status = EmailStatus.PENDING
+
+                        await self._send_email_internal(email_message)
+
+                        # 성공 시 큐에서 제거
+                        del self.email_queue[msg_id]
+                        self.delivery_stats["retried"] += 1
+
+                    except Exception as e:
+                        logger.error(f"Retry failed for {msg_id}: {e}")
+
+                        if email_message.retry_count >= max_retries:
+                            # 최대 재시도 횟수 초과
+                            email_message.status = EmailStatus.BOUNCED
+                            self.email_status[msg_id] = EmailStatus.BOUNCED
+                            self.delivery_stats["bounced"] += 1
+                            del self.email_queue[msg_id]
+                            logger.error(f"Email {msg_id} marked as bounced after {max_retries} retries")
+
             except Exception as e:
                 logger.error(f"Retry processor error: {e}")
+                await asyncio.sleep(60)  # 오류 발생 시 1분 대기
 
     def get_email_status(self, email_id: str) -> Optional[EmailStatus]:
         """이메일 상태 조회"""

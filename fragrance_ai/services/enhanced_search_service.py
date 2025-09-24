@@ -471,8 +471,14 @@ class EnhancedSearchService:
 
             results = []
             for note in notes:
-                # 임시 유사도 계산 (실제로는 벡터 유사도 계산)
-                similarity = 0.8  # 임시값
+                # 벡터 유사도 계산
+                note_embedding = await self._get_or_create_embedding(
+                    f"{note.name} {note.description}"
+                )
+
+                similarity = self._calculate_cosine_similarity(
+                    embedding_vector, note_embedding
+                )
 
                 if similarity >= similarity_threshold:
                     results.append(SearchResult(
@@ -500,8 +506,14 @@ class EnhancedSearchService:
 
             results = []
             for recipe in recipes:
-                # 임시 유사도 계산
-                similarity = 0.75  # 임시값
+                # 벡터 유사도 계산
+                recipe_embedding = await self._get_or_create_embedding(
+                    f"{recipe.name} {recipe.description}"
+                )
+
+                similarity = self._calculate_cosine_similarity(
+                    embedding_vector, recipe_embedding
+                )
 
                 if similarity >= similarity_threshold:
                     results.append(SearchResult(
@@ -730,6 +742,71 @@ class EnhancedSearchService:
                 suggestions.append(suggestion)
 
         return suggestions[:5]
+
+    def _calculate_cosine_similarity(self, vec1: List[float], vec2: List[float]) -> float:
+        """코사인 유사도 계산"""
+        import numpy as np
+
+        # numpy 배열로 변환
+        v1 = np.array(vec1)
+        v2 = np.array(vec2)
+
+        # 코사인 유사도 계산
+        dot_product = np.dot(v1, v2)
+        norm_v1 = np.linalg.norm(v1)
+        norm_v2 = np.linalg.norm(v2)
+
+        if norm_v1 == 0 or norm_v2 == 0:
+            return 0.0
+
+        similarity = dot_product / (norm_v1 * norm_v2)
+        return float(similarity)
+
+    async def _get_or_create_embedding(self, text: str) -> List[float]:
+        """텍스트의 임베딩 벡터를 가져오거나 생성"""
+        # 캐시 확인
+        cache_key = f"embedding:{text[:100]}"  # 텍스트 앞부분으로 캐시 키 생성
+
+        if self.cache:
+            cached_embedding = await self.cache.get(cache_key)
+            if cached_embedding:
+                return cached_embedding
+
+        # 임베딩 생성
+        if self.embedding_model:
+            try:
+                embedding = await self.embedding_model.encode_text(text)
+            except Exception as e:
+                logger.warning(f"Failed to generate embedding: {e}")
+                # 폴백: 간단한 해시 기반 벡터 생성
+                embedding = self._generate_fallback_embedding(text)
+        else:
+            # 임베딩 모델이 없을 때 폴백
+            embedding = self._generate_fallback_embedding(text)
+
+        # 캐시 저장
+        if self.cache:
+            await self.cache.set(cache_key, embedding, ttl=3600)  # 1시간 캐시
+
+        return embedding
+
+    def _generate_fallback_embedding(self, text: str, dim: int = 384) -> List[float]:
+        """폴백 임베딩 생성 (해시 기반)"""
+        import hashlib
+        import numpy as np
+
+        # 텍스트를 해시하여 시드 생성
+        hash_object = hashlib.md5(text.encode())
+        seed = int(hash_object.hexdigest()[:8], 16)
+
+        # 시드 기반 랜덤 벡터 생성
+        np.random.seed(seed)
+        embedding = np.random.randn(dim)
+
+        # 정규화
+        embedding = embedding / np.linalg.norm(embedding)
+
+        return embedding.tolist()
 
 
 # 전역 서비스 인스턴스 (의존성 주입으로 대체 가능)

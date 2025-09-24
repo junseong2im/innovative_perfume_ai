@@ -1,35 +1,107 @@
 @import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Manrope:wght@300;400;500;600&display=swap');
 
 @plugin "@tailwindcss/container-queries";
 @plugin "@tailwindcss/typography";
 
 @layer base {
   :root {
-    /* 빈티지 크림/아이보리 톤 */
-    --ivory: #F4F1E8;
-    --ivory-light: #F9F6F0;
-    --ivory-dark: #EDE9DE;
+    /* Luxury Palette - Digital Haute Couture */
+    --luxury-cream: #FAF8F3;
+    --luxury-pearl: #F5F2ED;
+    --luxury-silk: #EBE7E0;
 
-    /* 빈티지 브라운 계열 */
-    --light-brown: #A0896B;
-    --light-brown-dark: #8B7355;
-    --deep-brown: #6B5B47;
+    /* Deep Accent Colors */
+    --luxury-midnight: #1A1A2E;
+    --luxury-obsidian: #0F0F1E;
+    --luxury-charcoal: #2D2D3F;
 
-    /* 빈티지 액센트 컬러 */
-    --vintage-gold: #D4AF37;
-    --vintage-gold-dark: #B8941F;
-    --vintage-sage: #9CAF88;
-    --vintage-rose: #D4A5A5;
-    --vintage-navy: #4A5D6C;
+    /* Metallic Accents */
+    --luxury-gold: #D4AF37;
+    --luxury-rose-gold: #E8B4B8;
+    --luxury-platinum: #E5E4E2;
 
-    /* 빈티지 그레이 톤 */
-    --vintage-gray: #8B8680;
-    --vintage-gray-light: #A8A295;
-    --vintage-gray-dark: #6B635E;
+    /* Subtle Tones */
+    --luxury-mauve: #C39EA0;
+    --luxury-sage: #A8B4A0;
+    --luxury-stone: #9B9B9B;
+
+    /* Typography */
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'Manrope', sans-serif;
+
+    /* Animations */
+    --transition-luxury: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --transition-smooth: all 0.3s ease-in-out;
   }
 
   body {
-    background-color: var(--ivory);
+    background: linear-gradient(180deg, var(--luxury-cream) 0%, var(--luxury-pearl) 100%);
+    font-family: var(--font-body);
+    color: var(--luxury-midnight);
+    line-height: 1.6;
+    letter-spacing: 0.02em;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+  }
+
+  /* Luxury Animations */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.8s ease-out;
+  }
+
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--luxury-pearl) 0%,
+      var(--luxury-cream) 50%,
+      var(--luxury-pearl) 100%
+    );
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  /* Luxury Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--luxury-pearl);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--luxury-mauve);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--luxury-rose-gold);
   }
 
   *,

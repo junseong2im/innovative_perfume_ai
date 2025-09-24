@@ -1,0 +1,46 @@
+{
+  "app_mode": "local",
+  "llm_orchestrator": {
+    "provider": "ollama",
+    "model_name_or_path": "llama3:8b-instruct-q4_K_M",
+    "api_base": "http://localhost:11434/v1",
+    "description": "4-bit quantized Llama 3 8B Instruct model for conversation and planning. Runs locally via Ollama."
+  },
+  "llm_specialist_generator": {
+    "provider": "transformers",
+    "model_name_or_path": "beomi/KoAlpaca-Polyglot-5.8B",
+    "quantization": "4bit",
+    "description": "Quantized 5.8B model, fine-tuned on perfume data, for specialized recipe generation."
+  },
+  "llm_customer_service": {
+    "provider": "ollama",
+    "model_name_or_path": "mistral:7b-instruct-q4_K_M",
+    "api_base": "http://localhost:11434",
+    "description": "Mistral 7B for general customer service queries. Handles orders, shipping, returns, etc."
+  },
+  "llm_perfume_description": {
+    "provider": "ollama",
+    "model_name_or_path": "qwen:32b",
+    "api_base": "http://localhost:11434",
+    "description": "Large model for interpreting customer's abstract perfume descriptions into concrete recipes."
+  },
+  "embedding_model": {
+    "provider": "sentence-transformers",
+    "model_name_or_path": "jhgan/ko-sbert-nli",
+    "description": "Lightweight SBERT model for Korean semantic search."
+  },
+  "deep_learning_validator": {
+    "model_architecture_file": "fragrance_ai/models/advanced_blending_ai.py",
+    "trained_model_path": "assets/models/blending_validator.pth",
+    "scaler_path": "assets/scalers/validator_scaler.pkl",
+    "training_data_path": "data/advanced_training_dataset.json"
+  },
+  "database": {
+    "sql_uri": "postgresql://user:password@localhost:5432/perfume_db",
+    "redis_uri": "redis://localhost:6379"
+  },
+  "guardrail_classifier": {
+    "model_name_or_path": "monologg/koelectra-base-v3-discriminator",
+    "description": "A lightweight classifier to filter off-topic requests."
+  }
+}

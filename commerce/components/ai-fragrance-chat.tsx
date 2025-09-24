@@ -34,57 +34,80 @@ export default function AIFragranceChat() {
   }, [messages]);
 
   const generateFragrance = async (description: string) => {
-    // 입력에 따른 향수 생성 로직
-    const keywords = description.toLowerCase();
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-    let topNotes = [];
-    let middleNotes = [];
-    let baseNotes = [];
-    let intensity = '중간';
-    let season = '사계절';
+    try {
+      const response = await fetch(`${API_URL}/api/v1/generate/recipe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          description: description,
+          fragrance_family: 'fresh', // 기본값, 추후 AI가 분석하여 결정
+          mood: 'elegant',
+          intensity: 'moderate',
+          gender: 'unisex',
+          season: 'all',
+          preferences: {
+            notes: [],
+            exclude_notes: []
+          }
+        }),
+      });
 
-    // 키워드 분석
-    if (keywords.includes('상쾌') || keywords.includes('시원') || keywords.includes('fresh')) {
-      topNotes = ['베르가못', '레몬', '그레이프프루트'];
-      intensity = '가벼움';
-    } else if (keywords.includes('달콤') || keywords.includes('sweet')) {
-      topNotes = ['복숭아', '배', '블랙커런트'];
-      intensity = '중간';
-    } else {
-      topNotes = ['핑크페퍼', '카다몬', '생강'];
-      intensity = '강함';
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // API 응답을 프론트엔드 포맷으로 변환
+      return {
+        name: data.recipe.name || `${description.split(' ')[0]} 에센스`,
+        notes: {
+          top: data.recipe.composition.top_notes.map((note: any) => note.name),
+          middle: data.recipe.composition.heart_notes.map((note: any) => note.name),
+          base: data.recipe.composition.base_notes.map((note: any) => note.name)
+        },
+        description: data.recipe.description || `"${description}"의 느낌을 완벽하게 구현한 맞춤 향수`,
+        intensity: data.recipe.characteristics.intensity || '중간',
+        season: data.recipe.characteristics.season || '사계절'
+      };
+    } catch (error) {
+      console.error('API 호출 실패:', error);
+
+      // 폴백: 로컬 시뮬레이션
+      const keywords = description.toLowerCase();
+      let topNotes = ['베르가못', '레몬', '그레이프프루트'];
+      let middleNotes = ['라벤더', '제라늄', '네롤리'];
+      let baseNotes = ['화이트머스크', '앰브록산', '시더우드'];
+      let intensity = '중간';
+      let season = '사계절';
+
+      if (keywords.includes('상쾌') || keywords.includes('시원') || keywords.includes('fresh')) {
+        intensity = '가벼움';
+        season = '봄/여름';
+      } else if (keywords.includes('따뜻') || keywords.includes('warm')) {
+        topNotes = ['복숭아', '배', '블랙커런트'];
+        middleNotes = ['장미', '자스민', '일랑일랑'];
+        baseNotes = ['앰버', '바닐라', '머스크'];
+        intensity = '강함';
+        season = '가을/겨울';
+      }
+
+      return {
+        name: `${description.split(' ')[0]} 에센스`,
+        notes: {
+          top: topNotes,
+          middle: middleNotes,
+          base: baseNotes
+        },
+        description: `"${description}"의 느낌을 완벽하게 구현한 맞춤 향수`,
+        intensity,
+        season
+      };
     }
-
-    if (keywords.includes('꽃') || keywords.includes('플로럴') || keywords.includes('floral')) {
-      middleNotes = ['장미', '자스민', '일랑일랑'];
-    } else if (keywords.includes('우디') || keywords.includes('나무')) {
-      middleNotes = ['시더우드', '샌달우드', '베티버'];
-    } else {
-      middleNotes = ['라벤더', '제라늄', '네롤리'];
-    }
-
-    if (keywords.includes('따뜻') || keywords.includes('warm')) {
-      baseNotes = ['앰버', '바닐라', '머스크'];
-      season = '가을/겨울';
-    } else if (keywords.includes('가벼운') || keywords.includes('light')) {
-      baseNotes = ['화이트머스크', '앰브록산', '시더우드'];
-      season = '봄/여름';
-    } else {
-      baseNotes = ['파출리', '톤카빈', '벤조인'];
-      season = '사계절';
-    }
-
-    return {
-      name: `${description.split(' ')[0]} 에센스`,
-      notes: {
-        top: topNotes,
-        middle: middleNotes,
-        base: baseNotes
-      },
-      description: `"${description}"의 느낌을 완벽하게 구현한 맞춤 향수`,
-      intensity,
-      season
-    };
   };
 
   const handleSubmit = async () => {
@@ -99,8 +122,7 @@ export default function AIFragranceChat() {
     setInput('');
     setIsLoading(true);
 
-    // AI 응답 시뮬레이션
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // API 호출 중 로딩 표시 (최소 500ms)
 
     const fragranceData = await generateFragrance(input);
 

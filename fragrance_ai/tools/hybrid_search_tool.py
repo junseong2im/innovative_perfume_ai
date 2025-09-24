@@ -152,19 +152,8 @@ async def hybrid_search(
 
     except Exception as e:
         logger.error(f"Hybrid search failed: {e}")
-        # Fallback to mock results if database search also fails
-        return [
-            SearchResultItem(
-                perfume_id="fallback_1",
-                name="Mock Romantic Perfume",
-                brand="Test Brand",
-                description=f"로맨틱한 향수 - {text_query}에 대한 응답",
-                combined_score=0.95,
-                notes={"top": ["bergamot"], "middle": ["rose"], "base": ["vanilla"]},
-                metadata={"mock": True, "query": text_query},
-                collection="fallback"
-            )
-        ]
+        # 실패 시 빈 결과 반환 (Mock 데이터 제거)
+        return []
 
 # Alternative function for when filters are optional
 async def semantic_search_only(
@@ -295,16 +284,5 @@ async def _basic_database_search(text_query: str, metadata_filters: MetadataFilt
 
     except Exception as e:
         logger.error(f"Basic database search failed: {e}")
-        # Return mock results as final fallback
-        return [
-            SearchResultItem(
-                perfume_id="mock_1",
-                name="Mock Romantic Perfume",
-                brand="Test Brand",
-                description="A romantic fragrance with rose and vanilla notes for testing purposes",
-                combined_score=0.95,
-                notes={"top": ["bergamot"], "middle": ["rose"], "base": ["vanilla"]},
-                metadata={"mock": True},
-                collection="mock"
-            )
-        ]
+        # 실패 시 빈 결과 반환 (Mock 데이터 제거)
+        return []

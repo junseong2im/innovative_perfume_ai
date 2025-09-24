@@ -15,8 +15,16 @@ export default function ForgotPasswordPage() {
     setError('');
 
     try {
-      // 실제로는 백엔드 API 호출
-      await new Promise(resolve => setTimeout(resolve, 2000)); // 시뮬레이션
+      // 백엔드 API 호출
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send reset email');
+      }
 
       setIsSubmitted(true);
     } catch (err) {

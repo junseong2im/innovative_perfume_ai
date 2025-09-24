@@ -365,8 +365,13 @@ class SMSService:
                 await self._send_via_twilio(sms_message)
             elif self.provider == SMSProvider.NAVER_SENS:
                 await self._send_via_naver_sens(sms_message)
+            elif self.provider == SMSProvider.ALIGO:
+                await self._send_via_aligo(sms_message)
+            elif self.provider == SMSProvider.TOAST_SMS:
+                await self._send_via_toast_sms(sms_message)
             else:
-                raise NotImplementedError(f"Provider {self.provider.value} not implemented")
+                # 기본 HTTP SMS 게이트웨이 사용
+                await self._send_via_generic_gateway(sms_message)
 
             # 상태 업데이트
             sms_message.status = SMSStatus.SENT
@@ -623,6 +628,117 @@ class SMSService:
             "queue_size": len(self.sms_queue),
             "provider": self.provider.value
         }
+
+    async def _send_via_aligo(self, sms_message: SMSMessage):
+        """알리고 SMS를 통한 전송 (한국 서비스)"""
+        config = self.provider_config.get("aligo", {})
+
+        for recipient in sms_message.recipients:
+            payload = {
+                "key": config.get("api_key"),
+                "user_id": config.get("user_id"),
+                "sender": sms_message.sender_number,
+                "receiver": recipient.phone_number,
+                "msg": sms_message.content,
+                "testmode_yn": "N" if config.get("production", False) else "Y"
+            }
+
+            async with self.session.post(
+                "https://apis.aligo.in/send/",
+                data=payload
+            ) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    if result.get("result_code") == "1":
+                        sms_message.provider_message_id = result.get("msg_id")
+                        logger.info(f"Aligo SMS sent: {result.get('msg_id')}")
+                    else:
+                        raise Exception(f"Aligo error: {result.get('message')}")
+                else:
+                    raise Exception(f"Aligo HTTP error: {response.status}")
+
+    async def _send_via_toast_sms(self, sms_message: SMSMessage):
+        """NHN Toast SMS를 통한 전송"""
+        config = self.provider_config.get("toast_sms", {})
+
+        headers = {
+            "Content-Type": "application/json",
+            "X-Secret-Key": config.get("secret_key")
+        }
+
+        for recipient in sms_message.recipients:
+            payload = {
+                "body": sms_message.content,
+                "sendNo": sms_message.sender_number,
+                "recipientList": [{
+                    "recipientNo": recipient.phone_number,
+                    "recipientName": recipient.name
+                }],
+                "userId": config.get("user_id"),
+                "statsId": sms_message.id[:8]  # 통계 ID
+            }
+
+            endpoint = f"https://api-sms.cloud.toast.com/sms/v3.0/appKeys/{config.get('app_key')}/sender/sms"
+
+            async with self.session.post(
+                endpoint,
+                json=payload,
+                headers=headers
+            ) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    if result.get("header", {}).get("isSuccessful"):
+                        sms_message.provider_message_id = result.get("body", {}).get("data", {}).get("requestId")
+                        logger.info(f"Toast SMS sent: {sms_message.provider_message_id}")
+                    else:
+                        raise Exception(f"Toast SMS error: {result.get('header', {}).get('resultMessage')}")
+                else:
+                    raise Exception(f"Toast SMS HTTP error: {response.status}")
+
+    async def _send_via_generic_gateway(self, sms_message: SMSMessage):
+        """일반 HTTP SMS 게이트웨이를 통한 전송"""
+        # 환경변수에서 일반 게이트웨이 설정 읽기
+        gateway_url = os.environ.get("SMS_GATEWAY_URL", "http://localhost:8080/sms/send")
+        gateway_token = os.environ.get("SMS_GATEWAY_TOKEN", "")
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {gateway_token}"
+        } if gateway_token else {"Content-Type": "application/json"}
+
+        for recipient in sms_message.recipients:
+            payload = {
+                "from": sms_message.sender_number,
+                "to": recipient.phone_number,
+                "message": sms_message.content,
+                "type": sms_message.sms_type.value,
+                "callback_url": f"{os.environ.get('BASE_URL', 'http://localhost:8000')}/api/v1/sms/webhook",
+                "metadata": {
+                    "message_id": sms_message.id,
+                    "recipient_name": recipient.name,
+                    "template_code": sms_message.template_code
+                }
+            }
+
+            try:
+                async with self.session.post(
+                    gateway_url,
+                    json=payload,
+                    headers=headers,
+                    timeout=30
+                ) as response:
+                    if response.status in [200, 201, 202]:
+                        result = await response.json()
+                        sms_message.provider_message_id = result.get("message_id", sms_message.id)
+                        logger.info(f"Generic SMS gateway sent: {sms_message.provider_message_id}")
+                    else:
+                        error_text = await response.text()
+                        raise Exception(f"Generic gateway error ({response.status}): {error_text}")
+            except asyncio.TimeoutError:
+                raise Exception("SMS gateway timeout after 30 seconds")
+            except Exception as e:
+                logger.error(f"Generic gateway error: {e}")
+                raise
 
     async def shutdown(self):
         """서비스 종료"""

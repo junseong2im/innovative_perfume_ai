@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
-from typing import List, Optional
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, Request
+from typing import List, Optional, Dict, Any
 import logging
 import time
 import uuid
 import asyncio
+from pydantic import BaseModel, Field
 
 from ..schemas import (
     RecipeGenerationRequest,
@@ -407,3 +408,92 @@ async def generate_mood_board(
     except Exception as e:
         logger.error(f"Mood board generation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Artisan Chat 엔드포인트 - 새로운 대화형 인터페이스
+class ChatRequest(BaseModel):
+    """채팅 요청"""
+    message: str = Field(..., description="사용자 메시지")
+    conversation_id: Optional[str] = Field(None, description="대화 ID")
+    history: Optional[List[Dict[str, str]]] = Field(default_factory=list, description="대화 기록")
+
+
+class ChatResponse(BaseModel):
+    """채팅 응답"""
+    response: str = Field(..., description="AI 응답")
+    recipe_preview: Optional[Dict[str, Any]] = Field(None, description="생성된 레시피 미리보기")
+    suggestions: Optional[List[str]] = Field(None, description="추가 제안사항")
+    conversation_id: str = Field(..., description="대화 ID")
+    request_id: str = Field(..., description="요청 ID")
+
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat_with_artisan(
+    request: ChatRequest,
+    current_user: Optional[dict] = Depends(get_optional_user)
+):
+    """
+    Artisan AI와 대화하기 - 향수 전문 AI 챗봇
+
+    - 향수 레시피 생성
+    - 향수 지식 답변
+    - 기존 향수 검색
+    - 조합 검증
+    """
+    try:
+        # Artisan Orchestrator 임포트
+        from ...orchestrator.artisan_orchestrator import process_chat_message
+
+        # 사용자 ID 확인
+        user_id = current_user.get("id") if current_user else f"guest_{uuid.uuid4().hex[:8]}"
+
+        # 대화 ID 확인 또는 생성
+        conversation_id = request.conversation_id or f"conv_{uuid.uuid4().hex[:12]}"
+
+        # 대화 기록 준비
+        history = request.history or []
+
+        logger.info(f"Processing chat request for user {user_id}, conversation {conversation_id}")
+
+        # Artisan 오케스트레이터 호출
+        artisan_response = await process_chat_message(
+            message=request.message,
+            user_id=user_id,
+            conversation_id=conversation_id,
+            history=history
+        )
+
+        # 레시피 미리보기 준비 (IP 보호 - 요약만 제공)
+        recipe_preview = None
+        if artisan_response.recipe_summary:
+            recipe_preview = {
+                "name": artisan_response.recipe_summary.get("name"),
+                "description": artisan_response.recipe_summary.get("description"),
+                "key_notes": artisan_response.recipe_summary.get("key_notes"),
+                "character": artisan_response.recipe_summary.get("character"),
+                "occasions": artisan_response.recipe_summary.get("occasions", [])
+            }
+
+        return ChatResponse(
+            response=artisan_response.message,
+            recipe_preview=recipe_preview,
+            suggestions=artisan_response.suggestions,
+            conversation_id=conversation_id,
+            request_id=artisan_response.request_id
+        )
+
+    except ImportError as e:
+        logger.error(f"Failed to import Artisan orchestrator: {e}")
+        # 폴백 응답
+        return ChatResponse(
+            response="죄송합니다. AI 시스템이 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요.",
+            conversation_id=request.conversation_id or f"conv_{uuid.uuid4().hex[:12]}",
+            request_id=f"req_{uuid.uuid4().hex[:8]}"
+        )
+
+    except Exception as e:
+        logger.error(f"Chat processing failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"대화 처리 중 오류가 발생했습니다: {str(e)}"
+        )

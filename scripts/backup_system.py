@@ -341,6 +341,19 @@ class StorageManager:
 
         await handler(local_file, storage_config, action="download", remote_path=remote_path)
 
+    async def delete_backup(
+        self,
+        remote_path: str,
+        storage_type: StorageType,
+        storage_config: Dict[str, Any]
+    ):
+        """백업 파일 삭제"""
+        handler = self.storage_handlers.get(storage_type)
+        if not handler:
+            raise ValueError(f"Unsupported storage type: {storage_type}")
+
+        await handler(None, storage_config, action="delete", remote_path=remote_path)
+
     async def _handle_local_storage(
         self,
         local_file: str,
@@ -360,6 +373,9 @@ class StorageManager:
             return str(destination)
         elif action == "download":
             subprocess.run(["cp", remote_path, local_file], check=True)
+        elif action == "delete":
+            if Path(remote_path).exists():
+                Path(remote_path).unlink()
 
     async def _handle_s3_storage(
         self,
@@ -385,6 +401,9 @@ class StorageManager:
         elif action == "download":
             key = remote_path.replace(f"s3://{bucket_name}/", "")
             s3_client.download_file(bucket_name, key, local_file)
+        elif action == "delete":
+            key = remote_path.replace(f"s3://{bucket_name}/", "")
+            s3_client.delete_object(Bucket=bucket_name, Key=key)
 
     async def _handle_gcs_storage(
         self,
@@ -393,9 +412,128 @@ class StorageManager:
         action: str,
         remote_path: str = None
     ) -> str:
-        """Google Cloud Storage 처리"""
-        # GCS 구현 (google-cloud-storage 라이브러리 필요)
-        raise NotImplementedError("GCS storage not implemented yet")
+        """Google Cloud Storage 처리 - 실제 구현"""
+        try:
+            from google.cloud import storage
+            from google.oauth2 import service_account
+
+            # 인증
+            if 'credentials_path' in storage_config:
+                credentials = service_account.Credentials.from_service_account_file(
+                    storage_config['credentials_path']
+                )
+                client = storage.Client(credentials=credentials)
+            else:
+                client = storage.Client()  # 환경 변수 사용
+
+            bucket_name = storage_config['bucket_name']
+            bucket = client.bucket(bucket_name)
+
+            if action == 'upload':
+                # 업로드
+                blob_name = os.path.basename(local_file)
+                if 'path_prefix' in storage_config:
+                    blob_name = f"{storage_config['path_prefix']}/{blob_name}"
+
+                blob = bucket.blob(blob_name)
+
+                # 멀티파트 업로드 (큰 파일)
+                file_size = os.path.getsize(local_file)
+                if file_size > 50 * 1024 * 1024:  # 50MB 이상
+                    blob.chunk_size = 5 * 1024 * 1024  # 5MB chunks
+
+                with open(local_file, 'rb') as f:
+                    blob.upload_from_file(f)
+
+                # 메타데이터 설정
+                blob.metadata = {
+                    'uploaded_at': datetime.now().isoformat(),
+                    'original_name': os.path.basename(local_file),
+                    'backup_type': 'fragrance_ai_backup'
+                }
+                blob.patch()
+
+                logger.info(f"GCS upload completed: gs://{bucket_name}/{blob_name}")
+                return f"gs://{bucket_name}/{blob_name}"
+
+            elif action == 'download':
+                # 다운로드
+                blob = bucket.blob(remote_path)
+                blob.download_to_filename(local_file)
+                logger.info(f"GCS download completed: {remote_path} -> {local_file}")
+                return local_file
+
+            elif action == 'delete':
+                # 삭제
+                blob_name = remote_path.replace(f"gs://{bucket_name}/", "")
+                blob = bucket.blob(blob_name)
+                blob.delete()
+                logger.info(f"GCS blob deleted: {remote_path}")
+
+        except ImportError:
+            logger.warning("google-cloud-storage not installed, using HTTP API fallback")
+            return await self._handle_gcs_storage_http(local_file, storage_config, action, remote_path)
+        except Exception as e:
+            logger.error(f"GCS operation failed: {e}")
+            raise
+
+    async def _handle_gcs_storage_http(self, local_file: str, storage_config: Dict[str, Any], action: str, remote_path: str = None) -> str:
+        """GCS HTTP API 폴백"""
+        # OAuth2 토큰 발급
+        import aiohttp
+        import jwt
+        import time
+
+        # 서비스 계정 키로 JWT 생성
+        if 'service_account_key' in storage_config:
+            sa_key = storage_config['service_account_key']
+
+            # JWT 클레임
+            now = int(time.time())
+            claim_set = {
+                "iss": sa_key['client_email'],
+                "scope": "https://www.googleapis.com/auth/devstorage.read_write",
+                "aud": "https://oauth2.googleapis.com/token",
+                "exp": now + 3600,
+                "iat": now
+            }
+
+            # JWT 서명
+            signed_jwt = jwt.encode(claim_set, sa_key['private_key'], algorithm='RS256')
+
+            # 액세스 토큰 요청
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://oauth2.googleapis.com/token",
+                    data={
+                        "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                        "assertion": signed_jwt
+                    }
+                ) as resp:
+                    token_data = await resp.json()
+                    access_token = token_data['access_token']
+
+            # 실제 API 호출
+            bucket_name = storage_config['bucket_name']
+
+            if action == 'upload':
+                blob_name = os.path.basename(local_file)
+                upload_url = f"https://storage.googleapis.com/upload/storage/v1/b/{bucket_name}/o?uploadType=media&name={blob_name}"
+
+                async with aiohttp.ClientSession() as session:
+                    with open(local_file, 'rb') as f:
+                        async with session.post(
+                            upload_url,
+                            data=f,
+                            headers={'Authorization': f'Bearer {access_token}'}
+                        ) as resp:
+                            if resp.status == 200:
+                                result = await resp.json()
+                                return f"gs://{bucket_name}/{result['name']}"
+                            else:
+                                raise Exception(f"GCS HTTP upload failed: {await resp.text()}")
+
+        return local_file
 
     async def _handle_azure_storage(
         self,
@@ -404,9 +542,162 @@ class StorageManager:
         action: str,
         remote_path: str = None
     ) -> str:
-        """Azure Blob Storage 처리"""
-        # Azure 구현 (azure-storage-blob 라이브러리 필요)
-        raise NotImplementedError("Azure storage not implemented yet")
+        """Azure Blob Storage 처리 - 실제 구현"""
+        try:
+            from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
+            from azure.storage.blob import BlobBlock
+            import uuid
+
+            # 연결 문자열 또는 계정 키 사용
+            if 'connection_string' in storage_config:
+                blob_service_client = BlobServiceClient.from_connection_string(
+                    storage_config['connection_string']
+                )
+            else:
+                account_name = storage_config['account_name']
+                account_key = storage_config['account_key']
+                blob_service_client = BlobServiceClient(
+                    account_url=f"https://{account_name}.blob.core.windows.net",
+                    credential=account_key
+                )
+
+            container_name = storage_config['container_name']
+
+            if action == 'upload':
+                # 업로드
+                blob_name = os.path.basename(local_file)
+                if 'path_prefix' in storage_config:
+                    blob_name = f"{storage_config['path_prefix']}/{blob_name}"
+
+                blob_client = blob_service_client.get_blob_client(
+                    container=container_name,
+                    blob=blob_name
+                )
+
+                file_size = os.path.getsize(local_file)
+
+                # 큰 파일은 블록 업로드
+                if file_size > 64 * 1024 * 1024:  # 64MB 이상
+                    block_list = []
+                    chunk_size = 4 * 1024 * 1024  # 4MB chunks
+
+                    with open(local_file, 'rb') as f:
+                        chunk_num = 0
+                        while True:
+                            chunk_data = f.read(chunk_size)
+                            if not chunk_data:
+                                break
+
+                            block_id = str(uuid.uuid4())
+                            blob_client.stage_block(block_id, chunk_data)
+                            block_list.append(BlobBlock(block_id=block_id))
+                            chunk_num += 1
+
+                            if chunk_num % 10 == 0:
+                                logger.info(f"Azure: Uploaded {chunk_num * chunk_size / 1024 / 1024:.1f}MB")
+
+                    # 블록 커밋
+                    blob_client.commit_block_list(block_list)
+                else:
+                    # 작은 파일은 한 번에 업로드
+                    with open(local_file, 'rb') as f:
+                        blob_client.upload_blob(f, overwrite=True)
+
+                # 메타데이터 설정
+                blob_client.set_blob_metadata({
+                    'uploaded_at': datetime.now().isoformat(),
+                    'original_name': os.path.basename(local_file),
+                    'backup_type': 'fragrance_ai_backup'
+                })
+
+                logger.info(f"Azure upload completed: {container_name}/{blob_name}")
+                return f"https://{storage_config.get('account_name', 'storage')}.blob.core.windows.net/{container_name}/{blob_name}"
+
+            elif action == 'download':
+                # 다운로드
+                blob_client = blob_service_client.get_blob_client(
+                    container=container_name,
+                    blob=remote_path
+                )
+
+                with open(local_file, 'wb') as f:
+                    download_stream = blob_client.download_blob()
+                    f.write(download_stream.readall())
+
+                logger.info(f"Azure download completed: {remote_path} -> {local_file}")
+                return local_file
+
+            elif action == 'delete':
+                # 삭제
+                blob_name = remote_path.split(f"{container_name}/", 1)[-1] if f"{container_name}/" in remote_path else remote_path
+                blob_client = blob_service_client.get_blob_client(
+                    container=container_name,
+                    blob=blob_name
+                )
+                blob_client.delete_blob()
+                logger.info(f"Azure blob deleted: {remote_path}")
+
+        except ImportError:
+            logger.warning("azure-storage-blob not installed, using REST API fallback")
+            return await self._handle_azure_storage_rest(local_file, storage_config, action, remote_path)
+        except Exception as e:
+            logger.error(f"Azure operation failed: {e}")
+            raise
+
+    async def _handle_azure_storage_rest(self, local_file: str, storage_config: Dict[str, Any], action: str, remote_path: str = None) -> str:
+        """Azure REST API 폴백"""
+        import aiohttp
+        import hashlib
+        import hmac
+        import base64
+        from datetime import datetime, timezone
+
+        account_name = storage_config['account_name']
+        account_key = storage_config['account_key']
+        container_name = storage_config['container_name']
+
+        if action == 'upload':
+            blob_name = os.path.basename(local_file)
+
+            # REST API 헤더 생성
+            x_ms_date = datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT')
+            x_ms_version = '2021-08-06'
+
+            # 서명 문자열 생성
+            string_to_sign = f"PUT\n\n\n{os.path.getsize(local_file)}\n\napplication/octet-stream\n\n\n\n\n\n\nx-ms-blob-type:BlockBlob\nx-ms-date:{x_ms_date}\nx-ms-version:{x_ms_version}\n/{account_name}/{container_name}/{blob_name}"
+
+            # HMAC-SHA256 서명
+            signature = base64.b64encode(
+                hmac.new(
+                    base64.b64decode(account_key),
+                    string_to_sign.encode('utf-8'),
+                    hashlib.sha256
+                ).digest()
+            ).decode('utf-8')
+
+            # HTTP 요청
+            url = f"https://{account_name}.blob.core.windows.net/{container_name}/{blob_name}"
+
+            headers = {
+                'x-ms-blob-type': 'BlockBlob',
+                'x-ms-date': x_ms_date,
+                'x-ms-version': x_ms_version,
+                'Authorization': f"SharedKey {account_name}:{signature}",
+                'Content-Type': 'application/octet-stream',
+                'Content-Length': str(os.path.getsize(local_file))
+            }
+
+            async with aiohttp.ClientSession() as session:
+                with open(local_file, 'rb') as f:
+                    async with session.put(url, data=f, headers=headers) as resp:
+                        if resp.status in [200, 201]:
+                            logger.info(f"Azure REST upload completed: {url}")
+                            return url
+                        else:
+                            error = await resp.text()
+                            raise Exception(f"Azure REST upload failed: {error}")
+
+        return local_file
 
 class BackupManager:
     """메인 백업 관리자"""
@@ -610,7 +901,31 @@ class BackupManager:
 
             local_backup_file = temp_dir / f"{backup_id}.backup"
 
-            # TODO: 스토리지에서 다운로드 구현
+            # 스토리지에서 다운로드
+            if metadata.storage_location:
+                # 백업 구성 가져오기
+                backup_config = next(
+                    (config for config in self.backup_configs if config.name == metadata.name),
+                    None
+                )
+
+                if backup_config:
+                    # 스토리지에서 다운로드
+                    await self.storage_manager.download_backup(
+                        metadata.storage_location,
+                        str(local_backup_file),
+                        backup_config.storage_type,
+                        backup_config.storage_config
+                    )
+                else:
+                    # 로컬 파일로 가정
+                    import shutil
+                    if Path(metadata.storage_location).exists():
+                        shutil.copy(metadata.storage_location, local_backup_file)
+                    else:
+                        raise FileNotFoundError(f"Backup file not found: {metadata.storage_location}")
+            else:
+                raise ValueError(f"No storage location in metadata for backup: {backup_id}")
 
             # 복호화
             if metadata.encryption_key_id:
@@ -842,7 +1157,28 @@ class BackupManager:
                 if metadata_file.exists():
                     metadata_file.unlink()
 
-                # TODO: 스토리지에서 백업 파일 삭제
+                # 스토리지에서 백업 파일 삭제
+                if backup.storage_location:
+                    # 백업 구성 가져오기
+                    backup_config = next(
+                        (config for config in self.backup_configs if config.name == backup.name),
+                        None
+                    )
+
+                    if backup_config:
+                        # 스토리지에서 삭제
+                        await self.storage_manager.delete_backup(
+                            backup.storage_location,
+                            backup_config.storage_type,
+                            backup_config.storage_config
+                        )
+                        logger.info(f"Deleted backup from storage: {backup.storage_location}")
+                    else:
+                        # 로컬 파일 삭제
+                        local_path = Path(backup.storage_location)
+                        if local_path.exists():
+                            local_path.unlink()
+                            logger.info(f"Deleted local backup: {backup.storage_location}")
 
 async def main():
     """메인 실행 함수"""

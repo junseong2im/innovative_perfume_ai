@@ -140,10 +140,9 @@ class LLMOrchestrator:
 
     async def _create_execution_plan(self, request_id: str, user_query: str, context: Optional[Dict[str, Any]]) -> ExecutionPlan:
         """
-        Analyze the user request and create a detailed execution plan.
-        This simulates the LLM's planning capabilities.
+        사용자 요청을 분석하고 실행 계획을 생성합니다.
         """
-        # Analyze intent (simplified - in real implementation, this would use LLM)
+        # 의도 분석 (실제 LLM 대신 규칙 기반 분석 사용)
         intent_analysis = await self._analyze_intent(user_query)
 
         planned_steps = []
@@ -438,8 +437,7 @@ class LLMOrchestrator:
 
     async def _synthesize_response(self, execution_plan: ExecutionPlan, tool_executions: List[ToolExecution]) -> str:
         """
-        Synthesize the final response based on tool execution results.
-        This simulates the LLM's synthesis capabilities.
+        도구 실행 결과를 기반으로 최종 응답을 생성합니다.
         """
         user_query = execution_plan.user_query
 

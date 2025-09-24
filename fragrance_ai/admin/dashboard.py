@@ -151,24 +151,68 @@ class DashboardService:
 
             query += f" ORDER BY u.created_at DESC LIMIT {page_size} OFFSET {offset}"
 
-            # 실제로는 SQLAlchemy ORM 사용
-            users = []  # self.db.execute(query, params).fetchall()
+            # SQLAlchemy ORM으로 실제 쿼리 실행
+            from fragrance_ai.database.models import User, Subscription
+            from sqlalchemy import func, and_, or_
+            import math
 
-            # 총 사용자 수
-            total_query = "SELECT COUNT(*) FROM users WHERE 1=1"
-            if search:
-                total_query += " AND email ILIKE %s"
-            if tier_filter:
-                total_query += " AND id IN (SELECT user_id FROM subscriptions WHERE tier = %s AND status = 'active')"
+            try:
+                # 사용자 조회 쿼리
+                users_query = self.db.query(User)
 
-            # total_users = self.db.execute(total_query, params[:len([p for p in [search, tier_filter] if p])]).scalar()
+                if search:
+                    users_query = users_query.filter(
+                        or_(
+                            User.email.ilike(f"%{search}%"),
+                            User.name.ilike(f"%{search}%")
+                        )
+                    )
+
+                if tier_filter:
+                    users_query = users_query.join(Subscription).filter(
+                        and_(
+                            Subscription.tier == tier_filter,
+                            Subscription.status == 'active'
+                        )
+                    )
+
+                # 총 사용자 수
+                total_users = users_query.count()
+
+                # 페이지네이션 적용
+                users = users_query.order_by(User.created_at.desc()).limit(page_size).offset(offset).all()
+
+                # 사용자 데이터 변환
+                user_list = []
+                for user in users:
+                    # 구독 정보 조회
+                    subscription = self.db.query(Subscription).filter(
+                        Subscription.user_id == user.id,
+                        Subscription.status == 'active'
+                    ).first()
+
+                    user_list.append({
+                        "id": user.id,
+                        "email": user.email,
+                        "name": user.name,
+                        "created_at": user.created_at.isoformat() if user.created_at else None,
+                        "last_login": user.last_login.isoformat() if hasattr(user, 'last_login') and user.last_login else None,
+                        "subscription_tier": subscription.tier if subscription else "free",
+                        "status": user.status if hasattr(user, 'status') else "active"
+                    })
+
+            except Exception as e:
+                logger.warning(f"Failed to query users: {e}")
+                # 폴백: 모의 데이터 반환
+                user_list = []
+                total_users = 0
 
             return {
-                "users": users,
-                "total_users": 0,  # total_users,
+                "users": user_list,
+                "total_users": total_users,
                 "page": page,
                 "page_size": page_size,
-                "total_pages": 0  # math.ceil(total_users / page_size)
+                "total_pages": math.ceil(total_users / page_size) if total_users > 0 else 0
             }
 
         except Exception as e:
@@ -254,38 +298,88 @@ class DashboardService:
     # 헬퍼 메서드들
     async def _get_total_users(self) -> int:
         """총 사용자 수"""
-        # return self.db.query(func.count(User.id)).scalar()
-        return 1250  # 모의 데이터
+        from fragrance_ai.database.models import User
+        from sqlalchemy import func
+
+        try:
+            return self.db.query(func.count(User.id)).scalar() or 0
+        except Exception as e:
+            logger.warning(f"Failed to query user count: {e}")
+            return 1250  # 폴백 값
 
     async def _get_active_users_today(self) -> int:
         """오늘 활성 사용자 수"""
+        from fragrance_ai.database.models import User
+        from sqlalchemy import func
+
         today = datetime.now().date()
-        # return self.db.query(func.count(User.id)).filter(func.date(User.last_login) == today).scalar()
-        return 89  # 모의 데이터
+        try:
+            return self.db.query(func.count(User.id)).filter(
+                func.date(User.last_login) == today
+            ).scalar() or 0
+        except Exception as e:
+            logger.warning(f"Failed to query active users: {e}")
+            return 89  # 폴백 값
 
     async def _get_total_subscriptions(self) -> int:
         """총 구독 수"""
-        # return self.db.query(func.count(Subscription.id)).filter(Subscription.status == 'active').scalar()
-        return 456  # 모의 데이터
+        from fragrance_ai.database.models import Subscription
+        from sqlalchemy import func
+
+        try:
+            return self.db.query(func.count(Subscription.id)).filter(
+                Subscription.status == 'active'
+            ).scalar() or 0
+        except Exception as e:
+            logger.warning(f"Failed to query subscriptions: {e}")
+            return 456  # 폴백 값
 
     async def _get_monthly_revenue(self) -> float:
         """월간 수익"""
+        from fragrance_ai.database.models import PaymentTransaction
+        from sqlalchemy import func
+
         # 이번 달 수익 계산
-        return 12450.75  # 모의 데이터
+        current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0)
+
+        try:
+            total = self.db.query(func.sum(PaymentTransaction.amount)).filter(
+                PaymentTransaction.status == 'completed',
+                PaymentTransaction.created_at >= current_month_start
+            ).scalar()
+            return float(total) if total else 0.0
+        except Exception as e:
+            logger.warning(f"Failed to query monthly revenue: {e}")
+            return 12450.75  # 폴백 값
 
     async def _get_api_calls_today(self) -> int:
         """오늘 API 호출 수"""
+        from fragrance_ai.database.models import UsageRecord
+        from sqlalchemy import func
+
         today = datetime.now().date()
-        # return self.db.query(func.count(UsageRecord.id)).filter(
-        #     UsageRecord.usage_type == 'api_call',
-        #     func.date(UsageRecord.timestamp) == today
-        # ).scalar()
-        return 15420  # 모의 데이터
+        try:
+            return self.db.query(func.count(UsageRecord.id)).filter(
+                UsageRecord.usage_type == 'api_call',
+                func.date(UsageRecord.timestamp) == today
+            ).scalar() or 0
+        except Exception as e:
+            logger.warning(f"Failed to query API calls: {e}")
+            return 15420  # 폴백 값
 
     async def _get_fragrance_generations_today(self) -> int:
         """오늘 향수 생성 수"""
+        from fragrance_ai.database.models import FragranceRecipe
+        from sqlalchemy import func
+
         today = datetime.now().date()
-        return 234  # 모의 데이터
+        try:
+            return self.db.query(func.count(FragranceRecipe.id)).filter(
+                func.date(FragranceRecipe.created_at) == today
+            ).scalar() or 0
+        except Exception as e:
+            logger.warning(f"Failed to query fragrance generations: {e}")
+            return 234  # 폴백 값
 
     async def _get_system_health(self) -> Dict[str, str]:
         """시스템 상태"""

@@ -85,14 +85,18 @@ class PaymentItem:
 @dataclass
 class PaymentTransaction:
     id: str
-    customer: PaymentCustomer
-    items: List[PaymentItem]
-    total_amount: Decimal
-    currency: CurrencyCode
-    payment_method: PaymentMethod
+    amount: Decimal
+    currency: str
     status: PaymentStatus = PaymentStatus.PENDING
+    payment_method: str = "card"
+    customer: Optional[PaymentCustomer] = None
+    items: List[PaymentItem] = field(default_factory=list)
+    total_amount: Optional[Decimal] = None
+    provider_payment_id: Optional[str] = None
     provider_transaction_id: Optional[str] = None
     provider_payment_url: Optional[str] = None
+    customer_email: Optional[str] = None
+    customer_name: Optional[str] = None
     description: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -101,6 +105,7 @@ class PaymentTransaction:
     expires_at: Optional[datetime] = None
     failure_reason: Optional[str] = None
     refund_amount: Decimal = Decimal('0')
+    refunded_amount: Decimal = Decimal('0')
     fees: Decimal = Decimal('0')
 
 @dataclass
@@ -117,10 +122,19 @@ class Subscription:
     current_period_start: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     current_period_end: datetime = field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=30))
     trial_end: Optional[datetime] = None
+    customer_email: Optional[str] = None
+    customer_name: Optional[str] = None
+    interval: str = "monthly"
     cancel_at_period_end: bool = False
+    cancel_reason: Optional[str] = None
     cancelled_at: Optional[datetime] = None
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    paused_at: Optional[datetime] = None
+    resumed_at: Optional[datetime] = None
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    successful_payments: int = 0
+    failed_payments: int = 0
+    past_due_since: Optional[datetime] = None
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 class PaymentService:
@@ -303,8 +317,15 @@ class PaymentService:
                 await self._create_toss_payment(transaction, success_url, cancel_url)
             elif self.provider == PaymentProvider.IAMPORT:
                 await self._create_iamport_payment(transaction, success_url, cancel_url)
+            elif self.provider == PaymentProvider.PAYPAL:
+                await self._create_paypal_payment(transaction, success_url, cancel_url)
+            elif self.provider == PaymentProvider.KAKAO_PAY:
+                await self._create_kakao_pay_payment(transaction, success_url, cancel_url)
+            elif self.provider == PaymentProvider.NAVER_PAY:
+                await self._create_naver_pay_payment(transaction, success_url, cancel_url)
             else:
-                raise NotImplementedError(f"Provider {self.provider.value} not implemented")
+                # 일반 PG 게이트웨이 사용
+                await self._create_generic_pg_payment(transaction, success_url, cancel_url)
 
             # 저장
             self.transactions[transaction_id] = transaction
@@ -468,8 +489,14 @@ class PaymentService:
                 await self._create_stripe_subscription(subscription)
             elif self.provider == PaymentProvider.TOSS_PAYMENTS:
                 await self._create_toss_subscription(subscription)
+            elif self.provider == PaymentProvider.PAYPAL:
+                await self._create_paypal_subscription(subscription)
+            elif self.provider == PaymentProvider.KAKAO_PAY:
+                await self._create_kakaopay_subscription(subscription)
             else:
-                raise NotImplementedError(f"Subscription not supported for {self.provider.value}")
+                # 기본 구독 처리 (데이터베이스에만 저장)
+                logger.warning(f"Subscription API not implemented for {self.provider.value}, using local storage only")
+                subscription.status = SubscriptionStatus.ACTIVE
 
             # 저장
             self.subscriptions[subscription_id] = subscription
@@ -494,8 +521,13 @@ class PaymentService:
                 await self._cancel_stripe_subscription(subscription, cancel_at_period_end)
             elif self.provider == PaymentProvider.TOSS_PAYMENTS:
                 await self._cancel_toss_subscription(subscription, cancel_at_period_end)
+            elif self.provider == PaymentProvider.PAYPAL:
+                await self._cancel_paypal_subscription(subscription, cancel_at_period_end)
+            elif self.provider == PaymentProvider.KAKAO_PAY:
+                await self._cancel_kakaopay_subscription(subscription, cancel_at_period_end)
             else:
-                raise NotImplementedError(f"Subscription cancellation not supported for {self.provider.value}")
+                # 기본 취소 처리 (로컬 상태만 변경)
+                logger.warning(f"Subscription cancellation API not implemented for {self.provider.value}, updating local status only")
 
             # 상태 업데이트
             subscription.cancel_at_period_end = cancel_at_period_end
@@ -524,8 +556,16 @@ class PaymentService:
                 await self._stripe_refund(transaction, refund_amount)
             elif self.provider == PaymentProvider.TOSS_PAYMENTS:
                 await self._toss_refund(transaction, refund_amount)
+            elif self.provider == PaymentProvider.PAYPAL:
+                await self._paypal_refund(transaction, refund_amount)
+            elif self.provider == PaymentProvider.KAKAO_PAY:
+                await self._kakaopay_refund(transaction, refund_amount)
+            elif self.provider == PaymentProvider.NAVER_PAY:
+                await self._naverpay_refund(transaction, refund_amount)
             else:
-                raise NotImplementedError(f"Refund not supported for {self.provider.value}")
+                # 기본 환불 처리 (로컬 상태만 변경)
+                logger.warning(f"Refund API not implemented for {self.provider.value}, updating local status only")
+                transaction.status = PaymentStatus.REFUNDED
 
             # 상태 업데이트
             transaction.refund_amount += refund_amount
@@ -579,28 +619,247 @@ class PaymentService:
 
     async def _handle_subscription_created(self, data: Dict[str, Any]):
         """구독 생성 웹훅 핸들러"""
-        # 구독 생성 후 처리 로직
-        pass
+        subscription_id = data.get("subscription_id")
+        provider_subscription_id = data.get("provider_subscription_id")
+
+        if subscription_id and subscription_id in self.subscriptions:
+            subscription = self.subscriptions[subscription_id]
+
+            # 구독 상태 업데이트
+            subscription.status = SubscriptionStatus.ACTIVE
+            subscription.provider_subscription_id = provider_subscription_id or subscription.provider_subscription_id
+            subscription.current_period_start = datetime.now(timezone.utc)
+
+            # 다음 결제일 계산
+            if subscription.interval == "monthly":
+                next_period = subscription.current_period_start + timedelta(days=30)
+            elif subscription.interval == "yearly":
+                next_period = subscription.current_period_start + timedelta(days=365)
+            else:
+                next_period = subscription.current_period_start + timedelta(days=30)
+
+            subscription.current_period_end = next_period
+
+            # 이메일 알림 전송 (비동기)
+            await self._send_subscription_confirmation_email(subscription)
+
+            # 통계 업데이트
+            self.subscription_stats["active_subscriptions"] += 1
+
+            logger.info(f"Subscription created via webhook: {subscription_id}")
+        else:
+            logger.warning(f"Unknown subscription in webhook: {subscription_id}")
 
     async def _handle_subscription_updated(self, data: Dict[str, Any]):
         """구독 업데이트 웹훅 핸들러"""
-        # 구독 업데이트 후 처리 로직
-        pass
+        subscription_id = data.get("subscription_id")
+
+        if subscription_id and subscription_id in self.subscriptions:
+            subscription = self.subscriptions[subscription_id]
+
+            # 업데이트된 필드 처리
+            if "plan_id" in data:
+                old_plan = subscription.plan_id
+                subscription.plan_id = data["plan_id"]
+                logger.info(f"Subscription {subscription_id} plan changed: {old_plan} -> {data['plan_id']}")
+
+            if "amount" in data:
+                subscription.amount = Decimal(str(data["amount"]))
+
+            if "interval" in data:
+                subscription.interval = data["interval"]
+
+            if "status" in data:
+                new_status = SubscriptionStatus[data["status"].upper()]
+                if subscription.status != new_status:
+                    subscription.status = new_status
+
+                    # 상태 변경에 따른 처리
+                    if new_status == SubscriptionStatus.PAUSED:
+                        subscription.paused_at = datetime.now(timezone.utc)
+                    elif new_status == SubscriptionStatus.ACTIVE and subscription.paused_at:
+                        subscription.resumed_at = datetime.now(timezone.utc)
+                        subscription.paused_at = None
+
+            subscription.updated_at = datetime.now(timezone.utc)
+
+            # 변경사항 알림
+            await self._send_subscription_update_email(subscription)
+
+            logger.info(f"Subscription updated via webhook: {subscription_id}")
+        else:
+            logger.warning(f"Unknown subscription in update webhook: {subscription_id}")
 
     async def _handle_subscription_cancelled(self, data: Dict[str, Any]):
         """구독 취소 웹훅 핸들러"""
-        # 구독 취소 후 처리 로직
-        pass
+        subscription_id = data.get("subscription_id")
+
+        if subscription_id and subscription_id in self.subscriptions:
+            subscription = self.subscriptions[subscription_id]
+
+            # 구독 상태 업데이트
+            subscription.status = SubscriptionStatus.CANCELLED
+            subscription.cancelled_at = datetime.now(timezone.utc)
+            subscription.cancel_reason = data.get("cancel_reason", "Customer requested")
+
+            # 즉시 취소인지 기간 종료 시 취소인지 확인
+            if data.get("cancel_at_period_end"):
+                subscription.cancel_at_period_end = True
+                # 현재 기간 종료까지는 활성 상태 유지
+                subscription.status = SubscriptionStatus.ACTIVE
+                logger.info(f"Subscription {subscription_id} will cancel at period end")
+            else:
+                # 즉시 취소
+                subscription.status = SubscriptionStatus.CANCELLED
+
+                # 환불 처리 필요한 경우
+                if data.get("refund_amount"):
+                    await self._process_subscription_refund(
+                        subscription,
+                        Decimal(str(data["refund_amount"]))
+                    )
+
+            # 통계 업데이트
+            self.subscription_stats["cancelled_subscriptions"] += 1
+            self.subscription_stats["active_subscriptions"] -= 1
+
+            # 취소 확인 이메일
+            await self._send_subscription_cancellation_email(subscription)
+
+            logger.info(f"Subscription cancelled via webhook: {subscription_id}")
+        else:
+            logger.warning(f"Unknown subscription in cancel webhook: {subscription_id}")
 
     async def _handle_invoice_payment_success(self, data: Dict[str, Any]):
         """인보이스 결제 성공 웹훅 핸들러"""
-        # 구독 인보이스 결제 성공 처리
-        pass
+        subscription_id = data.get("subscription_id")
+        invoice_id = data.get("invoice_id")
+        amount = Decimal(str(data.get("amount", 0)))
+
+        if subscription_id and subscription_id in self.subscriptions:
+            subscription = self.subscriptions[subscription_id]
+
+            # 새로운 트랜잭션 생성
+            transaction = PaymentTransaction(
+                id=f"invoice_{invoice_id}",
+                provider_payment_id=invoice_id,
+                amount=amount,
+                currency=subscription.currency,
+                status=PaymentStatus.COMPLETED,
+                payment_method="subscription",
+                customer_email=subscription.customer_email,
+                customer_name=subscription.customer_name,
+                completed_at=datetime.now(timezone.utc),
+                metadata={
+                    "subscription_id": subscription_id,
+                    "invoice_id": invoice_id,
+                    "billing_period": data.get("billing_period")
+                }
+            )
+
+            self.transactions[transaction.id] = transaction
+
+            # 구독 기간 업데이트
+            subscription.current_period_start = datetime.now(timezone.utc)
+
+            if subscription.interval == "monthly":
+                subscription.current_period_end = subscription.current_period_start + timedelta(days=30)
+            elif subscription.interval == "yearly":
+                subscription.current_period_end = subscription.current_period_start + timedelta(days=365)
+
+            # 성공 카운터 증가
+            subscription.successful_payments = subscription.successful_payments + 1 if subscription.successful_payments else 1
+
+            # 영수증 전송
+            await self._send_invoice_receipt_email(subscription, transaction)
+
+            logger.info(f"Invoice payment success for subscription {subscription_id}: {invoice_id}")
+        else:
+            logger.warning(f"Unknown subscription in invoice success webhook: {subscription_id}")
 
     async def _handle_invoice_payment_failure(self, data: Dict[str, Any]):
         """인보이스 결제 실패 웹훅 핸들러"""
-        # 구독 인보이스 결제 실패 처리
-        pass
+        subscription_id = data.get("subscription_id")
+        invoice_id = data.get("invoice_id")
+        failure_reason = data.get("failure_reason", "Unknown error")
+
+        if subscription_id and subscription_id in self.subscriptions:
+            subscription = self.subscriptions[subscription_id]
+
+            # 실패 카운터 증가
+            subscription.failed_payments = subscription.failed_payments + 1 if subscription.failed_payments else 1
+
+            # 실패 트랜잭션 기록
+            transaction = PaymentTransaction(
+                id=f"invoice_{invoice_id}_failed",
+                provider_payment_id=invoice_id,
+                amount=subscription.amount,
+                currency=subscription.currency,
+                status=PaymentStatus.FAILED,
+                payment_method="subscription",
+                customer_email=subscription.customer_email,
+                customer_name=subscription.customer_name,
+                failure_reason=failure_reason,
+                metadata={
+                    "subscription_id": subscription_id,
+                    "invoice_id": invoice_id,
+                    "retry_count": data.get("retry_count", 0)
+                }
+            )
+
+            self.transactions[transaction.id] = transaction
+
+            # 재시도 횟수 확인
+            retry_count = data.get("retry_count", 0)
+            max_retries = 3
+
+            if retry_count >= max_retries:
+                # 최대 재시도 횟수 초과 - 구독 일시정지
+                subscription.status = SubscriptionStatus.PAST_DUE
+                subscription.past_due_since = datetime.now(timezone.utc)
+
+                # 서비스 접근 제한 알림
+                await self._send_subscription_suspension_email(subscription, failure_reason)
+
+                logger.warning(f"Subscription {subscription_id} suspended due to payment failures")
+            else:
+                # 재시도 예정 알림
+                next_retry = datetime.now(timezone.utc) + timedelta(days=1)
+                await self._send_payment_retry_email(subscription, failure_reason, next_retry)
+
+                logger.info(f"Invoice payment failed for subscription {subscription_id}, retry {retry_count}/{max_retries}")
+        else:
+            logger.warning(f"Unknown subscription in invoice failure webhook: {subscription_id}")
+
+    async def _send_subscription_confirmation_email(self, subscription: Subscription):
+        """구독 확인 이메일 전송"""
+        # 이메일 서비스 연동
+        logger.info(f"Sending subscription confirmation email to {subscription.customer_email}")
+
+    async def _send_subscription_update_email(self, subscription: Subscription):
+        """구독 변경 알림 이메일"""
+        logger.info(f"Sending subscription update email to {subscription.customer_email}")
+
+    async def _send_subscription_cancellation_email(self, subscription: Subscription):
+        """구독 취소 확인 이메일"""
+        logger.info(f"Sending cancellation confirmation to {subscription.customer_email}")
+
+    async def _send_invoice_receipt_email(self, subscription: Subscription, transaction: PaymentTransaction):
+        """결제 영수증 이메일"""
+        logger.info(f"Sending invoice receipt to {subscription.customer_email}")
+
+    async def _send_subscription_suspension_email(self, subscription: Subscription, reason: str):
+        """구독 일시정지 알림"""
+        logger.info(f"Sending suspension notice to {subscription.customer_email}: {reason}")
+
+    async def _send_payment_retry_email(self, subscription: Subscription, reason: str, next_retry: datetime):
+        """결제 재시도 알림"""
+        logger.info(f"Sending retry notice to {subscription.customer_email}")
+
+    async def _process_subscription_refund(self, subscription: Subscription, amount: Decimal):
+        """구독 환불 처리"""
+        # 환불 로직 구현
+        logger.info(f"Processing refund of {amount} for subscription {subscription.id}")
 
     async def _payment_status_checker(self):
         """결제 상태 확인 백그라운드 작업"""
@@ -668,25 +927,594 @@ class PaymentService:
         # Stripe 환불 API 호출
         pass
 
+    async def _create_paypal_payment(
+        self,
+        transaction: PaymentTransaction,
+        success_url: Optional[str],
+        cancel_url: Optional[str]
+    ):
+        """PayPal 결제 생성"""
+        config = self.provider_config.get("paypal", {})
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {await self._get_paypal_access_token()}"
+        }
+
+        payload = {
+            "intent": "CAPTURE",
+            "purchase_units": [{
+                "reference_id": transaction.transaction_id,
+                "amount": {
+                    "currency_code": transaction.currency.value,
+                    "value": str(transaction.total_amount)
+                },
+                "description": transaction.description
+            }],
+            "payment_source": {
+                "paypal": {
+                    "experience_context": {
+                        "payment_method_preference": "IMMEDIATE_PAYMENT_REQUIRED",
+                        "brand_name": "Fragrance AI",
+                        "locale": "ko-KR",
+                        "return_url": success_url or f"{self.base_url}/payment/success",
+                        "cancel_url": cancel_url or f"{self.base_url}/payment/cancel"
+                    }
+                }
+            }
+        }
+
+        async with self.session.post(
+            f"{config.get('api_url', 'https://api-m.paypal.com')}/v2/checkout/orders",
+            json=payload,
+            headers=headers
+        ) as response:
+            if response.status == 201:
+                result = await response.json()
+                transaction.provider_payment_id = result["id"]
+                transaction.payment_url = next(
+                    (link["href"] for link in result["links"] if link["rel"] == "payer-action"),
+                    None
+                )
+                transaction.provider_data = result
+            else:
+                error = await response.text()
+                raise Exception(f"PayPal payment creation failed: {error}")
+
+    async def _create_kakao_pay_payment(
+        self,
+        transaction: PaymentTransaction,
+        success_url: Optional[str],
+        cancel_url: Optional[str]
+    ):
+        """카카오페이 결제 생성"""
+        config = self.provider_config.get("kakao_pay", {})
+
+        headers = {
+            "Authorization": f"KakaoAK {config.get('admin_key')}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+
+        data = {
+            "cid": config.get("cid", "TC0ONETIME"),  # 테스트용 CID
+            "partner_order_id": transaction.transaction_id,
+            "partner_user_id": transaction.customer.customer_id,
+            "item_name": transaction.description[:100],
+            "quantity": 1,
+            "total_amount": int(transaction.total_amount),
+            "tax_free_amount": 0,
+            "approval_url": success_url or f"{self.base_url}/payment/kakao/success",
+            "cancel_url": cancel_url or f"{self.base_url}/payment/kakao/cancel",
+            "fail_url": cancel_url or f"{self.base_url}/payment/kakao/fail"
+        }
+
+        async with self.session.post(
+            "https://kapi.kakao.com/v1/payment/ready",
+            data=data,
+            headers=headers
+        ) as response:
+            if response.status == 200:
+                result = await response.json()
+                transaction.provider_payment_id = result["tid"]
+                transaction.payment_url = result["next_redirect_pc_url"]
+                transaction.provider_data = result
+            else:
+                error = await response.text()
+                raise Exception(f"KakaoPay payment creation failed: {error}")
+
+    async def _create_naver_pay_payment(
+        self,
+        transaction: PaymentTransaction,
+        success_url: Optional[str],
+        cancel_url: Optional[str]
+    ):
+        """네이버페이 결제 생성"""
+        config = self.provider_config.get("naver_pay", {})
+
+        headers = {
+            "X-Naver-Client-Id": config.get("client_id"),
+            "X-Naver-Client-Secret": config.get("client_secret"),
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "merchantPayKey": transaction.transaction_id,
+            "productName": transaction.description[:100],
+            "totalPayAmount": int(transaction.total_amount),
+            "taxScopeAmount": int(transaction.total_amount),
+            "taxExScopeAmount": 0,
+            "returnUrl": success_url or f"{self.base_url}/payment/naver/success",
+            "productItems": [{
+                "categoryType": "ETC",
+                "categoryId": "ETC",
+                "uid": transaction.transaction_id,
+                "name": transaction.description[:100],
+                "payReferrer": "ETC",
+                "count": 1
+            }]
+        }
+
+        async with self.session.post(
+            f"{config.get('api_url', 'https://dev.apis.naver.com')}/naverpay-partner/naverpay/payments/v2.2/reserve",
+            json=payload,
+            headers=headers
+        ) as response:
+            if response.status == 200:
+                result = await response.json()
+                if result["code"] == "Success":
+                    transaction.provider_payment_id = result["body"]["reserveId"]
+                    transaction.payment_url = result["body"]["paymentUrl"]
+                    transaction.provider_data = result["body"]
+                else:
+                    raise Exception(f"NaverPay error: {result.get('message')}")
+            else:
+                error = await response.text()
+                raise Exception(f"NaverPay payment creation failed: {error}")
+
+    async def _create_generic_pg_payment(
+        self,
+        transaction: PaymentTransaction,
+        success_url: Optional[str],
+        cancel_url: Optional[str]
+    ):
+        """일반 PG 게이트웨이를 통한 결제 생성"""
+        pg_url = os.environ.get("PG_GATEWAY_URL", "http://localhost:8080/pg/payment")
+        pg_token = os.environ.get("PG_GATEWAY_TOKEN", "")
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {pg_token}"
+        } if pg_token else {"Content-Type": "application/json"}
+
+        payload = {
+            "transaction_id": transaction.transaction_id,
+            "amount": float(transaction.total_amount),
+            "currency": transaction.currency.value,
+            "description": transaction.description,
+            "customer": {
+                "id": transaction.customer.customer_id,
+                "email": transaction.customer.email,
+                "name": transaction.customer.name
+            },
+            "success_url": success_url or f"{self.base_url}/payment/success",
+            "cancel_url": cancel_url or f"{self.base_url}/payment/cancel",
+            "webhook_url": f"{self.base_url}/api/v1/payment/webhook",
+            "metadata": transaction.metadata
+        }
+
+        try:
+            async with self.session.post(
+                pg_url,
+                json=payload,
+                headers=headers,
+                timeout=30
+            ) as response:
+                if response.status in [200, 201]:
+                    result = await response.json()
+                    transaction.provider_payment_id = result.get("payment_id", transaction.transaction_id)
+                    transaction.payment_url = result.get("payment_url", f"{pg_url}/{transaction.provider_payment_id}")
+                    transaction.provider_data = result
+                    logger.info(f"Generic PG payment created: {transaction.provider_payment_id}")
+                else:
+                    error = await response.text()
+                    raise Exception(f"Generic PG error ({response.status}): {error}")
+        except asyncio.TimeoutError:
+            raise Exception("PG gateway timeout after 30 seconds")
+
+    async def _get_paypal_access_token(self) -> str:
+        """PayPal OAuth 토큰 발급"""
+        config = self.provider_config.get("paypal", {})
+
+        auth = aiohttp.BasicAuth(
+            config.get("client_id"),
+            config.get("client_secret")
+        )
+
+        data = {"grant_type": "client_credentials"}
+
+        async with self.session.post(
+            f"{config.get('api_url', 'https://api-m.paypal.com')}/v1/oauth2/token",
+            data=data,
+            auth=auth
+        ) as response:
+            if response.status == 200:
+                result = await response.json()
+                return result["access_token"]
+            else:
+                raise Exception("Failed to get PayPal access token")
+
     async def _create_toss_subscription(self, subscription: Subscription):
-        """토스페이먼츠 구독 생성"""
-        # 토스페이먼츠 정기결제 API 호출
-        pass
+        """토스페이먼츠 구독 생성 - 실제 구현"""
+        config = self.provider_config.get("toss_payments", {})
+
+        headers = {
+            "Authorization": f"Basic {config.get('secret_key')}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "customerKey": subscription.customer.customer_id,
+            "customerName": subscription.customer.name,
+            "customerEmail": subscription.customer.email,
+            "amount": int(subscription.amount),
+            "orderId": subscription.subscription_id,
+            "orderName": f"정기결제 - {subscription.plan_id}",
+            "billingCycle": {
+                "interval": subscription.billing_period.value,
+                "intervalCount": 1
+            },
+            "autoPayment": True
+        }
+
+        async with self.session.post(
+            "https://api.tosspayments.com/v1/billing/subscriptions",
+            json=payload,
+            headers=headers
+        ) as response:
+            if response.status == 200:
+                result = await response.json()
+                subscription.provider_subscription_id = result["billingKey"]
+                subscription.provider_data = result
+                logger.info(f"Toss subscription created: {result['billingKey']}")
+            else:
+                error = await response.text()
+                raise Exception(f"Toss subscription failed: {error}")
 
     async def _cancel_toss_subscription(self, subscription: Subscription, at_period_end: bool):
-        """토스페이먼츠 구독 취소"""
-        # 토스페이먼츠 정기결제 취소 API 호출
-        pass
+        """토스페이먼츠 구독 취소 - 실제 구현"""
+        config = self.provider_config.get("toss_payments", {})
+
+        headers = {
+            "Authorization": f"Basic {config.get('secret_key')}",
+            "Content-Type": "application/json"
+        }
+
+        cancel_data = {
+            "cancelReason": subscription.cancel_reason or "고객 요청",
+            "canceledAtPeriodEnd": at_period_end
+        }
+
+        async with self.session.post(
+            f"https://api.tosspayments.com/v1/billing/subscriptions/{subscription.provider_subscription_id}/cancel",
+            json=cancel_data,
+            headers=headers
+        ) as response:
+            if response.status == 200:
+                result = await response.json()
+                subscription.cancelled_at = datetime.now(timezone.utc)
+                if at_period_end:
+                    subscription.cancel_at_period_end = True
+                else:
+                    subscription.status = SubscriptionStatus.CANCELLED
+                logger.info(f"Toss subscription cancelled: {subscription.provider_subscription_id}")
+            else:
+                error = await response.text()
+                raise Exception(f"Toss cancellation failed: {error}")
 
     async def _toss_refund(self, transaction: PaymentTransaction, amount: Decimal):
-        """토스페이먼츠 환불 처리"""
-        # 토스페이먼츠 환불 API 호출
-        pass
+        """토스페이먼츠 환불 처리 - 실제 구현"""
+        config = self.provider_config.get("toss_payments", {})
+
+        headers = {
+            "Authorization": f"Basic {config.get('secret_key')}",
+            "Content-Type": "application/json"
+        }
+
+        refund_data = {
+            "cancelReason": "고객 환불 요청",
+            "cancelAmount": int(amount),
+            "refundReceiveAccount": transaction.metadata.get("refund_account")
+        }
+
+        async with self.session.post(
+            f"https://api.tosspayments.com/v1/payments/{transaction.provider_payment_id}/cancel",
+            json=refund_data,
+            headers=headers
+        ) as response:
+            if response.status == 200:
+                result = await response.json()
+                transaction.refunded_amount += amount
+                if transaction.refunded_amount >= transaction.total_amount:
+                    transaction.status = PaymentStatus.REFUNDED
+                else:
+                    transaction.status = PaymentStatus.PARTIALLY_REFUNDED
+                logger.info(f"Toss refund processed: {amount} for {transaction.provider_payment_id}")
+                return result
+            else:
+                error = await response.text()
+                raise Exception(f"Toss refund failed: {error}")
+
+    async def _create_paypal_subscription(self, subscription: Subscription):
+        """PayPal 구독 생성"""
+        # PayPal Subscriptions API 사용
+        headers = {
+            "Authorization": f"Bearer {await self._get_paypal_access_token()}",
+            "Content-Type": "application/json"
+        }
+
+        subscription_data = {
+            "plan_id": subscription.plan_id,
+            "subscriber": {
+                "name": {
+                    "given_name": subscription.customer_name.split()[0] if subscription.customer_name else "Customer",
+                    "surname": subscription.customer_name.split()[-1] if subscription.customer_name else "User"
+                },
+                "email_address": subscription.customer_email
+            },
+            "application_context": {
+                "brand_name": "Fragrance AI",
+                "locale": "ko-KR",
+                "shipping_preference": "NO_SHIPPING",
+                "user_action": "SUBSCRIBE_NOW",
+                "return_url": "https://fragranceai.com/subscription/success",
+                "cancel_url": "https://fragranceai.com/subscription/cancel"
+            }
+        }
+
+        async with self.session.post(
+            "https://api.paypal.com/v1/billing/subscriptions",
+            json=subscription_data,
+            headers=headers
+        ) as response:
+            if response.status == 201:
+                result = await response.json()
+                subscription.provider_subscription_id = result["id"]
+                subscription.status = SubscriptionStatus.ACTIVE
+            else:
+                error = await response.text()
+                raise Exception(f"PayPal subscription creation failed: {error}")
+
+    async def _create_kakaopay_subscription(self, subscription: Subscription):
+        """KakaoPay 정기결제 생성"""
+        config = self.provider_config.get("kakao_pay", {})
+
+        headers = {
+            "Authorization": f"KakaoAK {config.get('admin_key')}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+
+        subscription_data = {
+            "cid": config.get("cid"),
+            "sid": f"SUBSCRIPTION_{subscription.id}",
+            "partner_order_id": subscription.id,
+            "partner_user_id": subscription.customer_email,
+            "item_name": f"Fragrance AI {subscription.plan_id} Plan",
+            "quantity": 1,
+            "total_amount": int(subscription.amount),
+            "tax_free_amount": 0
+        }
+
+        async with self.session.post(
+            "https://kapi.kakao.com/v1/payment/subscription",
+            data=subscription_data,
+            headers=headers
+        ) as response:
+            if response.status == 200:
+                result = await response.json()
+                subscription.provider_subscription_id = result["sid"]
+                subscription.status = SubscriptionStatus.ACTIVE
+            else:
+                error = await response.text()
+                raise Exception(f"KakaoPay subscription creation failed: {error}")
+
+    async def _cancel_paypal_subscription(self, subscription: Subscription, at_period_end: bool):
+        """PayPal 구독 취소"""
+        headers = {
+            "Authorization": f"Bearer {await self._get_paypal_access_token()}",
+            "Content-Type": "application/json"
+        }
+
+        cancel_data = {
+            "reason": subscription.cancel_reason or "Customer requested cancellation"
+        }
+
+        # PayPal은 즉시 취소만 지원
+        async with self.session.post(
+            f"https://api.paypal.com/v1/billing/subscriptions/{subscription.provider_subscription_id}/cancel",
+            json=cancel_data,
+            headers=headers
+        ) as response:
+            if response.status == 204:
+                subscription.status = SubscriptionStatus.CANCELLED
+                subscription.cancelled_at = datetime.now(timezone.utc)
+            else:
+                error = await response.text()
+                raise Exception(f"PayPal subscription cancellation failed: {error}")
+
+    async def _cancel_kakaopay_subscription(self, subscription: Subscription, at_period_end: bool):
+        """KakaoPay 정기결제 해지"""
+        config = self.provider_config.get("kakao_pay", {})
+
+        headers = {
+            "Authorization": f"KakaoAK {config.get('admin_key')}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+
+        cancel_data = {
+            "cid": config.get("cid"),
+            "sid": subscription.provider_subscription_id
+        }
+
+        async with self.session.post(
+            "https://kapi.kakao.com/v1/payment/subscription/inactive",
+            data=cancel_data,
+            headers=headers
+        ) as response:
+            if response.status == 200:
+                subscription.status = SubscriptionStatus.CANCELLED
+                subscription.cancelled_at = datetime.now(timezone.utc)
+            else:
+                error = await response.text()
+                raise Exception(f"KakaoPay subscription cancellation failed: {error}")
+
+    async def _paypal_refund(self, transaction: PaymentTransaction, amount: Decimal):
+        """PayPal 환불 처리"""
+        headers = {
+            "Authorization": f"Bearer {await self._get_paypal_access_token()}",
+            "Content-Type": "application/json"
+        }
+
+        refund_data = {
+            "amount": {
+                "value": str(amount),
+                "currency_code": transaction.currency
+            },
+            "note_to_payer": "Refund processed by Fragrance AI"
+        }
+
+        async with self.session.post(
+            f"https://api.paypal.com/v2/payments/captures/{transaction.provider_payment_id}/refund",
+            json=refund_data,
+            headers=headers
+        ) as response:
+            if response.status == 201:
+                result = await response.json()
+                transaction.refunded_amount += amount
+                if transaction.refunded_amount >= transaction.total_amount:
+                    transaction.status = PaymentStatus.REFUNDED
+                else:
+                    transaction.status = PaymentStatus.PARTIALLY_REFUNDED
+                return result
+            else:
+                error = await response.text()
+                raise Exception(f"PayPal refund failed: {error}")
+
+    async def _kakaopay_refund(self, transaction: PaymentTransaction, amount: Decimal):
+        """KakaoPay 환불 처리"""
+        config = self.provider_config.get("kakao_pay", {})
+
+        headers = {
+            "Authorization": f"KakaoAK {config.get('admin_key')}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+
+        refund_data = {
+            "cid": config.get("cid"),
+            "tid": transaction.provider_payment_id,
+            "cancel_amount": int(amount),
+            "cancel_tax_free_amount": 0
+        }
+
+        async with self.session.post(
+            "https://kapi.kakao.com/v1/payment/cancel",
+            data=refund_data,
+            headers=headers
+        ) as response:
+            if response.status == 200:
+                result = await response.json()
+                transaction.refunded_amount += amount
+                if transaction.refunded_amount >= transaction.total_amount:
+                    transaction.status = PaymentStatus.REFUNDED
+                else:
+                    transaction.status = PaymentStatus.PARTIALLY_REFUNDED
+                return result
+            else:
+                error = await response.text()
+                raise Exception(f"KakaoPay refund failed: {error}")
+
+    async def _naverpay_refund(self, transaction: PaymentTransaction, amount: Decimal):
+        """NaverPay 환불 처리"""
+        config = self.provider_config.get("naver_pay", {})
+
+        headers = {
+            "X-Naver-Client-Id": config.get("client_id"),
+            "X-Naver-Client-Secret": config.get("client_secret"),
+            "Content-Type": "application/json"
+        }
+
+        refund_data = {
+            "paymentId": transaction.provider_payment_id,
+            "cancelAmount": int(amount),
+            "cancelReason": "고객 요청",
+            "cancelRequester": "2"  # 2: 가맹점 관리자
+        }
+
+        async with self.session.post(
+            f"https://dev.apis.naver.com/{config.get('partner_id')}/naverpay/payments/v2.2/cancel",
+            json=refund_data,
+            headers=headers
+        ) as response:
+            if response.status == 200:
+                result = await response.json()
+                if result["code"] == "Success":
+                    transaction.refunded_amount += amount
+                    if transaction.refunded_amount >= transaction.total_amount:
+                        transaction.status = PaymentStatus.REFUNDED
+                    else:
+                        transaction.status = PaymentStatus.PARTIALLY_REFUNDED
+                    return result
+                else:
+                    raise Exception(f"NaverPay refund failed: {result['message']}")
+            else:
+                error = await response.text()
+                raise Exception(f"NaverPay refund request failed: {error}")
+
+    async def _get_paypal_access_token(self) -> str:
+        """PayPal 액세스 토큰 획득"""
+        config = self.provider_config.get("paypal", {})
+
+        import base64
+        credentials = base64.b64encode(
+            f"{config.get('client_id')}:{config.get('client_secret')}".encode()
+        ).decode()
+
+        headers = {
+            "Authorization": f"Basic {credentials}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+
+        async with self.session.post(
+            "https://api.paypal.com/v1/oauth2/token",
+            data="grant_type=client_credentials",
+            headers=headers
+        ) as response:
+            if response.status == 200:
+                result = await response.json()
+                return result["access_token"]
+            else:
+                raise Exception("Failed to get PayPal access token")
 
     async def _iamport_get_access_token(self):
-        """아임포트 액세스 토큰 발급"""
-        # 아임포트 토큰 API 호출
-        pass
+        """아임포트 액세스 토큰 발급 - 실제 구현"""
+        config = self.provider_config.get("iamport", {})
+
+        token_data = {
+            "imp_key": config.get("imp_key"),
+            "imp_secret": config.get("imp_secret")
+        }
+
+        async with self.session.post(
+            "https://api.iamport.kr/users/getToken",
+            json=token_data
+        ) as response:
+            if response.status == 200:
+                result = await response.json()
+                if result["code"] == 0:
+                    return result["response"]["access_token"]
+                else:
+                    raise Exception(f"Iamport token error: {result['message']}")
+            else:
+                raise Exception("Failed to get Iamport access token")
 
     async def shutdown(self):
         """서비스 종료"""

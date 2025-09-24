@@ -25,7 +25,7 @@ data:
   PROMETHEUS_ENABLED: "true"
   METRICS_PORT: "9090"
   CHROMA_HOST: "chromadb-service"
-  CHROMA_PORT: "8000"
+  CHROMA_PORT: "8001"
   REDIS_URL: "redis://redis-service:6379/0"
   DATABASE_URL: "postgresql://fragrance_user:$(POSTGRES_PASSWORD)@postgres-service:5432/fragrance_ai"
 ---

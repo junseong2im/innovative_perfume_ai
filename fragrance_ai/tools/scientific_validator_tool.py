@@ -256,7 +256,8 @@ async def _calculate_harmony_score(composition: NotesComposition) -> float:
     all_notes = composition.top + composition.middle + composition.base
 
     if len(all_notes) < 2:
-        return 0.5  # Neutral score for single note
+        # 단일 노트는 조화를 평가할 수 없으므로 최소값 반환
+        return 0.3
 
     harmony_points = 0
     total_comparisons = 0
@@ -285,7 +286,8 @@ async def _calculate_harmony_score(composition: NotesComposition) -> float:
                     harmony_points -= 1
 
     if total_comparisons == 0:
-        return 0.5
+        # 비교할 수 없는 경우 최소값 반환
+        return 0.3
 
     # Normalize to 0-1 scale
     raw_score = harmony_points / (total_comparisons * 2)  # Max possible is 2 per comparison
@@ -323,7 +325,15 @@ async def _calculate_stability_score(composition: NotesComposition) -> float:
 async def _estimate_longevity(composition: NotesComposition) -> float:
     """Estimate overall longevity in hours."""
     if not composition.base:
-        return 2.0  # Very short without base notes
+        # 베이스 노트 없이는 최소 지속시간 계산
+        if composition.middle:
+            middle_longevity = sum(get_note_properties(note)["longevity"] for note in composition.middle) / len(composition.middle)
+            return middle_longevity * 0.5  # 미들 노트만으로는 절반 지속
+        elif composition.top:
+            top_longevity = sum(get_note_properties(note)["longevity"] for note in composition.top) / len(composition.top)
+            return top_longevity * 0.3  # 탑 노트만으로는 30% 지속
+        else:
+            return 1.0  # 최소값
 
     # Base notes primarily determine longevity
     base_longevity = sum(get_note_properties(note)["longevity"] for note in composition.base) / len(composition.base)

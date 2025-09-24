@@ -394,19 +394,113 @@ class BaseRepository(Generic[T], ABC):
 
 
 class ReadOnlyRepository(BaseRepository[T]):
-    """읽기 전용 저장소"""
+    """읽기 전용 저장소 - 실제 구현"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._read_only_mode = True
+        logger.warning("ReadOnlyRepository initialized - write operations will be logged but not executed")
 
     def create(self, **kwargs) -> T:
-        raise NotImplementedError("Create operation not allowed in read-only repository")
+        """읽기 전용 모드에서 create 시도 시 경고 로그"""
+        logger.error(f"Attempted CREATE operation in read-only mode: {kwargs}")
+
+        # 감사 로그 기록
+        self._log_audit_event("CREATE_ATTEMPT", kwargs)
+
+        # 읽기 전용 예외를 발생시키되, 디버그 정보 포함
+        raise PermissionError(
+            f"Create operation not allowed in read-only repository. "
+            f"Attempted to create entity with data: {list(kwargs.keys())}"
+        )
 
     def update(self, entity_id: str, **kwargs) -> Optional[T]:
-        raise NotImplementedError("Update operation not allowed in read-only repository")
+        """읽기 전용 모드에서 update 시도 시 경고 로그"""
+        logger.error(f"Attempted UPDATE operation in read-only mode for ID: {entity_id}")
+
+        # 감사 로그 기록
+        self._log_audit_event("UPDATE_ATTEMPT", {"entity_id": entity_id, **kwargs})
+
+        # 현재 엔티티 상태 확인 (읽기는 가능)
+        current = self.get_by_id(entity_id)
+        if current:
+            logger.info(f"Current entity state: {current}")
+
+        raise PermissionError(
+            f"Update operation not allowed in read-only repository. "
+            f"Attempted to update entity ID: {entity_id}"
+        )
 
     def delete(self, entity_id: str) -> bool:
-        raise NotImplementedError("Delete operation not allowed in read-only repository")
+        """읽기 전용 모드에서 delete 시도 시 경고 로그"""
+        logger.error(f"Attempted DELETE operation in read-only mode for ID: {entity_id}")
+
+        # 감사 로그 기록
+        self._log_audit_event("DELETE_ATTEMPT", {"entity_id": entity_id})
+
+        # 삭제하려던 엔티티 정보 확인
+        entity = self.get_by_id(entity_id)
+        if entity:
+            logger.warning(f"Attempted to delete existing entity: {entity}")
+
+        raise PermissionError(
+            f"Delete operation not allowed in read-only repository. "
+            f"Attempted to delete entity ID: {entity_id}"
+        )
 
     def bulk_create(self, entities_data: List[Dict[str, Any]]) -> List[T]:
-        raise NotImplementedError("Bulk create operation not allowed in read-only repository")
+        """읽기 전용 모드에서 bulk create 시도 시 경고 로그"""
+        logger.error(f"Attempted BULK CREATE operation in read-only mode: {len(entities_data)} entities")
+
+        # 감사 로그 기록
+        self._log_audit_event("BULK_CREATE_ATTEMPT", {"count": len(entities_data)})
+
+        raise PermissionError(
+            f"Bulk create operation not allowed in read-only repository. "
+            f"Attempted to create {len(entities_data)} entities"
+        )
 
     def bulk_update(self, updates: List[Dict[str, Any]]) -> int:
-        raise NotImplementedError("Bulk update operation not allowed in read-only repository")
+        """읽기 전용 모드에서 bulk update 시도 시 경고 로그"""
+        logger.error(f"Attempted BULK UPDATE operation in read-only mode: {len(updates)} updates")
+
+        # 감사 로그 기록
+        self._log_audit_event("BULK_UPDATE_ATTEMPT", {"count": len(updates)})
+
+        raise PermissionError(
+            f"Bulk update operation not allowed in read-only repository. "
+            f"Attempted to update {len(updates)} entities"
+        )
+
+    def _log_audit_event(self, event_type: str, data: Dict[str, Any]):
+        """감사 로그 기록"""
+        audit_log = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "event_type": event_type,
+            "repository": self.__class__.__name__,
+            "data_summary": data,
+            "user": self._get_current_user(),
+            "ip_address": self._get_client_ip()
+        }
+
+        # 감사 로그를 파일이나 데이터베이스에 기록
+        logger.info(f"AUDIT: {json.dumps(audit_log)}")
+
+        # 파일에도 기록
+        try:
+            audit_file = "audit_logs/repository_access.log"
+            os.makedirs(os.path.dirname(audit_file), exist_ok=True)
+            with open(audit_file, 'a') as f:
+                f.write(json.dumps(audit_log) + '\n')
+        except Exception as e:
+            logger.error(f"Failed to write audit log: {e}")
+
+    def _get_current_user(self) -> str:
+        """현재 사용자 정보 가져오기"""
+        # 실제로는 인증 컨텍스트에서 가져옴
+        return os.environ.get('USER', 'unknown')
+
+    def _get_client_ip(self) -> str:
+        """클라이언트 IP 주소 가져오기"""
+        # 실제로는 요청 컨텍스트에서 가져옴
+        return "127.0.0.1"

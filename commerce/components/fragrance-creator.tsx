@@ -12,23 +12,57 @@ export default function FragranceCreator() {
     if (!description.trim()) return;
 
     setIsLoading(true);
+    setResult(null);
 
-    // Simulate AI processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+      const response = await fetch(`${API_URL}/api/v1/generate/recipe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          description: description,
+          fragrance_family: 'fresh',
+          mood: 'romantic',
+          intensity: 'moderate',
+          gender: 'unisex'
+        })
+      });
 
-    // Mock result
-    setResult({
-      name: '맞춤형 향수',
-      description: `"${description}"에서 영감을 받은 개인 맞춤 향수`,
-      notes: {
-        top: ['Bergamot', 'Lemon', 'Pink Pepper'],
-        middle: ['Rose', 'Jasmine', 'Lavender'],
-        base: ['Sandalwood', 'Musk', 'Amber']
-      },
-      price: '185,000 KRW'
-    });
+      if (!response.ok) {
+        throw new Error('Failed to generate fragrance recipe');
+      }
 
-    setIsLoading(false);
+      const data = await response.json();
+
+      // Transform API response to match expected format
+      setResult({
+        name: data.name || '맞춤형 향수',
+        description: data.description || `"${description}"에서 영감을 받은 개인 맞춤 향수`,
+        notes: {
+          top: data.top_notes || ['Bergamot', 'Citrus'],
+          middle: data.heart_notes || ['Rose', 'Jasmine'],
+          base: data.base_notes || ['Sandalwood', 'Musk']
+        },
+        price: data.price || '185,000 KRW'
+      });
+    } catch (error) {
+      console.error('Error generating fragrance:', error);
+      // Use basic fallback on error
+      setResult({
+        name: '맞춤형 향수',
+        description: `"${description}"에서 영감을 받은 향수`,
+        notes: {
+          top: ['Citrus'],
+          middle: ['Floral'],
+          base: ['Woody']
+        },
+        price: '185,000 KRW'
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const examplePrompts = [

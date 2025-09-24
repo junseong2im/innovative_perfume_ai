@@ -270,11 +270,13 @@ from .routes.auth import router as auth_router
 from .routes.public_recipes import router as public_recipes_router
 from .routes.generation import router as generation_router
 from .routes.agentic import router as agentic_router
+from .routes.customer_service import router as customer_service_router
 
 app.include_router(auth_router, prefix="/api/v2")
 app.include_router(public_recipes_router, prefix="/api/v2")
 app.include_router(generation_router, prefix="/api/v2/admin", tags=["관리자 전용"])
 app.include_router(agentic_router, prefix="/api/v2", tags=["🤖 AI Orchestrator"])  # New agentic system
+app.include_router(customer_service_router, tags=["Customer Service"])  # Customer service routes
 
 
 # 배치 처리 함수들

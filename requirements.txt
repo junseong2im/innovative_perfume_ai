@@ -26,6 +26,11 @@ accelerate==0.24.1
 huggingface-hub==0.18.0
 tokenizers==0.15.0
 safetensors==0.4.0
+sentencepiece==0.1.99
+protobuf==4.25.1
+
+# Async HTTP for LLM APIs
+aiohttp==3.9.1
 
 # Vector Database
 chromadb==0.4.18

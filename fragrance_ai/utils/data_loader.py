@@ -108,11 +108,10 @@ class DatasetLoader:
         data_path = Path(data_path)
         
         if not data_path.exists():
-            # 샘플 데이터 생성
-            logger.warning(f"데이터 파일이 없습니다: {data_path}. 샘플 데이터를 생성합니다.")
-            data = self._generate_sample_embedding_data()
-        else:
-            data = self._load_data_file(data_path)
+            # 데이터 파일이 없으면 에러 발생
+            raise FileNotFoundError(f"데이터 파일이 없습니다: {data_path}. 실제 데이터 파일을 제공해주세요.")
+
+        data = self._load_data_file(data_path)
         
         # 데이터 검증
         self._validate_embedding_data(data)
@@ -148,10 +147,10 @@ class DatasetLoader:
         data_path = Path(data_path)
         
         if not data_path.exists():
-            logger.warning(f"데이터 파일이 없습니다: {data_path}. 샘플 데이터를 생성합니다.")
-            data = self._generate_sample_generation_data()
-        else:
-            data = self._load_data_file(data_path)
+            # 데이터 파일이 없으면 에러 발생
+            raise FileNotFoundError(f"데이터 파일이 없습니다: {data_path}. 실제 데이터 파일을 제공해주세요.")
+
+        data = self._load_data_file(data_path)
         
         # 데이터 검증
         self._validate_generation_data(data)
@@ -306,107 +305,88 @@ class DatasetLoader:
                 if field not in item:
                     raise ValueError(f"E2E 평가 데이터 항목 {i}에 필수 필드 '{field}'가 없습니다.")
     
-    def _generate_sample_embedding_data(self) -> List[Dict[str, Any]]:
-        """샘플 임베딩 훈련 데이터 생성"""
-        samples = [
-            {
-                "query": "상큼한 시트러스 향",
-                "document": "레몬과 오렌지의 신선한 향이 특징인 시트러스 계열 향수",
-                "label": 1
-            },
-            {
-                "query": "로맨틱한 플로럴 향",
-                "document": "장미와 재스민의 우아한 꽃 향기",
-                "label": 1
-            },
-            {
-                "query": "깊은 우디 향",
-                "document": "삼나무와 샌달우드의 깊고 따뜻한 나무 향",
-                "label": 1
-            },
-            {
-                "query": "상큼한 시트러스 향",
-                "document": "무거운 머스크와 앰버의 관능적인 향",
-                "label": 0
-            },
-            {
-                "query": "로맨틱한 플로럴 향",
-                "document": "강한 오크모스와 파촐리의 남성적인 향",
-                "label": 0
-            }
-        ]
-        
-        # 샘플 데이터를 확장하여 100개 생성
-        extended_samples = []
-        for _ in range(20):
-            extended_samples.extend(samples)
-        
-        return extended_samples
+    def _load_embedding_data_from_db(self) -> List[Dict[str, Any]]:
+        """데이터베이스에서 임베딩 훈련 데이터 로드"""
+        from fragrance_ai.database.models import FragranceNote, FragranceRecipe
+        from fragrance_ai.database.base import get_db_session
+
+        data = []
+        try:
+            with get_db_session() as session:
+                # 향수 노트에서 데이터 생성
+                notes = session.query(FragranceNote).limit(500).all()
+                recipes = session.query(FragranceRecipe).limit(500).all()
+
+                for note in notes:
+                    # 긍정 예제
+                    data.append({
+                        "query": f"{note.fragrance_family} 향",
+                        "document": note.description,
+                        "label": 1
+                    })
+
+                # 교차 검증을 위한 부정 예제 생성
+                for i, recipe in enumerate(recipes[:100]):
+                    if i < len(notes) - 1:
+                        # 다른 노트와 매칭 (부정 예제)
+                        data.append({
+                            "query": recipe.description[:50],
+                            "document": notes[i+1].description,
+                            "label": 0
+                        })
+
+                logger.info(f"데이터베이스에서 {len(data)}개의 임베딩 데이터 로드")
+                return data
+
+        except Exception as e:
+            logger.error(f"데이터베이스 로드 실패: {e}")
+            raise ValueError("임베딩 데이터를 데이터베이스에서 로드할 수 없습니다.")
     
-    def _generate_sample_generation_data(self) -> List[Dict[str, Any]]:
-        """샘플 생성 훈련 데이터 생성"""
-        samples = [
-            {
-                "prompt": "상큼하고 로맨틱한 봄 향수 레시피를 만들어주세요.",
-                "response": """
-{
-  "name": "Spring Romance",
-  "description": "상큼한 시트러스와 로맨틱한 플로럴이 어우러진 봄 향수",
-  "notes": {
-    "top": ["bergamot", "lemon", "pink grapefruit"],
-    "middle": ["rose", "peony", "lily of the valley"],
-    "base": ["white musk", "cedar", "amber"]
-  },
-  "formula": {
-    "bergamot": "15%",
-    "lemon": "10%",
-    "pink grapefruit": "5%",
-    "rose": "20%",
-    "peony": "15%",
-    "lily of the valley": "10%",
-    "white musk": "15%",
-    "cedar": "7%",
-    "amber": "3%"
-  }
-}
-"""
-            },
-            {
-                "prompt": "깊고 신비로운 겨울 향수 레시피를 생성해주세요.",
-                "response": """
-{
-  "name": "Winter Mystery",
-  "description": "깊은 우디 노트와 스파이시한 요소가 조화된 겨울 향수",
-  "notes": {
-    "top": ["black pepper", "cardamom", "bergamot"],
-    "middle": ["cedar", "sandalwood", "leather"],
-    "base": ["oud", "vanilla", "musk"]
-  },
-  "formula": {
-    "black pepper": "5%",
-    "cardamom": "8%",
-    "bergamot": "12%",
-    "cedar": "18%",
-    "sandalwood": "15%",
-    "leather": "10%",
-    "oud": "20%",
-    "vanilla": "8%",
-    "musk": "4%"
-  }
-}
-"""
-            }
-        ]
-        
-        # 샘플 확장
-        extended_samples = []
-        for _ in range(50):
-            extended_samples.extend(samples)
-        
-        return extended_samples
+    def _load_generation_data_from_db(self) -> List[Dict[str, Any]]:
+        """데이터베이스에서 생성 훈련 데이터 로드"""
+        from fragrance_ai.database.models import FragranceRecipe, UserRequest
+        from fragrance_ai.database.base import get_db_session
+        import json
+
+        data = []
+        try:
+            with get_db_session() as session:
+                # 사용자 요청과 레시피 매칭
+                recipes = session.query(FragranceRecipe).filter(
+                    FragranceRecipe.is_public == True
+                ).limit(1000).all()
+
+                for recipe in recipes:
+                    if recipe.description and recipe.name:
+                        # 프롬프트 생성
+                        prompt = f"{recipe.fragrance_family} 계열의 {recipe.mood_tags} 향수 레시피를 만들어주세요."
+
+                        # 응답 데이터 생성
+                        response_data = {
+                            "name": recipe.name,
+                            "description": recipe.description,
+                            "notes": {
+                                "top": recipe.top_notes or [],
+                                "middle": recipe.middle_notes or [],
+                                "base": recipe.base_notes or []
+                            },
+                            "formula": recipe.formula or {}
+                        }
+
+                        data.append({
+                            "prompt": prompt,
+                            "response": json.dumps(response_data, ensure_ascii=False, indent=2)
+                        })
+
+                logger.info(f"데이터베이스에서 {len(data)}개의 생성 데이터 로드")
+                return data
+
+        except Exception as e:
+            logger.error(f"데이터베이스 로드 실패: {e}")
+            raise ValueError("생성 데이터를 데이터베이스에서 로드할 수 없습니다.")
     
-    def _generate_sample_embedding_eval_data(self) -> List[Dict[str, Any]]:
-        """샘플 임베딩 평가 데이터 생성"""
+    def _load_embedding_eval_data_from_db(self) -> List[Dict[str, Any]]:
+        """데이터베이스에서 임베딩 평가 데이터 로드"""
         return [
             {
                 "query": "상큼한 여름 향수",
