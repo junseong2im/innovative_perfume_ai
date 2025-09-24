@@ -3,26 +3,37 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import UserService from '../../lib/user-service';
 
 export default function GlobalNav() {
   const router = useRouter();
   const pathname = usePathname();
+  const userService = UserService.getInstance();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [wishlistCount, setWishlistCount] = useState(0);
   const [cartCount, setCartCount] = useState(0);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
+  const [userRole, setUserRole] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(() => {
-    // Check login status
-    const user = localStorage.getItem('user');
-    if (user) {
-      const userData = JSON.parse(user);
-      setIsLoggedIn(true);
-      setUserName(userData.name || userData.email.split('@')[0]);
-    }
+    // 통합 서비스를 통한 로그인 상태 확인
+    const loadUserData = () => {
+      const currentUser = userService.getCurrentUser();
+      if (currentUser) {
+        setIsLoggedIn(true);
+        setUserName(currentUser.profile?.firstName || currentUser.username || currentUser.email?.split('@')[0] || 'User');
+        setUserRole(currentUser.role);
+      } else {
+        setIsLoggedIn(false);
+        setUserName('');
+        setUserRole('');
+      }
+    };
+
+    loadUserData();
 
     // Load wishlist and cart counts
     const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
@@ -30,17 +41,29 @@ export default function GlobalNav() {
     setWishlistCount(wishlist.length);
     setCartCount(cart.reduce((sum: number, item: any) => sum + item.quantity, 0));
 
-    // Listen for storage changes
+    // Listen for storage changes and user updates
     const handleStorageChange = () => {
       const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
       setWishlistCount(wishlist.length);
       setCartCount(cart.reduce((sum: number, item: any) => sum + item.quantity, 0));
+
+      // 사용자 데이터도 다시 로드
+      loadUserData();
+    };
+
+    const handleUsersUpdate = () => {
+      loadUserData();
     };
 
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+    window.addEventListener('usersUpdated', handleUsersUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('usersUpdated', handleUsersUpdate);
+    };
+  }, [userService]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,9 +75,11 @@ export default function GlobalNav() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
+    // 통합 서비스를 통한 로그아웃
+    userService.logout();
     setIsLoggedIn(false);
     setUserName('');
+    setUserRole('');
     setShowUserMenu(false);
     router.push('/');
   };
@@ -65,7 +90,7 @@ export default function GlobalNav() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b text-white" style={{backgroundColor: 'var(--light-brown)', borderColor: 'var(--light-brown-dark)'}}>
+    <nav className="sticky top-0 z-50 border-b text-white shadow-sm" style={{backgroundColor: 'var(--vintage-navy)', borderColor: 'var(--vintage-gray-dark)'}}>
       <div className="mx-auto max-w-screen-2xl px-4 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Left side - Logo and Navigation items */}
@@ -149,6 +174,21 @@ export default function GlobalNav() {
                     <Link href="/orders" className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100">
                       주문 내역
                     </Link>
+                    {/* 관리자 메뉴 */}
+                    {isLoggedIn && (userRole === 'admin' || userRole === 'super_admin' || userRole === 'marketing_admin' || userRole === 'dev_admin') && (
+                      <>
+                        <hr className="my-1" />
+                        <Link href="/system-control/deulsoom-mgr" className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100">
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            시스템 관리
+                          </div>
+                        </Link>
+                      </>
+                    )}
+                    <hr className="my-1" />
                     <button
                       onClick={handleLogout}
                       className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"

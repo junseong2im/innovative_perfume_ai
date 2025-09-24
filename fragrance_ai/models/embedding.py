@@ -97,6 +97,15 @@ class AdvancedKoreanFragranceEmbedding:
             self.use_mixed_precision = False
             logger.info("Using CPU - consider using GPU for better performance")
 
+    async def initialize(self):
+        """모델 초기화"""
+        try:
+            self._load_model()
+            logger.info("AdvancedKoreanFragranceEmbedding initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize AdvancedKoreanFragranceEmbedding: {e}")
+            raise
+
     def _load_model(self) -> None:
         """최신 임베딩 모델 로드 (Multi-model support)"""
         try:
@@ -248,9 +257,20 @@ class AdvancedKoreanFragranceEmbedding:
         
         return self.fragrance_vocab
     
+    async def encode_batch(self, texts: List[str]) -> List[np.ndarray]:
+        """배치 임베딩 생성 (search_service 호환)"""
+        result = await self.encode_async(texts)
+        # Convert to list of individual embeddings
+        return [result.embeddings[i:i+1].flatten() for i in range(len(texts))]
+
+    async def encode_query(self, query: str) -> List[float]:
+        """단일 쿼리 임베딩 생성 (search_service 호환)"""
+        result = await self.encode_async([query])
+        return result.embeddings[0].tolist()
+
     async def encode_async(
-        self, 
-        texts: Union[str, List[str]], 
+        self,
+        texts: Union[str, List[str]],
         model_type: str = "primary",
         pooling_strategy: str = "mean",
         enable_caching: bool = True,
@@ -501,284 +521,8 @@ class AdvancedKoreanFragranceEmbedding:
         """리소스 정리"""
         if hasattr(self, 'executor'):
             self.executor.shutdown(wait=False)
-        
-        # Fragrance-specific vocabulary
-        self.fragrance_vocab = self._init_fragrance_vocabulary()
-        
-    def _load_model(self) -> None:
-        """임베딩 모델 로드"""
-        try:
-            # Use sentence-transformers for better multilingual support
-            if "sentence-transformers" in self.model_name:
-                self.model = SentenceTransformer(self.model_name)
-                self.model.to(self.device)
-                self.tokenizer = None  # sentence-transformers handles tokenization internally
-            else:
-                # Use transformers directly for more control
-                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-                self.model = AutoModel.from_pretrained(self.model_name)
-                self.model.to(self.device)
-            
-            logger.info(f"Loaded embedding model: {self.model_name} on {self.device}")
-            
-        except Exception as e:
-            logger.error(f"Failed to load embedding model: {e}")
-            raise
-    
-    def _init_fragrance_vocabulary(self) -> Dict[str, List[str]]:
-        """향수 특화 어휘 사전 초기화"""
-        return {
-            "top_notes": [
-                "시트러스", "레몬", "베르가못", "자몽", "오렌지", "라임", "유자", 
-                "만다린", "네롤리", "페티그레인", "상큼한", "신선한", "활기찬"
-            ],
-            "heart_notes": [
-                "장미", "자스민", "라벤더", "일랑일랑", "제라늄", "프리지아",
-                "백합", "피오니", "바이올렛", "부드러운", "우아한", "로맨틱한"
-            ],
-            "base_notes": [
-                "바닐라", "머스크", "앰버", "샌달우드", "시더우드", "패츌리",
-                "베티버", "통카빈", "오크모스", "깊은", "따뜻한", "관능적인"
-            ],
-            "mood_descriptors": [
-                "신비로운", "우아한", "세련된", "자연스러운", "도시적인",
-                "빈티지한", "모던한", "클래식한", "대담한", "은은한",
-                "강렬한", "부드러운", "따뜻한", "차가운", "달콤한"
-            ],
-            "seasonal": [
-                "봄", "여름", "가을", "겨울", "사계절", "데일리",
-                "이브닝", "주간", "야간", "특별한날"
-            ],
-            "personality": [
-                "활발한", "내향적인", "외향적인", "지적인", "감성적인",
-                "카리스마", "순수한", "신비한", "도전적인", "안정적인"
-            ]
-        }
-    
-    def encode_single_text(self, text: str, enhance_fragrance_terms: bool = True) -> np.ndarray:
-        """단일 텍스트를 벡터로 인코딩"""
-        try:
-            if enhance_fragrance_terms:
-                text = self._enhance_fragrance_text(text)
-            
-            if isinstance(self.model, SentenceTransformer):
-                embedding = self.model.encode([text], convert_to_numpy=True)[0]
-            else:
-                inputs = self.tokenizer(
-                    text, 
-                    return_tensors="pt", 
-                    truncation=True, 
-                    padding=True, 
-                    max_length=512
-                ).to(self.device)
-                
-                with torch.no_grad():
-                    outputs = self.model(**inputs)
-                    embedding = self._mean_pooling(outputs.last_hidden_state, inputs['attention_mask'])
-                    embedding = embedding.cpu().numpy().squeeze()
-            
-            return embedding
-            
-        except Exception as e:
-            logger.error(f"Failed to encode text: {e}")
-            raise
-    
-    def encode_batch(self, texts: List[str], batch_size: int = 32) -> np.ndarray:
-        """GPU 최적화된 배치 텍스트 인코딩"""
-        try:
-            # GPU 메모리 기반 적응형 배치 크기
-            if self.device.type == 'cuda':
-                available_memory = torch.cuda.get_device_properties(self.device).total_memory
-                batch_size = min(batch_size, max(8, int(available_memory / (1024**3) * 16)))  # 메모리 기반 조정
 
-            enhanced_texts = [self._enhance_fragrance_text(text) for text in texts]
-
-            # GPU 가속 인코딩
-            if isinstance(self.model, SentenceTransformer):
-                if self.use_mixed_precision:
-                    # Mixed precision으로 속도 향상
-                    with torch.cuda.amp.autocast():
-                        embeddings = self.model.encode(
-                            enhanced_texts,
-                            batch_size=batch_size,
-                            convert_to_numpy=True,
-                            show_progress_bar=len(texts) > 100,
-                            device=self.device,
-                            normalize_embeddings=True  # 정규화로 품질 향상
-                        )
-                else:
-                    embeddings = self.model.encode(
-                        enhanced_texts,
-                        batch_size=batch_size,
-                        convert_to_numpy=True,
-                        show_progress_bar=len(texts) > 100,
-                        device=self.device,
-                        normalize_embeddings=True
-                    )
-            else:
-                embeddings = []
-                for i in range(0, len(enhanced_texts), batch_size):
-                    batch = enhanced_texts[i:i + batch_size]
-                    if self.use_mixed_precision:
-                        with torch.cuda.amp.autocast():
-                            batch_embeddings = self._encode_batch_transformers(batch)
-                    else:
-                        batch_embeddings = self._encode_batch_transformers(batch)
-                    embeddings.extend(batch_embeddings)
-
-                    # GPU 메모리 정리
-                    if self.device.type == 'cuda':
-                        torch.cuda.empty_cache()
-
-                embeddings = np.array(embeddings)
-
-            logger.info(f"GPU-optimized encoding: {len(texts)} texts -> {embeddings.shape}, device: {self.device}")
-            return embeddings
-            
-        except Exception as e:
-            logger.error(f"Failed to encode batch: {e}")
-            raise
-    
-    def _encode_batch_transformers(self, texts: List[str]) -> List[np.ndarray]:
-        """Transformers 모델로 배치 인코딩"""
-        inputs = self.tokenizer(
-            texts, 
-            return_tensors="pt", 
-            truncation=True, 
-            padding=True, 
-            max_length=512
-        ).to(self.device)
-        
-        with torch.no_grad():
-            outputs = self.model(**inputs)
-            embeddings = self._mean_pooling(outputs.last_hidden_state, inputs['attention_mask'])
-            return embeddings.cpu().numpy()
-    
-    def _mean_pooling(self, token_embeddings: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
-        """평균 풀링"""
-        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-        return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-    
-    def _enhance_fragrance_text(self, text: str) -> str:
-        """향수 관련 용어 강화"""
-        enhanced_text = text
-        
-        # Add contextual terms based on fragrance vocabulary
-        for category, terms in self.fragrance_vocab.items():
-            for term in terms:
-                if term in text:
-                    # Add semantic context
-                    if category == "top_notes":
-                        enhanced_text += " 상단노트 첫인상"
-                    elif category == "heart_notes":
-                        enhanced_text += " 중간노트 핵심향"
-                    elif category == "base_notes":
-                        enhanced_text += " 베이스노트 지속향"
-        
-        return enhanced_text
-    
-    def compute_similarity(self, embedding1: np.ndarray, embedding2: np.ndarray) -> float:
-        """코사인 유사도 계산"""
-        try:
-            # Normalize embeddings
-            embedding1_norm = embedding1 / np.linalg.norm(embedding1)
-            embedding2_norm = embedding2 / np.linalg.norm(embedding2)
-            
-            # Compute cosine similarity
-            similarity = np.dot(embedding1_norm, embedding2_norm)
-            return float(similarity)
-            
-        except Exception as e:
-            logger.error(f"Failed to compute similarity: {e}")
-            return 0.0
-    
-    def find_most_similar(
-        self, 
-        query_embedding: np.ndarray, 
-        candidate_embeddings: np.ndarray, 
-        top_k: int = 5
-    ) -> List[int]:
-        """가장 유사한 임베딩들의 인덱스 반환"""
-        try:
-            similarities = []
-            for i, candidate in enumerate(candidate_embeddings):
-                similarity = self.compute_similarity(query_embedding, candidate)
-                similarities.append((i, similarity))
-            
-            # Sort by similarity descending
-            similarities.sort(key=lambda x: x[1], reverse=True)
-            
-            return [idx for idx, _ in similarities[:top_k]]
-            
-        except Exception as e:
-            logger.error(f"Failed to find most similar: {e}")
-            return []
-    
-    def create_fragrance_profile_embedding(self, fragrance_data: Dict[str, Any]) -> np.ndarray:
-        """향수 프로필 전체를 종합한 임베딩 생성"""
-        try:
-            # Combine all fragrance information
-            profile_text = []
-            
-            if "name" in fragrance_data:
-                profile_text.append(f"향수명: {fragrance_data['name']}")
-            
-            if "brand" in fragrance_data:
-                profile_text.append(f"브랜드: {fragrance_data['brand']}")
-            
-            if "description" in fragrance_data:
-                profile_text.append(f"설명: {fragrance_data['description']}")
-            
-            if "top_notes" in fragrance_data:
-                profile_text.append(f"톱노트: {', '.join(fragrance_data['top_notes'])}")
-            
-            if "heart_notes" in fragrance_data:
-                profile_text.append(f"미들노트: {', '.join(fragrance_data['heart_notes'])}")
-            
-            if "base_notes" in fragrance_data:
-                profile_text.append(f"베이스노트: {', '.join(fragrance_data['base_notes'])}")
-            
-            if "mood_tags" in fragrance_data:
-                profile_text.append(f"무드: {', '.join(fragrance_data['mood_tags'])}")
-            
-            if "season" in fragrance_data:
-                profile_text.append(f"계절: {fragrance_data['season']}")
-            
-            combined_text = " ".join(profile_text)
-            return self.encode_single_text(combined_text)
-            
-        except Exception as e:
-            logger.error(f"Failed to create fragrance profile embedding: {e}")
-            raise
-    
-    def semantic_search_fragrance(
-        self,
-        query: str,
-        fragrance_embeddings: np.ndarray,
-        fragrance_metadata: List[Dict[str, Any]],
-        top_k: int = 10,
-        min_similarity: float = 0.5
-    ) -> List[Dict[str, Any]]:
-        """향수 특화 의미 검색"""
-        try:
-            query_embedding = self.encode_single_text(query)
-            
-            results = []
-            for i, candidate_embedding in enumerate(fragrance_embeddings):
-                similarity = self.compute_similarity(query_embedding, candidate_embedding)
-                
-                if similarity >= min_similarity:
-                    result = {
-                        "index": i,
-                        "similarity": similarity,
-                        "metadata": fragrance_metadata[i] if i < len(fragrance_metadata) else {}
-                    }
-                    results.append(result)
-            
-            # Sort by similarity and return top_k
-            results.sort(key=lambda x: x["similarity"], reverse=True)
-            return results[:top_k]
-            
-        except Exception as e:
-            logger.error(f"Failed to perform semantic search: {e}")
-            return []
+    async def encode_single_text_async(self, text: str, enhance_fragrance_terms: bool = True) -> np.ndarray:
+        """단일 텍스트를 비동기로 벡터 인코딩"""
+        result = await self.encode_async([text], enable_caching=True)
+        return result.embeddings[0]

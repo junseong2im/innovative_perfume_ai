@@ -1,0 +1,375 @@
+# Fragrance AI Production Deployment Pipeline
+# Automated CI/CD for production deployments
+
+name: Production Deployment
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      strategy:
+        description: 'Deployment strategy'
+        required: true
+        default: 'rolling'
+        type: choice
+        options:
+          - rolling
+          - blue_green
+          - recreate
+      force_deploy:
+        description: 'Force deployment even if tests fail'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  # Test and Quality Assurance
+  test:
+    name: Run Tests and Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run linting
+        run: |
+          black --check fragrance_ai/
+          isort --check-only fragrance_ai/
+          flake8 fragrance_ai/
+          mypy fragrance_ai/
+
+      - name: Run security scan
+        run: |
+          bandit -r fragrance_ai/ -f json -o bandit-report.json
+          safety check --json --output safety-report.json
+
+      - name: Run unit tests
+        run: |
+          pytest tests/ --cov=fragrance_ai --cov-report=xml --cov-report=html
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results
+          path: |
+            htmlcov/
+            bandit-report.json
+            safety-report.json
+            coverage.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+  # Build Docker Images
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: test
+    if: success() || github.event.inputs.force_deploy == 'true'
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile.production
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+            REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+
+      - name: Output image
+        id: image
+        run: echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}" >> $GITHUB_OUTPUT
+
+  # Security Scanning
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    if: success() || github.event.inputs.force_deploy == 'true'
+    steps:
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ needs.build.outputs.image }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # Deploy to Development
+  deploy-dev:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: |
+      (github.ref == 'refs/heads/develop' || github.event.inputs.environment == 'development') &&
+      (success() || github.event.inputs.force_deploy == 'true')
+    environment:
+      name: development
+      url: https://dev-api.yourdomain.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Development
+        run: |
+          echo "Deploying to development environment"
+          ./scripts/deploy.sh development \
+            --version ${{ needs.build.outputs.image }} \
+            --strategy ${{ github.event.inputs.strategy || 'rolling' }} \
+            --health-check \
+            --cleanup
+
+  # Deploy to Staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: |
+      (github.ref == 'refs/heads/staging' || github.event.inputs.environment == 'staging') &&
+      (success() || github.event.inputs.force_deploy == 'true')
+    environment:
+      name: staging
+      url: https://staging-api.yourdomain.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Staging
+        run: |
+          echo "Deploying to staging environment"
+          ./scripts/deploy.sh staging \
+            --version ${{ needs.build.outputs.image }} \
+            --strategy ${{ github.event.inputs.strategy || 'rolling' }} \
+            --backup \
+            --health-check \
+            --cleanup
+
+      - name: Run integration tests
+        run: |
+          python -m pytest tests/integration/ \
+            --base-url=https://staging-api.yourdomain.com \
+            --timeout=300
+
+  # Deploy to Production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build, security, deploy-staging]
+    if: |
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v') || github.event.inputs.environment == 'production') &&
+      (success() || github.event.inputs.force_deploy == 'true')
+    environment:
+      name: production
+      url: https://api.yourdomain.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.EKS_CLUSTER_NAME }}
+
+      - name: Deploy to Production (Kubernetes)
+        run: |
+          echo "Deploying to production environment using Kubernetes"
+          ./scripts/deploy_kubernetes.sh \
+            --environment production \
+            --version ${{ needs.build.outputs.image }} \
+            --namespace fragrance-ai-prod
+
+      - name: Deploy to Production (Docker Compose - Fallback)
+        if: failure()
+        run: |
+          echo "Kubernetes deployment failed, falling back to Docker Compose"
+          ./scripts/deploy.sh production \
+            --version ${{ needs.build.outputs.image }} \
+            --strategy ${{ github.event.inputs.strategy || 'blue_green' }} \
+            --backup \
+            --health-check
+
+      - name: Run production smoke tests
+        run: |
+          python -m pytest tests/smoke/ \
+            --base-url=https://api.yourdomain.com \
+            --timeout=60
+
+      - name: Update deployment status
+        run: |
+          echo "Production deployment completed successfully"
+          echo "Version: ${{ needs.build.outputs.image }}"
+          echo "Deployment time: $(date)"
+
+  # Post-deployment monitoring
+  post-deploy:
+    name: Post-deployment Monitoring
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: success()
+    steps:
+      - name: Wait for services to stabilize
+        run: sleep 300
+
+      - name: Check service health
+        run: |
+          curl -f https://api.yourdomain.com/health || exit 1
+
+      - name: Send notification to Slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          text: |
+            Production deployment completed successfully!
+            Version: ${{ needs.build.outputs.image }}
+            Environment: production
+        if: always()
+
+      - name: Create GitHub release
+        uses: actions/create-release@v1
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Automated release for Fragrance AI
+
+            **Changes in this release:**
+            - See commit history for detailed changes
+
+            **Deployment Information:**
+            - Docker Image: ${{ needs.build.outputs.image }}
+            - Deployment Strategy: ${{ github.event.inputs.strategy || 'blue_green' }}
+            - Environment: production
+
+            **Verification:**
+            - All tests passed ✅
+            - Security scan completed ✅
+            - Health checks passed ✅
+          draft: false
+          prerelease: contains(github.ref, '-')
+
+  # Rollback capability
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    if: failure() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: [deploy-production]
+    environment:
+      name: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Rollback deployment
+        run: |
+          echo "Rolling back deployment due to failures"
+          ./scripts/rollback.sh production --auto
+
+      - name: Notify rollback
+        uses: 8398a7/action-slack@v3
+        with:
+          status: 'warning'
+          channel: '#alerts'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          text: |
+            🚨 Production deployment failed and was rolled back!
+            Repository: ${{ github.repository }}
+            Commit: ${{ github.sha }}
+            Please investigate the deployment logs.

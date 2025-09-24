@@ -1,0 +1,353 @@
+version: '3.8'
+
+services:
+  # 메인 애플리케이션
+  fragrance-ai:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.production
+      target: production
+    container_name: fragrance-ai-app
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://fragrance_user:${POSTGRES_PASSWORD}@postgres:5432/fragrance_ai
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMA_PERSIST_DIRECTORY=/app/data/chroma_db
+      - SECRET_KEY=${SECRET_KEY}
+      - HF_TOKEN=${HF_TOKEN}
+    volumes:
+      - app_data:/app/data
+      - app_logs:/app/logs
+      - model_cache:/app/cache
+    depends_on:
+      - postgres
+      - redis
+      - chroma
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - fragrance-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+
+  # PostgreSQL Database with High Availability
+  postgres:
+    image: postgres:15-alpine
+    container_name: fragrance-ai-postgres
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-fragrance_ai}
+      - POSTGRES_USER=${POSTGRES_USER:-fragrance_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --locale=C
+      - POSTGRES_MAX_CONNECTIONS=200
+      - POSTGRES_SHARED_BUFFERS=256MB
+      - POSTGRES_EFFECTIVE_CACHE_SIZE=1GB
+      - POSTGRES_MAINTENANCE_WORK_MEM=64MB
+      - POSTGRES_CHECKPOINT_COMPLETION_TARGET=0.9
+      - POSTGRES_WAL_BUFFERS=16MB
+      - POSTGRES_DEFAULT_STATISTICS_TARGET=100
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/postgresql.prod.conf:/etc/postgresql/postgresql.conf:ro
+      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./init-scripts:/docker-entrypoint-initdb.d
+      - ../backups:/backups
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fragrance_user} -d ${POSTGRES_DB:-fragrance_ai}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - fragrance-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+    labels:
+      - "backup.enable=true"
+      - "backup.schedule=daily"
+
+  # Redis 캐시
+  redis:
+    image: redis:7-alpine
+    container_name: fragrance-ai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - fragrance-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+
+  # ChromaDB 벡터 데이터베이스
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: fragrance-ai-chroma
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - fragrance-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+  # Nginx 리버스 프록시
+  nginx:
+    image: nginx:alpine
+    container_name: fragrance-ai-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/sites-enabled:/etc/nginx/sites-enabled:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - fragrance-ai
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - fragrance-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # Prometheus 모니터링
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: fragrance-ai-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - fragrance-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+
+  # Grafana 대시보드
+  grafana:
+    image: grafana/grafana:latest
+    container_name: fragrance-ai-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - fragrance-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # Celery 워커 (백그라운드 작업)
+  celery-worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.production
+      target: production
+    container_name: fragrance-ai-celery-worker
+    command: python -m celery worker -A fragrance_ai.core.celery_app:app --loglevel=info --concurrency=4
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://fragrance_user:${POSTGRES_PASSWORD}@postgres:5432/fragrance_ai
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    volumes:
+      - app_data:/app/data
+      - app_logs:/app/logs
+      - model_cache:/app/cache
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    networks:
+      - fragrance-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+
+  # Celery Beat (스케줄러)
+  celery-beat:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.production
+      target: production
+    container_name: fragrance-ai-celery-beat
+    command: python -m celery beat -A fragrance_ai.core.celery_app:app --loglevel=info
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://fragrance_user:${POSTGRES_PASSWORD}@postgres:5432/fragrance_ai
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    volumes:
+      - app_data:/app/data
+      - app_logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    networks:
+      - fragrance-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # Flower (Celery 모니터링)
+  flower:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.production
+      target: production
+    container_name: fragrance-ai-flower
+    command: python -m celery flower -A fragrance_ai.core.celery_app:app --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    depends_on:
+      - redis
+      - celery-worker
+    restart: unless-stopped
+    networks:
+      - fragrance-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+networks:
+  fragrance-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  chroma_data:
+    driver: local
+  app_data:
+    driver: local
+  app_logs:
+    driver: local
+  model_cache:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  nginx_logs:
+    driver: local

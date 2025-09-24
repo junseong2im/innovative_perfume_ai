@@ -1,0 +1,98 @@
+# 프로덕션용 멀티스테이지 Dockerfile
+# 최적화된 이미지 크기와 보안성을 위한 설계
+
+FROM python:3.11-slim as base
+
+# 메타데이터
+LABEL maintainer="FragranceAI Team <admin@fragranceai.com>"
+LABEL version="1.0.0"
+LABEL description="Fragrance AI Production Container"
+
+# 시스템 사용자 생성 (보안)
+RUN groupadd -r fragranceai && useradd -r -g fragranceai fragranceai
+
+# 시스템 패키지 업데이트 및 필수 패키지 설치
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    git \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Python 최적화 환경변수
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONHASHSEED=random \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# 작업 디렉토리 설정
+WORKDIR /app
+
+# Python 의존성 설치 (캐시 최적화)
+COPY requirements.txt requirements-prod.txt ./
+RUN pip install --no-cache-dir -r requirements-prod.txt
+
+# 애플리케이션 코드 복사
+COPY fragrance_ai/ ./fragrance_ai/
+COPY scripts/ ./scripts/
+COPY configs/ ./configs/
+COPY alembic.ini ./
+COPY alembic/ ./alembic/
+
+# 권한 설정
+RUN chown -R fragranceai:fragranceai /app
+USER fragranceai
+
+# 헬스체크
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# 포트 노출
+EXPOSE 8000
+
+# 시작 명령
+CMD ["python", "-m", "uvicorn", "fragrance_ai.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+
+# =============================================================================
+# 개발용 스테이지
+FROM base as development
+
+USER root
+
+# 개발용 추가 패키지
+RUN pip install --no-cache-dir \
+    pytest \
+    pytest-asyncio \
+    pytest-cov \
+    black \
+    isort \
+    flake8 \
+    mypy \
+    jupyter
+
+# 개발용 설정
+ENV ENVIRONMENT=development
+ENV DEBUG=true
+
+USER fragranceai
+
+CMD ["python", "-m", "uvicorn", "fragrance_ai.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+# =============================================================================
+# 프로덕션용 스테이지
+FROM base as production
+
+# 프로덕션 설정
+ENV ENVIRONMENT=production
+ENV DEBUG=false
+
+# 로그 디렉토리 생성
+RUN mkdir -p /app/logs && chown fragranceai:fragranceai /app/logs
+
+# 비전 사용자로 실행
+USER fragranceai
+
+# Gunicorn을 사용한 프로덕션 서버
+CMD ["python", "-m", "gunicorn", "fragrance_ai.api.main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--access-logfile", "-", "--error-logfile", "-"]

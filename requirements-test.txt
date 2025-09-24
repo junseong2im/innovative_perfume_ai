@@ -1,0 +1,24 @@
+# Testing Dependencies
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+httpx>=0.24.0
+pytest-xdist>=3.3.0
+
+# Security Testing
+safety>=2.3.0
+bandit>=1.7.0
+
+# Performance Testing
+pytest-benchmark>=4.0.0
+memory-profiler>=0.60.0
+
+# Test Data Generation
+faker>=19.0.0
+factory-boy>=3.3.0
+
+# Additional Testing Utilities
+responses>=0.23.0
+freezegun>=1.2.0
+testcontainers>=3.7.0

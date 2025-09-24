@@ -1,10 +1,7 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
-
-export const metadata = {
-  title: '스토리 | Deulsoom',
-  description: 'Deulsoom의 철학과 AI 향수 제조 기술에 대해 알아보세요'
-};
 
 export default function AboutPage() {
   return (
@@ -141,44 +138,23 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Team Section */}
-      <section className="py-16 lg:py-24 bg-white">
-        <div className="mx-auto max-w-6xl px-4 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-light text-neutral-900 mb-4">우리 팀</h2>
-            <div className="w-24 h-1 bg-neutral-900 mx-auto"></div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {[
-              { name: '김민수', role: 'Master Perfumer', experience: '20년 경력' },
-              { name: '이서연', role: 'AI Engineer', experience: 'MIT 박사' },
-              { name: '박준호', role: 'Creative Director', experience: '파리 예술대학' },
-              { name: '최유진', role: 'Fragrance Specialist', experience: 'ISIPCA 졸업' }
-            ].map((member, index) => (
-              <div key={index} className="text-center">
-                <div className="w-32 h-32 mx-auto mb-4 rounded-full bg-neutral-200"></div>
-                <h3 className="font-medium text-neutral-900">{member.name}</h3>
-                <p className="text-sm text-neutral-600 mt-1">{member.role}</p>
-                <p className="text-xs text-neutral-500 mt-1">{member.experience}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* CTA Section */}
-      <section className="py-16 lg:py-24" style={{ backgroundColor: 'var(--light-brown)' }}>
+      <section className="py-16 lg:py-24" style={{ backgroundColor: 'var(--vintage-navy)' }}>
         <div className="mx-auto max-w-4xl px-4 lg:px-8 text-center">
           <h2 className="text-3xl font-light text-white mb-6">
             당신만의 향수를 만들 준비가 되셨나요?
           </h2>
-          <p className="text-xl text-neutral-200 mb-8">
+          <p className="text-xl mb-8" style={{ color: 'var(--ivory-light)' }}>
             AI와 함께 당신의 완벽한 시그니처 향을 찾아보세요.
           </p>
           <Link
             href="/create"
-            className="inline-block px-8 py-4 bg-white text-neutral-900 font-medium rounded-md hover:bg-neutral-100 transition-colors"
+            className="inline-block px-8 py-4 text-white font-medium rounded-lg transition-all transform hover:scale-105 hover:shadow-lg"
+            style={{
+              backgroundColor: 'var(--vintage-gold)',
+              transition: 'all 0.3s ease'
+            }}
           >
             향수 제작 시작하기
           </Link>

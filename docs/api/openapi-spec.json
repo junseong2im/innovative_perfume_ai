@@ -1,0 +1,558 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Fragrance AI API",
+    "description": "🌸 완벽한 AI 향수 추천 및 생성 플랫폼\n\n## 주요 기능\n- 🧠 AI 기반 향수 레시피 생성\n- 🔍 의미 기반 향수 검색\n- 📊 실시간 성능 모니터링\n- 🛡️ 엔터프라이즈 보안\n\n## 인증\nBearer 토큰을 사용한 JWT 인증이 필요합니다.\n\n```bash\nAuthorization: Bearer YOUR_JWT_TOKEN\n```",
+    "version": "2.0.0",
+    "contact": {
+      "name": "Fragrance AI Team",
+      "email": "api@fragrance-ai.com",
+      "url": "https://fragrance-ai.com"
+    },
+    "license": {
+      "name": "Proprietary License",
+      "url": "https://fragrance-ai.com/license"
+    },
+    "termsOfService": "https://fragrance-ai.com/terms"
+  },
+  "servers": [
+    {
+      "url": "https://api.fragrance-ai.com/api/v2",
+      "description": "Production Server"
+    },
+    {
+      "url": "https://staging-api.fragrance-ai.com/api/v2",
+      "description": "Staging Server"
+    },
+    {
+      "url": "http://localhost:8000/api/v2",
+      "description": "Development Server"
+    }
+  ],
+  "paths": {
+    "/semantic-search": {
+      "post": {
+        "tags": ["Search"],
+        "summary": "🔍 의미 기반 향수 검색",
+        "description": "자연어 쿼리를 사용하여 의미적으로 유사한 향수를 검색합니다.",
+        "operationId": "semantic_search",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SemanticSearchRequest"
+              },
+              "examples": {
+                "basic_search": {
+                  "summary": "기본 검색",
+                  "value": {
+                    "query": "상큼하고 로맨틱한 봄 향수",
+                    "top_k": 10,
+                    "min_similarity": 0.7
+                  }
+                },
+                "advanced_search": {
+                  "summary": "고급 검색",
+                  "value": {
+                    "query": "woody and mysterious evening fragrance",
+                    "top_k": 5,
+                    "search_type": "hybrid",
+                    "collection_weights": {
+                      "fragrance_notes": 1.0,
+                      "recipes": 0.8
+                    },
+                    "filters": {
+                      "season": "autumn",
+                      "intensity": "strong"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "검색 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SemanticSearchResponse"
+                },
+                "examples": {
+                  "success_response": {
+                    "summary": "성공적인 검색 결과",
+                    "value": {
+                      "query": "상큼하고 로맨틱한 봄 향수",
+                      "results": [
+                        {
+                          "id": "fragrance_001",
+                          "name": "Spring Blossom",
+                          "similarity_score": 0.95,
+                          "notes": ["bergamot", "rose", "white musk"],
+                          "description": "Fresh and romantic spring fragrance"
+                        }
+                      ],
+                      "metadata": {
+                        "total_results": 10,
+                        "search_time": 0.047,
+                        "timestamp": "2024-01-20T10:30:00Z"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimit"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/generate/recipe": {
+      "post": {
+        "tags": ["Generation"],
+        "summary": "🧪 향수 레시피 생성",
+        "description": "AI를 사용하여 맞춤형 향수 레시피를 생성합니다.",
+        "operationId": "generate_recipe",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecipeGenerationRequest"
+              },
+              "examples": {
+                "romantic_perfume": {
+                  "summary": "로맨틱 향수",
+                  "value": {
+                    "mood": "romantic",
+                    "season": "spring",
+                    "intensity": "moderate",
+                    "notes_preference": ["rose", "jasmine", "vanilla"],
+                    "target_audience": "women",
+                    "occasion": "date"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "레시피 생성 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecipeGenerationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/monitoring": {
+      "get": {
+        "tags": ["Monitoring"],
+        "summary": "📊 실시간 모니터링 데이터",
+        "description": "시스템 성능 및 상태 모니터링 데이터를 조회합니다.",
+        "operationId": "get_monitoring_data",
+        "responses": {
+          "200": {
+            "description": "모니터링 데이터",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitoringData"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": ["admin"]
+          }
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "🏥 헬스체크",
+        "description": "서비스 상태를 확인합니다.",
+        "operationId": "health_check",
+        "responses": {
+          "200": {
+            "description": "서비스 정상",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "서비스 이용 불가",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SemanticSearchRequest": {
+        "type": "object",
+        "required": ["query"],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "검색 쿼리 (자연어)",
+            "example": "상큼하고 로맨틱한 봄 향수",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "반환할 결과 수",
+            "default": 10,
+            "minimum": 1,
+            "maximum": 100
+          },
+          "min_similarity": {
+            "type": "number",
+            "description": "최소 유사도 임계값",
+            "default": 0.7,
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "search_type": {
+            "type": "string",
+            "enum": ["similarity", "hybrid", "single_collection"],
+            "default": "similarity",
+            "description": "검색 타입"
+          },
+          "collection_weights": {
+            "type": "object",
+            "description": "컬렉션별 가중치",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "filters": {
+            "type": "object",
+            "description": "추가 필터 조건",
+            "properties": {
+              "season": {
+                "type": "string",
+                "enum": ["spring", "summer", "autumn", "winter"]
+              },
+              "intensity": {
+                "type": "string",
+                "enum": ["light", "moderate", "strong"]
+              },
+              "gender": {
+                "type": "string",
+                "enum": ["masculine", "feminine", "unisex"]
+              }
+            }
+          }
+        }
+      },
+      "SemanticSearchResponse": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "원본 검색 쿼리"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchResult"
+            }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/SearchMetadata"
+          }
+        }
+      },
+      "SearchResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "향수 ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "향수 이름"
+          },
+          "similarity_score": {
+            "type": "number",
+            "description": "유사도 점수",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "향료 노트"
+          },
+          "description": {
+            "type": "string",
+            "description": "향수 설명"
+          },
+          "collection": {
+            "type": "string",
+            "description": "소속 컬렉션"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "추가 메타데이터"
+          }
+        }
+      },
+      "RecipeGenerationRequest": {
+        "type": "object",
+        "required": ["mood"],
+        "properties": {
+          "mood": {
+            "type": "string",
+            "description": "원하는 무드",
+            "example": "romantic"
+          },
+          "season": {
+            "type": "string",
+            "enum": ["spring", "summer", "autumn", "winter"],
+            "description": "계절"
+          },
+          "intensity": {
+            "type": "string",
+            "enum": ["light", "moderate", "strong"],
+            "default": "moderate"
+          },
+          "notes_preference": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "선호하는 향료"
+          },
+          "target_audience": {
+            "type": "string",
+            "enum": ["men", "women", "unisex"],
+            "default": "unisex"
+          },
+          "occasion": {
+            "type": "string",
+            "description": "사용 상황",
+            "example": "daily"
+          }
+        }
+      },
+      "MonitoringData": {
+        "type": "object",
+        "properties": {
+          "system_status": {
+            "type": "object",
+            "properties": {
+              "cpu_usage": {
+                "type": "number",
+                "description": "CPU 사용률 (%)"
+              },
+              "memory_usage": {
+                "type": "number",
+                "description": "메모리 사용률 (%)"
+              },
+              "disk_usage": {
+                "type": "number",
+                "description": "디스크 사용률 (%)"
+              }
+            }
+          },
+          "api_stats": {
+            "type": "object",
+            "description": "API 통계"
+          },
+          "recent_alerts": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "HealthStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["healthy", "unhealthy", "degraded"]
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "string"
+          },
+          "checks": {
+            "type": "object",
+            "properties": {
+              "database": {
+                "type": "boolean"
+              },
+              "redis": {
+                "type": "boolean"
+              },
+              "ai_models": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean",
+            "example": true
+          },
+          "error_code": {
+            "type": "string",
+            "example": "E0001"
+          },
+          "message": {
+            "type": "string",
+            "example": "Invalid request parameter"
+          },
+          "details": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "잘못된 요청",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "인증 실패",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "권한 없음",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "RateLimit": {
+        "description": "요청 한도 초과",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "서버 내부 오류",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT 토큰을 사용한 인증"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Search",
+      "description": "🔍 향수 검색 관련 API"
+    },
+    {
+      "name": "Generation",
+      "description": "🧪 향수 생성 관련 API"
+    },
+    {
+      "name": "Monitoring",
+      "description": "📊 모니터링 관련 API"
+    },
+    {
+      "name": "Health",
+      "description": "🏥 헬스체크 API"
+    }
+  ]
+}

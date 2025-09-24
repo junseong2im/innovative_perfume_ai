@@ -1,0 +1,9 @@
+{
+  "message": "봄날 아침의 향기로운 향수를 만들어주세요",
+  "session_id": "test_session_123",
+  "context": {
+    "conversation_history": "",
+    "interaction_type": "fragrance_chat",
+    "message_count": 1
+  }
+}

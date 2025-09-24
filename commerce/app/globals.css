@@ -5,11 +5,27 @@
 
 @layer base {
   :root {
-    --ivory: #F0EDE5;
-    --ivory-light: #F5F2EA;
-    --ivory-dark: #EBE7DD;
-    --light-brown: #8B7355;
-    --light-brown-dark: #6B5B47;
+    /* 빈티지 크림/아이보리 톤 */
+    --ivory: #F4F1E8;
+    --ivory-light: #F9F6F0;
+    --ivory-dark: #EDE9DE;
+
+    /* 빈티지 브라운 계열 */
+    --light-brown: #A0896B;
+    --light-brown-dark: #8B7355;
+    --deep-brown: #6B5B47;
+
+    /* 빈티지 액센트 컬러 */
+    --vintage-gold: #D4AF37;
+    --vintage-gold-dark: #B8941F;
+    --vintage-sage: #9CAF88;
+    --vintage-rose: #D4A5A5;
+    --vintage-navy: #4A5D6C;
+
+    /* 빈티지 그레이 톤 */
+    --vintage-gray: #8B8680;
+    --vintage-gray-light: #A8A295;
+    --vintage-gray-dark: #6B635E;
   }
 
   body {
@@ -41,4 +57,10 @@ a,
 input,
 button {
   @apply focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-50 dark:focus-visible:ring-neutral-600 dark:focus-visible:ring-offset-neutral-900;
+}
+
+/* 빈티지 골드 버튼 호버 효과 */
+a[style*="var(--vintage-gold)"]:hover,
+button[style*="var(--vintage-gold)"]:hover {
+  background-color: var(--vintage-gold-dark) !important;
 }

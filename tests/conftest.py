@@ -1,16 +1,47 @@
+# 🧪 포괄적인 테스트 설정
+import asyncio
 import pytest
-import numpy as np
-from unittest.mock import Mock, MagicMock
-import tempfile
-import os
+import pytest_asyncio
 from pathlib import Path
+from typing import AsyncGenerator, Generator
+import tempfile
+import shutil
+from unittest.mock import Mock, AsyncMock
+import numpy as np
 import json
+import os
+import sys
 
-# 테스트용 임시 디렉토리
+# 프로젝트 루트 추가
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+try:
+    import aioredis
+    import asyncpg
+    from fastapi.testclient import TestClient
+    from httpx import AsyncClient
+    from fragrance_ai.api.main import app
+    from fragrance_ai.core.config import settings
+    FULL_TESTING = True
+except ImportError:
+    FULL_TESTING = False
+    print("⚠️ 일부 의존성이 없어 기본 테스트만 실행됩니다")
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    """이벤트 루프 픽스처"""
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
+
+
 @pytest.fixture
 def temp_dir():
-    with tempfile.TemporaryDirectory() as tmpdir:
-        yield Path(tmpdir)
+    """임시 디렉토리 픽스처"""
+    temp_path = Path(tempfile.mkdtemp())
+    yield temp_path
+    shutil.rmtree(temp_path, ignore_errors=True)
 
 # 샘플 임베딩 데이터
 @pytest.fixture

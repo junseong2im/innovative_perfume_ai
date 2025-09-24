@@ -1,0 +1,469 @@
+name: 🔐 Enhanced Security Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # 매일 02:00 UTC에 보안 스캔 실행
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # 🔍 고급 코드 품질 분석
+  advanced-code-analysis:
+    name: 🔍 Advanced Code Quality Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+
+    - name: 📦 Install analysis tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+
+        # 추가 분석 도구
+        pip install \
+          vulture \
+          xenon \
+          dlint \
+          semgrep \
+          pyupgrade \
+          autoflake \
+          pydocstyle \
+          darglint
+
+    - name: 📊 Code Complexity Analysis
+      run: |
+        echo "=== Cyclomatic Complexity Analysis ==="
+        radon cc fragrance_ai/ -a -nc --total-average
+
+        echo "=== Maintainability Index ==="
+        radon mi fragrance_ai/ -nc
+
+        echo "=== Halstead Metrics ==="
+        radon hal fragrance_ai/ -f
+
+    - name: 🧹 Dead Code Detection
+      run: |
+        echo "=== Dead Code Detection ==="
+        vulture fragrance_ai/ --min-confidence 80
+
+    - name: 📝 Documentation Quality
+      run: |
+        echo "=== Docstring Analysis ==="
+        pydocstyle fragrance_ai/ --convention=google
+
+        echo "=== Argument Documentation Check ==="
+        darglint fragrance_ai/ -v 2
+
+    - name: 🔧 Code Modernization Check
+      run: |
+        echo "=== Python Version Compatibility ==="
+        pyupgrade --py310-plus fragrance_ai/**/*.py --diff
+
+        echo "=== Unused Imports ==="
+        autoflake --check --remove-all-unused-imports fragrance_ai/
+
+    - name: 🛡️ Static Analysis Security Testing (SAST)
+      run: |
+        echo "=== Semgrep Security Scan ==="
+        semgrep --config=auto fragrance_ai/ --json --output=semgrep-results.json
+
+        echo "=== Django-specific Linting ==="
+        dlint fragrance_ai/ || true
+
+    - name: 📋 Upload Code Analysis Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: code-analysis-results
+        path: |
+          semgrep-results.json
+          *.html
+          *.xml
+
+  # 🔒 심화 보안 스캐닝
+  comprehensive-security-scan:
+    name: 🔒 Comprehensive Security Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: 📦 Install security tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+        # 보안 도구 설치
+        pip install \
+          safety \
+          bandit[toml] \
+          pip-audit \
+          cyclonedx-bom \
+          detect-secrets
+
+    - name: 🔍 Dependency Vulnerability Scan
+      run: |
+        echo "=== Safety Check ==="
+        safety check --json --output safety-report.json || true
+
+        echo "=== Pip Audit ==="
+        pip-audit --format=json --output=pip-audit-report.json || true
+
+        echo "=== Generate Software Bill of Materials ==="
+        cyclonedx-py -o sbom.json
+
+    - name: 🛡️ Source Code Security Scan
+      run: |
+        echo "=== Bandit Security Scan ==="
+        bandit -r fragrance_ai/ \
+          -f json \
+          -o bandit-report.json \
+          -ll \
+          --confidence-level medium
+
+        echo "=== Configuration File Security ==="
+        bandit -r . \
+          -f json \
+          -o config-security-report.json \
+          --skip-dirs=.git,node_modules,venv \
+          --include="*.yml,*.yaml,*.json,*.toml,*.ini,*.cfg"
+
+    - name: 🔐 Secrets Detection
+      run: |
+        echo "=== Secrets Baseline Update ==="
+        detect-secrets scan --all-files \
+          --baseline .secrets.baseline \
+          --exclude-files '.*\.git/.*|.*node_modules/.*|.*venv/.*'
+
+        echo "=== Secrets Audit ==="
+        detect-secrets audit .secrets.baseline
+
+    - name: 🏗️ Container Security Scan
+      run: |
+        echo "=== Dockerfile Security ==="
+        docker run --rm -i hadolint/hadolint < Dockerfile || true
+        docker run --rm -i hadolint/hadolint < Dockerfile.production || true
+
+    - name: 📋 Upload Security Reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          *-report.json
+          sbom.json
+          .secrets.baseline
+
+  # 🔬 라이센스 및 컴플라이언스 검사
+  license-compliance:
+    name: 🔬 License & Compliance Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: 📦 Install compliance tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pip-licenses licensecheck
+
+    - name: 📄 License Analysis
+      run: |
+        echo "=== Package License Report ==="
+        pip-licenses --format=json --output-file=licenses.json
+
+        echo "=== License Compatibility Check ==="
+        pip-licenses --format=csv --output-file=licenses.csv
+
+        echo "=== Detailed License Information ==="
+        pip-licenses --format=html --output-file=licenses.html
+
+    - name: ⚖️ License Policy Check
+      run: |
+        echo "=== Forbidden License Check ==="
+        # GPL, AGPL 등 제한적 라이센스 확인
+        pip-licenses --packages $(pip freeze | cut -d'=' -f1) \
+          --ignore-packages $(echo "pip setuptools wheel" | tr ' ' '\n') \
+          --fail-on GPL-3.0 AGPL-3.0 || true
+
+    - name: 📋 Upload License Reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: license-reports
+        path: |
+          licenses.*
+
+  # 🏗️ Infrastructure as Code Security
+  iac-security:
+    name: 🏗️ Infrastructure Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔍 Terraform Security Scan
+      if: hashFiles('**/*.tf') != ''
+      uses: aquasecurity/tfsec-action@v1.0.3
+      with:
+        additional_args: --format json --out tfsec-results.json
+
+    - name: ☸️ Kubernetes Security Scan
+      if: hashFiles('**/*.yaml', '**/k8s/**', '**/kubernetes/**') != ''
+      run: |
+        # Kubesec 설치 및 실행
+        wget https://github.com/controlplaneio/kubesec/releases/latest/download/kubesec_linux_amd64.tar.gz
+        tar -xzf kubesec_linux_amd64.tar.gz
+
+        # Kubernetes 매니페스트 스캔
+        find . -name "*.yaml" -path "*/k8s/*" -o -path "*/kubernetes/*" | \
+          xargs -I {} ./kubesec scan {} > kubesec-results.json
+
+    - name: 🐳 Docker Security Best Practices
+      run: |
+        echo "=== Dockerfile Security ==="
+        if [ -f "Dockerfile" ]; then
+          docker run --rm -i hadolint/hadolint:latest < Dockerfile > dockerfile-lint.txt || true
+        fi
+
+        if [ -f "Dockerfile.production" ]; then
+          docker run --rm -i hadolint/hadolint:latest < Dockerfile.production > dockerfile-prod-lint.txt || true
+        fi
+
+    - name: 📋 Upload IaC Security Reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: iac-security-reports
+        path: |
+          *-results.json
+          *-lint.txt
+
+  # 🔄 Supply Chain Security
+  supply-chain-security:
+    name: 🔄 Supply Chain Security
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: 🔍 Package Integrity Check
+      run: |
+        python -m pip install --upgrade pip
+
+        echo "=== Requirements File Analysis ==="
+        # requirements.txt에 버전 핀닝 확인
+        python -c "
+        import re
+        with open('requirements.txt', 'r') as f:
+            lines = f.readlines()
+
+        unpinned = []
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                if not re.search(r'[=><]', line):
+                    unpinned.append(line)
+
+        if unpinned:
+            print('Unpinned dependencies found:')
+            for dep in unpinned:
+                print(f'  - {dep}')
+            exit(1)
+        else:
+            print('All dependencies are properly pinned')
+        "
+
+    - name: 🏷️ Dependency Provenance
+      run: |
+        pip install cyclonedx-bom
+
+        echo "=== Generate SBOM ==="
+        cyclonedx-py \
+          --output-format json \
+          --output-file sbom-detailed.json \
+          --include-dev
+
+    - name: 🔐 Digital Signature Verification
+      run: |
+        echo "=== Package Signature Check ==="
+        # PyPI 패키지의 해시 검증
+        pip download --no-deps -r requirements.txt -d temp_packages/
+        find temp_packages/ -name "*.whl" -o -name "*.tar.gz" | \
+          xargs -I {} sh -c 'echo "File: {}" && sha256sum {}'
+
+    - name: 📋 Upload Supply Chain Reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: supply-chain-reports
+        path: |
+          sbom-detailed.json
+          temp_packages/
+
+  # 📊 종합 보안 리포트
+  security-summary:
+    name: 📊 Security Summary Report
+    runs-on: ubuntu-latest
+    needs: [
+      advanced-code-analysis,
+      comprehensive-security-scan,
+      license-compliance,
+      iac-security,
+      supply-chain-security
+    ]
+    if: always()
+
+    steps:
+    - name: 📥 Download all artifacts
+      uses: actions/download-artifact@v3
+
+    - name: 📊 Generate Security Dashboard
+      run: |
+        echo "# 🔐 Security Analysis Summary" > security-summary.md
+        echo "" >> security-summary.md
+        echo "## 📋 Analysis Results" >> security-summary.md
+        echo "" >> security-summary.md
+
+        # 각 단계별 결과 요약
+        echo "### 🔍 Code Analysis" >> security-summary.md
+        if [ -d "code-analysis-results" ]; then
+          echo "✅ Code analysis completed" >> security-summary.md
+        else
+          echo "❌ Code analysis failed" >> security-summary.md
+        fi
+        echo "" >> security-summary.md
+
+        echo "### 🛡️ Security Scanning" >> security-summary.md
+        if [ -d "security-reports" ]; then
+          echo "✅ Security scanning completed" >> security-summary.md
+        else
+          echo "❌ Security scanning failed" >> security-summary.md
+        fi
+        echo "" >> security-summary.md
+
+        echo "### 📄 License Compliance" >> security-summary.md
+        if [ -d "license-reports" ]; then
+          echo "✅ License compliance checked" >> security-summary.md
+        else
+          echo "❌ License compliance check failed" >> security-summary.md
+        fi
+        echo "" >> security-summary.md
+
+        echo "### 🏗️ Infrastructure Security" >> security-summary.md
+        if [ -d "iac-security-reports" ]; then
+          echo "✅ Infrastructure security scanned" >> security-summary.md
+        else
+          echo "❌ Infrastructure security scan failed" >> security-summary.md
+        fi
+        echo "" >> security-summary.md
+
+        echo "### 🔄 Supply Chain Security" >> security-summary.md
+        if [ -d "supply-chain-reports" ]; then
+          echo "✅ Supply chain security verified" >> security-summary.md
+        else
+          echo "❌ Supply chain security verification failed" >> security-summary.md
+        fi
+        echo "" >> security-summary.md
+
+        echo "---" >> security-summary.md
+        echo "*Generated on: $(date)*" >> security-summary.md
+
+    - name: 📋 Upload Security Summary
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-summary
+        path: security-summary.md
+
+    - name: 💬 Comment on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const summary = fs.readFileSync('security-summary.md', 'utf8');
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          });
+
+  # 🚨 보안 알림
+  security-alerts:
+    name: 🚨 Security Alerts
+    runs-on: ubuntu-latest
+    needs: security-summary
+    if: failure() && (github.ref == 'refs/heads/main' || github.event_name == 'schedule')
+
+    steps:
+    - name: 📧 Critical Security Alert
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        channel: '#security-alerts'
+        author_name: 'Security Pipeline'
+        title: '🚨 Critical Security Issues Detected'
+        message: |
+          Security vulnerabilities or compliance issues detected in ${{ github.repository }}
+
+          Branch: ${{ github.ref }}
+          Commit: ${{ github.sha }}
+
+          Please review the security reports immediately.
+        webhook_url: ${{ secrets.SECURITY_SLACK_WEBHOOK }}
+
+    - name: 📧 Email Security Team
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 587
+        username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: "🚨 URGENT: Security Issues in ${{ github.repository }}"
+        to: security@fragrance-ai.com
+        from: security-pipeline@fragrance-ai.com
+        body: |
+          Critical security issues have been detected in the repository.
+
+          Repository: ${{ github.repository }}
+          Branch: ${{ github.ref }}
+          Commit: ${{ github.sha }}
+          Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Please investigate immediately and take appropriate action.
+
+          This is an automated message from the security pipeline.

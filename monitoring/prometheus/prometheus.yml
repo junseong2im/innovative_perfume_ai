@@ -1,0 +1,134 @@
+# 🔍 Prometheus 완벽 설정
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'fragrance-ai'
+    environment: 'production'
+
+# 📋 알림 규칙
+rule_files:
+  - "rules/*.yml"
+
+# 🚨 AlertManager 설정
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# 📊 스크래핑 작업 설정
+scrape_configs:
+  # Prometheus 자체 메트릭
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # 시스템 메트릭 (Node Exporter)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 10s
+    metrics_path: /metrics
+
+  # 컨테이너 메트릭 (cAdvisor)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 10s
+
+  # Fragrance AI 애플리케이션 메트릭
+  - job_name: 'fragrance-ai'
+    static_configs:
+      - targets: ['fragrance-ai:8000']
+    metrics_path: /metrics
+    scrape_interval: 5s
+    honor_labels: true
+    params:
+      'format': ['prometheus']
+
+  # GPU 메트릭 (NVIDIA GPU가 있는 경우)
+  - job_name: 'nvidia-gpu'
+    static_configs:
+      - targets: ['localhost:9445']
+    scrape_interval: 10s
+
+  # 데이터베이스 메트릭 (PostgreSQL)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 10s
+
+  # Redis 메트릭
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 10s
+
+  # Elasticsearch 메트릭
+  - job_name: 'elasticsearch'
+    static_configs:
+      - targets: ['elasticsearch-exporter:9114']
+    scrape_interval: 30s
+
+  # 웹 서비스 헬스체크 (Blackbox)
+  - job_name: 'blackbox-http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - https://fragrance-ai.com/health
+        - https://fragrance-ai.com/api/v2/monitoring
+        - https://staging.fragrance-ai.com/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # SSL 인증서 모니터링
+  - job_name: 'blackbox-ssl'
+    metrics_path: /probe
+    params:
+      module: [tls_connect]
+    static_configs:
+      - targets:
+        - fragrance-ai.com:443
+        - api.fragrance-ai.com:443
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # Kubernetes 메트릭 (K8s 환경인 경우)
+  - job_name: 'kubernetes-apiservers'
+    kubernetes_sd_configs:
+    - role: endpoints
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+      action: keep
+      regex: default;kubernetes;https
+
+  # 사용자 정의 메트릭 수집
+  - job_name: 'custom-metrics'
+    static_configs:
+      - targets: ['fragrance-ai:8000']
+    metrics_path: /api/v2/metrics/custom
+    scrape_interval: 30s
+
+# 📊 메트릭 저장 설정
+storage:
+  tsdb:
+    retention.time: 30d
+    retention.size: 10GB
+    wal-compression: true

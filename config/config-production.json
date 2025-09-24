@@ -1,0 +1,227 @@
+{
+  "app": {
+    "debug": false,
+    "log_level": "INFO",
+    "workers": 4
+  },
+  "api": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "prefix": "/api/v2",
+    "cors_origins": [
+      "https://fragrance-ai.com",
+      "https://www.fragrance-ai.com",
+      "https://admin.fragrance-ai.com"
+    ],
+    "rate_limit": {
+      "enabled": true,
+      "requests_per_minute": 100,
+      "requests_per_hour": 5000,
+      "burst_limit": 200
+    },
+    "request_timeout": 30,
+    "max_request_size": 10485760
+  },
+  "security": {
+    "secret_key_required": true,
+    "jwt_expire_minutes": 15,
+    "refresh_token_expire_days": 7,
+    "password_min_length": 12,
+    "password_require_special": true,
+    "max_login_attempts": 3,
+    "lockout_duration_minutes": 30,
+    "session_timeout_hours": 8,
+    "require_https": true,
+    "csrf_protection": true,
+    "content_security_policy": {
+      "default-src": "'self'",
+      "script-src": "'self' 'unsafe-inline'",
+      "style-src": "'self' 'unsafe-inline'",
+      "img-src": "'self' data: https:",
+      "connect-src": "'self' https://api.fragrance-ai.com",
+      "font-src": "'self'",
+      "frame-ancestors": "'none'"
+    },
+    "hsts_max_age": 31536000,
+    "secure_cookies": true,
+    "samesite_cookies": "strict"
+  },
+  "database": {
+    "echo_sql": false,
+    "pool_size": 20,
+    "max_overflow": 50,
+    "pool_timeout": 30,
+    "pool_recycle": 3600,
+    "connection_timeout": 10,
+    "pool_pre_ping": true,
+    "isolation_level": "READ_COMMITTED",
+    "backup": {
+      "enabled": true,
+      "interval_hours": 6,
+      "retention_days": 30,
+      "s3_bucket": "fragrance-ai-backups"
+    }
+  },
+  "cache": {
+    "redis_url": "${REDIS_URL}",
+    "default_ttl": 3600,
+    "max_size": 50000,
+    "cleanup_interval": 300,
+    "cluster_mode": true,
+    "connection_pool_size": 50,
+    "socket_timeout": 5,
+    "retry_attempts": 3
+  },
+  "monitoring": {
+    "enabled": true,
+    "metrics_enabled": true,
+    "health_check_interval": 30,
+    "detailed_logging": false,
+    "performance_tracking": true,
+    "alert_thresholds": {
+      "error_rate": 0.01,
+      "response_time_p95": 1000,
+      "response_time_p99": 2000,
+      "memory_usage": 0.85,
+      "cpu_usage": 0.8,
+      "disk_usage": 0.9,
+      "database_connections": 0.9
+    },
+    "alerts": {
+      "slack_webhook": "${SLACK_WEBHOOK_URL}",
+      "email_recipients": [
+        "devops@fragrance-ai.com",
+        "alerts@fragrance-ai.com"
+      ],
+      "pagerduty_integration_key": "${PAGERDUTY_INTEGRATION_KEY}"
+    }
+  },
+  "ai": {
+    "embedding_model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    "generation_model_name": "microsoft/DialoGPT-medium",
+    "embedding_batch_size": 64,
+    "generation_batch_size": 8,
+    "max_sequence_length": 512,
+    "model_cache_size": 5,
+    "use_quantization": true,
+    "device": "cuda",
+    "gpu_memory_fraction": 0.8,
+    "model_parallel": true,
+    "async_inference": true,
+    "timeout_seconds": 30
+  },
+  "vector_database": {
+    "chroma_host": "${CHROMA_HOST}",
+    "chroma_port": 8000,
+    "collection_settings": {
+      "distance_metric": "cosine",
+      "index_type": "hnsw",
+      "ef_construction": 200,
+      "ef_search": 50,
+      "m": 16
+    },
+    "backup_enabled": true,
+    "backup_interval_hours": 12
+  },
+  "storage": {
+    "type": "s3",
+    "s3_bucket": "fragrance-ai-storage",
+    "s3_region": "us-west-2",
+    "cdn_enabled": true,
+    "cdn_domain": "cdn.fragrance-ai.com",
+    "max_file_size": 104857600,
+    "allowed_extensions": [
+      ".jpg", ".jpeg", ".png", ".pdf", ".csv", ".json"
+    ]
+  },
+  "celery": {
+    "broker_url": "${CELERY_BROKER_URL}",
+    "result_backend": "${CELERY_RESULT_BACKEND}",
+    "worker_concurrency": 4,
+    "worker_prefetch_multiplier": 1,
+    "task_serializer": "json",
+    "accept_content": ["json"],
+    "result_serializer": "json",
+    "timezone": "UTC",
+    "task_routes": {
+      "fragrance_ai.tasks.training": "training_queue",
+      "fragrance_ai.tasks.inference": "inference_queue",
+      "fragrance_ai.tasks.batch": "batch_queue"
+    },
+    "beat_schedule": {
+      "cleanup_expired_sessions": {
+        "task": "fragrance_ai.tasks.cleanup.cleanup_expired_sessions",
+        "schedule": 3600.0
+      },
+      "model_performance_check": {
+        "task": "fragrance_ai.tasks.monitoring.check_model_performance",
+        "schedule": 300.0
+      },
+      "backup_database": {
+        "task": "fragrance_ai.tasks.backup.backup_database",
+        "schedule": 21600.0
+      }
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "json",
+    "handlers": {
+      "console": {
+        "enabled": false
+      },
+      "file": {
+        "enabled": true,
+        "path": "/var/log/fragrance-ai/app.log",
+        "max_size": "100MB",
+        "backup_count": 10,
+        "rotation": "daily"
+      },
+      "elasticsearch": {
+        "enabled": true,
+        "hosts": ["${ELASTICSEARCH_URL}"],
+        "index": "fragrance-ai-logs",
+        "doc_type": "log"
+      },
+      "sentry": {
+        "enabled": true,
+        "dsn": "${SENTRY_DSN}",
+        "environment": "production",
+        "sample_rate": 0.1
+      }
+    },
+    "structured_logging": true,
+    "include_request_id": true,
+    "mask_sensitive_data": true
+  },
+  "performance": {
+    "async_workers": true,
+    "connection_pooling": true,
+    "response_compression": true,
+    "static_file_caching": true,
+    "database_query_optimization": true,
+    "model_preloading": true,
+    "batch_processing": {
+      "enabled": true,
+      "max_batch_size": 100,
+      "timeout_ms": 5000
+    }
+  },
+  "compliance": {
+    "gdpr_enabled": true,
+    "data_retention_days": 365,
+    "audit_logging": true,
+    "encryption_at_rest": true,
+    "encryption_in_transit": true,
+    "anonymization_enabled": true,
+    "consent_management": true
+  },
+  "feature_flags": {
+    "advanced_rag": true,
+    "real_time_analytics": true,
+    "a_b_testing": true,
+    "experimental_models": false,
+    "beta_features": false,
+    "maintenance_mode": false
+  }
+}

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
-from typing import List
+from typing import List, Optional
 import logging
 import time
 import uuid
@@ -14,73 +14,160 @@ from ..schemas import (
     QualityScores,
     FragranceComposition
 )
+from ..schemas.recipe_schemas import (
+    RecipeGenerationRequest as NewRecipeRequest,
+    RecipeGenerationResponse as NewRecipeResponse,
+    FragranceProfileCustomer,
+    FragranceRecipeAdmin,
+    RecipeIngredientCustomer,
+    RecipeIngredientAdmin,
+    FragranceNoteCustomer,
+    FragranceNoteAdmin,
+    UserRole
+)
 from ...services.generation_service import GenerationService
 from ..dependencies import get_generation_service
+from ..middleware.auth_middleware import get_optional_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/recipe", response_model=RecipeGenerationResponse)
+@router.post("/recipe", response_model=NewRecipeResponse)
 async def generate_recipe(
-    request: RecipeGenerationRequest,
+    request: NewRecipeRequest,
     background_tasks: BackgroundTasks,
-    generation_service: GenerationService = Depends(get_generation_service)
+    generation_service: GenerationService = Depends(get_generation_service),
+    current_user: Optional[dict] = Depends(get_optional_user)
 ):
-    """향수 레시피 생성"""
+    """향수 레시피 생성 - 역할 기반 접근 제어"""
     try:
         start_time = time.time()
-        
+        generation_id = str(uuid.uuid4())
+
+        # 사용자 역할 확인
+        user_role = current_user["role"] if current_user else UserRole.CUSTOMER
+        is_admin = user_role in [UserRole.ADMIN, UserRole.SUPER_ADMIN]
+
         # 실제 생성 서비스 호출
         request_data = {
-            "fragrance_family": getattr(request, 'fragrance_family', 'floral'),
-            "mood": getattr(request, 'mood', 'romantic'),
-            "intensity": getattr(request, 'intensity', 'moderate'),
-            "gender": getattr(request, 'gender', 'unisex'),
-            "season": getattr(request, 'season', 'spring'),
-            "generation_type": str(request.recipe_type.value) if hasattr(request.recipe_type, 'value') else str(request.recipe_type)
+            "fragrance_family": request.fragrance_family,
+            "mood": request.mood,
+            "intensity": request.intensity,
+            "gender": request.gender or "unisex",
+            "season": request.season or "spring",
+            "korean_region": request.korean_region,
+            "korean_season": request.korean_season,
+            "traditional_element": request.traditional_element,
+            "budget_range": request.budget_range or "medium",
+            "complexity": request.complexity or "medium",
+            "unique_request": request.unique_request
         }
-        
+
         # 생성 서비스를 통해 레시피 생성
         generation_result = await generation_service.generate_recipe(request_data)
         
         # 생성 결과에서 레시피 정보 추출
         recipe_data = generation_result.get("recipe", {})
-        
-        # FragranceRecipe 객체 생성
-        fragrance_recipe = FragranceRecipe(
+
+        # 관리자용 상세 레시피 생성 (관리자만)
+        admin_recipe = None
+        if is_admin:
+            # 향료 재료 상세 정보 생성
+            ingredients = []
+            for note_type, note_list in recipe_data.get("notes", {}).items():
+                if isinstance(note_list, list):
+                    for i, note_name in enumerate(note_list):
+                        ingredients.append(RecipeIngredientAdmin(
+                            note=FragranceNoteAdmin(
+                                name=note_name,
+                                name_korean=f"{note_name} (한국어)",
+                                fragrance_family=recipe_data.get("fragrance_family", request.fragrance_family),
+                                note_type=note_type,
+                                description=f"{note_name}의 독특한 향",
+                                description_korean=f"{note_name}의 한국어 설명",
+                                origin="프랑스/이탈리아",
+                                extraction_method="증류법",
+                                intensity=7.5 + (hash(note_name) % 3) * 0.5,
+                                longevity=6.0 + (hash(note_name) % 4) * 0.5,
+                                sillage=5.5 + (hash(note_name) % 5) * 0.5,
+                                price_per_ml=0.50 + (hash(note_name) % 20) * 0.1,
+                                supplier="Premium Fragrances Ltd",
+                                grade="A+",
+                                mood_tags=[request.mood],
+                                season_tags=[request.season] if request.season else [],
+                                gender_tags=[request.gender] if request.gender else []
+                            ),
+                            percentage=15.0 + (hash(note_name) % 10),
+                            ml_amount=5.0 + (hash(note_name) % 15),
+                            role=note_type,
+                            order=i + 1,
+                            notes=f"{note_name} 사용 시 주의사항"
+                        ))
+
+            admin_recipe = FragranceRecipeAdmin(
+                recipe_id=generation_id,
+                name=recipe_data.get("name", "생성된 향수"),
+                description=recipe_data.get("description", "AI가 생성한 향수 레시피"),
+                ingredients=ingredients,
+                total_volume=100.0,
+                alcohol_percentage=70.0,
+                maturation_time=30,
+                total_cost=125.50,
+                cost_per_ml=1.26,
+                suggested_price=450.0,
+                mixing_instructions=[
+                    "1. 알코올에 베이스 노트부터 차례로 첨가",
+                    "2. 중간 노트 추가 후 10분간 숙성",
+                    "3. 탑 노트를 마지막에 추가",
+                    "4. 30일간 어두운 곳에서 숙성"
+                ],
+                storage_instructions="직사광선을 피하고 서늘한 곳에 보관",
+                safety_notes=[
+                    "피부에 직접 접촉 시 즉시 세척",
+                    "임산부 사용 금지",
+                    "어린이 손에 닿지 않는 곳에 보관"
+                ],
+                expected_color="연한 황금색",
+                expected_clarity="투명",
+                created_at=time.time(),
+                created_by=current_user["username"] if current_user else "system",
+                version="1.0"
+            )
+
+        # 고객용 향수 프로필 생성
+        customer_info = FragranceProfileCustomer(
             name=recipe_data.get("name", "생성된 향수"),
-            concept=recipe_data.get("concept", recipe_data.get("description", "AI가 생성한 향수")),
-            mood=recipe_data.get("mood", request_data["mood"]),
-            season=recipe_data.get("season", request_data["season"]),
-            composition=FragranceComposition(
-                top_notes={"percentage": 30, "ingredients": recipe_data.get("notes", {}).get("top", [])},
-                heart_notes={"percentage": 40, "ingredients": recipe_data.get("notes", {}).get("middle", [])},
-                base_notes={"percentage": 30, "ingredients": recipe_data.get("notes", {}).get("base", [])}
-            ),
-            longevity=recipe_data.get("longevity", "6-8시간"),
-            sillage=recipe_data.get("sillage", "보통"),
-            story=recipe_data.get("story", recipe_data.get("description", "AI가 창조한 독특한 향수 레시피")),
-            raw_text=str(recipe_data),
-            generated_at=time.time(),
-            recipe_type=request.recipe_type
+            description=recipe_data.get("description", "AI가 창조한 독특한 향수"),
+            story=recipe_data.get("story", "이 향수는 당신만을 위해 특별히 제조된 향수입니다. 섬세한 향료들이 조화롭게 어우러져 독특하고 매력적인 향을 만들어냅니다."),
+            fragrance_family=request.fragrance_family,
+            mood=request.mood,
+            season=request.season or "사계절",
+            gender=request.gender or "남녀공용",
+            intensity=request.intensity,
+            longevity="6-8시간",
+            sillage="적당함",
+            top_notes_description="상쾌하고 활기찬 첫 인상을 주는 탑 노트",
+            middle_notes_description="풍부하고 조화로운 중심 향을 이루는 미들 노트",
+            base_notes_description="깊이 있고 지속적인 여운을 남기는 베이스 노트",
+            occasion=["데이트", "파티", "일상"],
+            time_of_day=["오후", "저녁"],
+            korean_inspiration=request.traditional_element,
+            regional_character=request.korean_region
         )
         
-        # 품질 점수 (생성 결과에서 추출 또는 기본값)
-        quality_score = generation_result.get("quality_score", 75.0)
-        quality_scores = QualityScores(
-            completeness=min(1.0, quality_score / 100.0),
-            coherence=min(1.0, (quality_score + 5) / 100.0),
-            creativity=min(1.0, (quality_score - 5) / 100.0),
-            technical_accuracy=min(1.0, quality_score / 100.0),
-            overall=min(1.0, quality_score / 100.0)
-        )
-        
-        return RecipeGenerationResponse(
-            recipe=fragrance_recipe,
-            quality_scores=quality_scores,
-            generation_time=time.time() - start_time,
-            prompt=request.prompt
+        # 응답 메시지 생성
+        if is_admin:
+            message = "관리자용 상세 레시피가 생성되었습니다. 비용 정보와 제조 지침을 확인하세요."
+        else:
+            message = "고객님만을 위한 특별한 향수가 완성되었습니다. 향수 정보를 확인해보세요."
+
+        return NewRecipeResponse(
+            success=True,
+            message=message,
+            generation_id=generation_id,
+            customer_info=customer_info,
+            admin_recipe=admin_recipe
         )
         
     except Exception as e:

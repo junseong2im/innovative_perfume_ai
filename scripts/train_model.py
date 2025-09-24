@@ -60,6 +60,24 @@ def parse_arguments():
     parser.add_argument("--warmup-steps", type=int, default=500, help="워밍업 스텝")
     parser.add_argument("--save-steps", type=int, default=500, help="저장 간격")
     parser.add_argument("--eval-steps", type=int, default=500, help="평가 간격")
+
+    # 고급 옵티마이저 설정
+    parser.add_argument("--optimizer", type=str, default="adamw_torch",
+                       choices=["adamw_torch", "adamw_hf", "adafactor", "sgd"],
+                       help="옵티마이저 타입")
+    parser.add_argument("--weight-decay", type=float, default=0.01, help="가중치 감쇠")
+    parser.add_argument("--adam-beta1", type=float, default=0.9, help="Adam beta1")
+    parser.add_argument("--adam-beta2", type=float, default=0.999, help="Adam beta2")
+    parser.add_argument("--adam-epsilon", type=float, default=1e-8, help="Adam epsilon")
+    parser.add_argument("--max-grad-norm", type=float, default=1.0, help="그래디언트 클리핑")
+
+    # 스케줄러 설정
+    parser.add_argument("--lr-scheduler", type=str, default="cosine",
+                       choices=["linear", "cosine", "cosine_with_restarts", "polynomial", "constant"],
+                       help="학습률 스케줄러")
+    parser.add_argument("--warmup-ratio", type=float, default=0.1, help="워밍업 비율")
+    parser.add_argument("--cosine-restarts", type=int, default=1, help="코사인 재시작 횟수")
+    parser.add_argument("--polynomial-power", type=float, default=1.0, help="다항식 파워")
     
     # PEFT 설정
     parser.add_argument("--use-lora", action="store_true", help="LoRA 사용 여부")
@@ -127,7 +145,20 @@ def setup_wandb(args: argparse.Namespace, config: Dict[str, Any]):
                 "epochs": args.epochs,
                 "use_lora": args.use_lora,
                 "use_4bit": args.use_4bit,
-                "seed": args.seed
+                "seed": args.seed,
+                # 옵티마이저 설정 추가
+                "optimizer": args.optimizer,
+                "weight_decay": args.weight_decay,
+                "adam_beta1": args.adam_beta1,
+                "adam_beta2": args.adam_beta2,
+                "adam_epsilon": args.adam_epsilon,
+                "max_grad_norm": args.max_grad_norm,
+                # 스케줄러 설정 추가
+                "lr_scheduler": args.lr_scheduler,
+                "warmup_ratio": args.warmup_ratio,
+                "warmup_steps": args.warmup_steps,
+                "cosine_restarts": args.cosine_restarts,
+                "polynomial_power": args.polynomial_power
             },
             name=f"{args.model_type}_training_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         )

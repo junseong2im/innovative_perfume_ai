@@ -1,13 +1,28 @@
 #!/bin/bash
-set -e
 
 # ==============================================================================
-# Fragrance AI 프로덕션 배포 스크립트 v2.0
+# Fragrance AI 프로덕션 배포 스크립트 v3.0
+# Enterprise-grade deployment automation with advanced features
 # ==============================================================================
 
-VERSION="2.0.0"
-ENVIRONMENT=${1:-production}
-FORCE_REBUILD=${2:-false}
+set -euo pipefail
+
+VERSION="3.0.0"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Default configuration
+ENVIRONMENT="production"
+STRATEGY="rolling"
+VERSION_TAG=""
+DRY_RUN=false
+BACKUP=true
+HEALTH_CHECK=true
+CLEANUP=false
+FORCE=false
+CONFIG_FILE=""
+ROLLBACK_ON_FAILURE=true
+NOTIFICATION_ENABLED=true
 
 # 색상 정의
 RED='\033[0;31m'

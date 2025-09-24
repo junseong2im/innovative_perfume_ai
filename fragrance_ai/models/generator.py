@@ -219,10 +219,21 @@ class FragranceRecipeGenerator:
                     generation_config=self.generation_config
                 )
             
-            generated_text = self.tokenizer.decode(
-                outputs[0][len(inputs["input_ids"][0]):],
-                skip_special_tokens=True
-            )
+            # Safely extract generated text
+            input_length = len(inputs["input_ids"][0])
+            output_length = len(outputs[0])
+
+            if output_length > input_length:
+                generated_text = self.tokenizer.decode(
+                    outputs[0][input_length:],
+                    skip_special_tokens=True
+                )
+            else:
+                # If no new tokens generated, decode the full output
+                generated_text = self.tokenizer.decode(
+                    outputs[0],
+                    skip_special_tokens=True
+                )
             
             return generated_text.strip()
             

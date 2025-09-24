@@ -1,3 +1,37 @@
+"""
+Fragrance AI - PEFT (Parameter-Efficient Fine-Tuning) 트레이너 모듈
+
+이 모듈은 향수 레시피 생성을 위한 LLM 파인튜닝을 담당합니다.
+LoRA (Low-Rank Adaptation)를 사용하여 메모리 효율적인 파인튜닝을 제공하며,
+4bit 양자화와 혼합 정밀도 훈련을 통해 GPU 메모리 사용량을 최적화합니다.
+
+주요 특징:
+- LoRA를 사용한 매개변수 효율적 파인튜닝
+- 4bit 양자화 지원 (BitsAndBytesConfig)
+- 혼합 정밀도 훈련 (FP16/BF16)
+- 그래디언트 체크포인팅으로 메모리 효율성 개선
+- 동적 그래디언트 누적 단계 계산
+- Weights & Biases 통합 모니터링
+- 고급 학습률 스케줄러 지원
+- 조기 종료 및 체크포인트 관리
+
+지원하는 모델:
+- LLaMA/LLaMA-2 시리즈
+- Mistral 시리즈
+- 기타 Causal LM 모델
+
+사용 예시:
+    trainer = PEFTTrainer(
+        model_name="meta-llama/Llama-2-7b-chat-hf",
+        use_quantization=True,
+        use_wandb=True
+    )
+
+    trainer.setup_lora()
+    train_dataset, eval_dataset = trainer.prepare_datasets(train_data)
+    trainer.train(train_dataset, eval_dataset)
+"""
+
 from typing import List, Dict, Any, Optional, Tuple, Union
 import torch
 import torch.nn as nn
@@ -289,6 +323,42 @@ class PEFTTrainer:
         except Exception as e:
             logger.error(f"Failed to setup LoRA: {e}")
             raise
+
+    def _get_scheduler_specific_args(self, scheduler_type: str) -> Dict[str, Any]:
+        """스케줄러별 특정 파라미터 반환"""
+        scheduler_args = {}
+
+        if scheduler_type == "cosine_with_restarts":
+            scheduler_args["num_cycles"] = settings.cosine_restarts
+        elif scheduler_type == "polynomial":
+            scheduler_args["power"] = settings.polynomial_power
+        elif scheduler_type == "cosine":
+            # Cosine annealing specific args can be added here
+            pass
+        elif scheduler_type == "linear":
+            # Linear scheduler specific args can be added here
+            pass
+
+        return scheduler_args
+
+    def _calculate_gradient_accumulation_steps(self, batch_size: int) -> int:
+        """그래디언트 누적 스텝 계산"""
+        # GPU 메모리에 따라 동적으로 계산
+        if torch.cuda.is_available():
+            gpu_memory = torch.cuda.get_device_properties(0).total_memory
+            # GB 단위로 변환
+            gpu_memory_gb = gpu_memory / (1024**3)
+
+            if gpu_memory_gb >= 24:  # RTX 4090, A100 등
+                return max(1, settings.gradient_accumulation_steps)
+            elif gpu_memory_gb >= 16:  # RTX 4080 등
+                return max(2, settings.gradient_accumulation_steps)
+            elif gpu_memory_gb >= 8:  # RTX 4070 등
+                return max(4, settings.gradient_accumulation_steps)
+            else:
+                return max(8, settings.gradient_accumulation_steps)
+        else:
+            return max(4, settings.gradient_accumulation_steps)
     
     def prepare_datasets(
         self,
@@ -352,16 +422,30 @@ class PEFTTrainer:
             # Create output directory
             os.makedirs(output_dir, exist_ok=True)
             
-            # Enhanced training arguments with optimization
+            # Enhanced training arguments with advanced optimizer settings
             training_args = TrainingArguments(
                 output_dir=output_dir,
                 num_train_epochs=num_epochs,
                 per_device_train_batch_size=batch_size,
                 per_device_eval_batch_size=batch_size,
-                gradient_accumulation_steps=self._calculate_gradient_accumulation_steps(batch_size),
+                gradient_accumulation_steps=settings.gradient_accumulation_steps,
                 learning_rate=learning_rate,
-                warmup_ratio=warmup_ratio,
-                max_grad_norm=max_grad_norm,
+
+                # Advanced Optimizer Configuration
+                optim=settings.optimizer_type,  # "adamw_torch", "adamw_hf", "adafactor"
+                adam_beta1=settings.adam_beta1,
+                adam_beta2=settings.adam_beta2,
+                adam_epsilon=settings.adam_epsilon,
+                weight_decay=settings.weight_decay,
+                max_grad_norm=settings.max_grad_norm,
+
+                # Learning Rate Scheduler Configuration
+                lr_scheduler_type=settings.lr_scheduler_type,  # "cosine", "linear", "polynomial", "constant"
+                warmup_ratio=settings.warmup_ratio,
+                warmup_steps=settings.warmup_steps,
+
+                # Scheduler-specific parameters
+                **self._get_scheduler_specific_args(settings.lr_scheduler_type),
 
                 # Enhanced logging and monitoring
                 logging_dir=f"{output_dir}/logs",
@@ -376,25 +460,35 @@ class PEFTTrainer:
                 load_best_model_at_end=True if eval_dataset else False,
                 metric_for_best_model="eval_loss" if eval_dataset else None,
                 greater_is_better=False,
-                save_total_limit=5,  # Keep more checkpoints
+                save_total_limit=5,
 
                 # Performance optimizations
                 remove_unused_columns=False,
                 dataloader_pin_memory=torch.cuda.is_available(),
                 dataloader_num_workers=4 if torch.cuda.is_available() else 0,
 
-                # Mixed precision training
-                fp16=self.use_mixed_precision and not torch.cuda.is_available(),
-                bf16=self.use_mixed_precision and torch.cuda.is_available(),
-                fp16_full_eval=False,
+                # Mixed precision training (from settings)
+                fp16=settings.fp16 and not torch.cuda.is_available(),
+                bf16=settings.bf16 and torch.cuda.is_available(),
+                fp16_full_eval=settings.fp16_full_eval,
 
                 # Memory optimization
-                gradient_checkpointing=self.use_gradient_checkpointing,
+                gradient_checkpointing=settings.gradient_checkpointing,
                 dataloader_drop_last=True,
 
-                # Advanced features
+                # Advanced training features
                 prediction_loss_only=True,
                 include_inputs_for_metrics=False,
+                group_by_length=True,  # Group sequences by similar lengths for efficiency
+                length_column_name="length",
+
+                # Stability improvements
+                seed=42,
+                data_seed=42,
+
+                # Advanced evaluation
+                eval_accumulation_steps=None,
+                past_index=-1,
 
                 # Monitoring
                 report_to="wandb" if self.use_wandb else None,
@@ -407,13 +501,13 @@ class PEFTTrainer:
                 mlm=False
             )
             
-            # Callbacks
+            # Advanced Callbacks
             callbacks = []
             if use_early_stopping and eval_dataset:
                 callbacks.append(
                     EarlyStoppingCallback(
-                        early_stopping_patience=patience,
-                        early_stopping_threshold=0.001
+                        early_stopping_patience=settings.early_stopping_patience,
+                        early_stopping_threshold=settings.early_stopping_threshold
                     )
                 )
             

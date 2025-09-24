@@ -1,0 +1,187 @@
+{
+  "production_config": {
+    "description": "프로덕션 환경을 위한 최적화된 설정",
+    "embedding": {
+      "optimizer_type": "adamw_torch",
+      "learning_rate": 2e-5,
+      "weight_decay": 0.01,
+      "adam_beta1": 0.9,
+      "adam_beta2": 0.999,
+      "adam_epsilon": 1e-8,
+      "max_grad_norm": 1.0,
+      "lr_scheduler_type": "cosine",
+      "warmup_ratio": 0.1,
+      "batch_size": 32,
+      "epochs": 5,
+      "gradient_accumulation_steps": 1,
+      "fp16": false,
+      "bf16": true,
+      "early_stopping_patience": 3
+    },
+    "generation": {
+      "optimizer_type": "adamw_torch",
+      "learning_rate": 1e-4,
+      "weight_decay": 0.01,
+      "adam_beta1": 0.9,
+      "adam_beta2": 0.999,
+      "adam_epsilon": 1e-8,
+      "max_grad_norm": 1.0,
+      "lr_scheduler_type": "cosine",
+      "warmup_ratio": 0.1,
+      "batch_size": 4,
+      "epochs": 3,
+      "gradient_accumulation_steps": 4,
+      "fp16": false,
+      "bf16": true,
+      "early_stopping_patience": 2
+    }
+  },
+
+  "fast_training_config": {
+    "description": "빠른 훈련을 위한 설정 (성능 약간 희생)",
+    "embedding": {
+      "optimizer_type": "adafactor",
+      "learning_rate": 1e-4,
+      "weight_decay": 0.0,
+      "max_grad_norm": 1.0,
+      "lr_scheduler_type": "constant_with_warmup",
+      "warmup_ratio": 0.05,
+      "batch_size": 64,
+      "epochs": 3,
+      "gradient_accumulation_steps": 1,
+      "fp16": true,
+      "bf16": false,
+      "early_stopping_patience": 2
+    },
+    "generation": {
+      "optimizer_type": "adafactor",
+      "learning_rate": 5e-4,
+      "weight_decay": 0.0,
+      "max_grad_norm": 1.0,
+      "lr_scheduler_type": "constant_with_warmup",
+      "warmup_ratio": 0.05,
+      "batch_size": 8,
+      "epochs": 2,
+      "gradient_accumulation_steps": 2,
+      "fp16": true,
+      "bf16": false,
+      "early_stopping_patience": 1
+    }
+  },
+
+  "high_performance_config": {
+    "description": "최고 성능을 위한 설정 (훈련 시간 오래 걸림)",
+    "embedding": {
+      "optimizer_type": "adamw_torch",
+      "learning_rate": 1e-5,
+      "weight_decay": 0.05,
+      "adam_beta1": 0.9,
+      "adam_beta2": 0.999,
+      "adam_epsilon": 1e-8,
+      "max_grad_norm": 0.5,
+      "lr_scheduler_type": "cosine_with_restarts",
+      "warmup_ratio": 0.15,
+      "cosine_restarts": 2,
+      "batch_size": 16,
+      "epochs": 10,
+      "gradient_accumulation_steps": 2,
+      "fp16": false,
+      "bf16": true,
+      "early_stopping_patience": 5
+    },
+    "generation": {
+      "optimizer_type": "adamw_torch",
+      "learning_rate": 5e-5,
+      "weight_decay": 0.05,
+      "adam_beta1": 0.9,
+      "adam_beta2": 0.999,
+      "adam_epsilon": 1e-8,
+      "max_grad_norm": 0.5,
+      "lr_scheduler_type": "polynomial",
+      "polynomial_power": 0.5,
+      "warmup_ratio": 0.15,
+      "batch_size": 2,
+      "epochs": 5,
+      "gradient_accumulation_steps": 8,
+      "fp16": false,
+      "bf16": true,
+      "early_stopping_patience": 4
+    }
+  },
+
+  "memory_efficient_config": {
+    "description": "메모리 효율적인 설정 (낮은 사양 GPU용)",
+    "embedding": {
+      "optimizer_type": "adafactor",
+      "learning_rate": 2e-4,
+      "weight_decay": 0.0,
+      "max_grad_norm": 1.0,
+      "lr_scheduler_type": "linear",
+      "warmup_ratio": 0.1,
+      "batch_size": 8,
+      "epochs": 5,
+      "gradient_accumulation_steps": 8,
+      "fp16": true,
+      "bf16": false,
+      "gradient_checkpointing": true,
+      "early_stopping_patience": 3
+    },
+    "generation": {
+      "optimizer_type": "adafactor",
+      "learning_rate": 3e-4,
+      "weight_decay": 0.0,
+      "max_grad_norm": 1.0,
+      "lr_scheduler_type": "linear",
+      "warmup_ratio": 0.1,
+      "batch_size": 1,
+      "epochs": 3,
+      "gradient_accumulation_steps": 16,
+      "fp16": true,
+      "bf16": false,
+      "gradient_checkpointing": true,
+      "early_stopping_patience": 2
+    }
+  },
+
+  "experimental_config": {
+    "description": "실험적인 고급 설정들",
+    "embedding": {
+      "optimizer_type": "adamw_torch",
+      "learning_rate": 3e-5,
+      "weight_decay": 0.02,
+      "adam_beta1": 0.95,
+      "adam_beta2": 0.999,
+      "adam_epsilon": 1e-6,
+      "max_grad_norm": 0.8,
+      "lr_scheduler_type": "cosine_with_restarts",
+      "warmup_ratio": 0.2,
+      "cosine_restarts": 3,
+      "batch_size": 24,
+      "epochs": 8,
+      "gradient_accumulation_steps": 1,
+      "fp16": false,
+      "bf16": true,
+      "early_stopping_patience": 4,
+      "early_stopping_threshold": 0.0001
+    },
+    "generation": {
+      "optimizer_type": "adamw_torch",
+      "learning_rate": 8e-5,
+      "weight_decay": 0.03,
+      "adam_beta1": 0.95,
+      "adam_beta2": 0.999,
+      "adam_epsilon": 1e-6,
+      "max_grad_norm": 0.8,
+      "lr_scheduler_type": "polynomial",
+      "polynomial_power": 0.8,
+      "warmup_ratio": 0.2,
+      "batch_size": 3,
+      "epochs": 4,
+      "gradient_accumulation_steps": 6,
+      "fp16": false,
+      "bf16": true,
+      "early_stopping_patience": 3,
+      "early_stopping_threshold": 0.0001
+    }
+  }
+}

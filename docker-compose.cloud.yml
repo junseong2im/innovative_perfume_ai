@@ -1,0 +1,112 @@
+# Oracle Cloud용 경량화 Docker Compose 설정
+# AI 모델 없이 프론트엔드와 백엔드 API만 배포
+
+version: '3.8'
+
+services:
+  # PostgreSQL 데이터베이스
+  postgres:
+    image: postgres:15-alpine
+    container_name: fragrance_postgres
+    environment:
+      POSTGRES_DB: fragrance_ai
+      POSTGRES_USER: fragrance_user
+      POSTGRES_PASSWORD: fragrance_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fragrance_user -d fragrance_ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # Redis 캐시
+  redis:
+    image: redis:7-alpine
+    container_name: fragrance_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  # FastAPI 백엔드 (AI 모델 없음)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.cloud
+    container_name: fragrance_api
+    environment:
+      - DATABASE_URL=postgresql://fragrance_user:fragrance_password@postgres:5432/fragrance_ai
+      - REDIS_URL=redis://redis:6379/0
+      - USE_REMOTE_AI=true
+      - AI_SERVER_URL=http://YOUR_LOCAL_IP:8001
+      - DEBUG=false
+      - SECRET_KEY=your-secure-secret-key-change-this
+      - CORS_ORIGINS=*
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # Nginx 리버스 프록시
+  nginx:
+    image: nginx:alpine
+    container_name: fragrance_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+        reservations:
+          memory: 32M
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: fragrance_network

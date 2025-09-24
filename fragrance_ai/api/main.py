@@ -18,8 +18,16 @@ import asyncio
 from contextlib import asynccontextmanager
 
 from ..core.config import settings
-from ..core.logging_config import setup_logging, get_logger
+from ..core.production_logging import get_logger, LogCategory
+from ..core.logging_middleware import RequestLoggingMiddleware, SecurityLoggingMiddleware
 from ..core.exceptions import FragranceAIException, SystemException, ErrorCode
+from ..core.exceptions_unified import (
+    FragranceAIException as UnifiedException,
+    APIException,
+    ModelException,
+    global_error_handler,
+    handle_exceptions_async
+)
 from ..core.advanced_caching import FragranceCacheManager, CachePolicy
 from ..core.performance_optimizer import global_performance_optimizer
 from ..core.error_handling import (
@@ -44,15 +52,16 @@ from .schemas import (
     ErrorResponse
 )
 from .middleware import LoggingMiddleware, RateLimitMiddleware
+from ..core.security_middleware import SecurityMiddleware, validate_input
+from ..core.real_monitoring import get_monitoring_dashboard
 from .dependencies import get_current_user, verify_api_key, require_permission
 from .auth import get_current_user as auth_get_current_user, require_access_level
 from .user_auth import router as user_auth_router
 from .external_services import router as external_services_router
 from .error_handlers import setup_error_handlers
 
-# 로깅 초기화
-setup_logging()
-logger = get_logger(__name__)
+# 프로덕션 로깅 초기화
+logger = get_logger("fragrance_ai_api")
 
 
 @asynccontextmanager
@@ -203,16 +212,69 @@ app.add_middleware(
     max_age=86400,  # 24시간 캐시
 )
 
-# 커스텀 미들웨어
-app.add_middleware(LoggingMiddleware)
+# 커스텀 미들웨어 (순서 중요 - 로깅이 가장 바깥쪽)
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(SecurityLoggingMiddleware)
+app.add_middleware(SecurityMiddleware,
+                  rate_limit_per_minute=100,  # 분당 100 요청
+                  max_request_size=2*1024*1024)  # 2MB
 app.add_middleware(RateLimitMiddleware)
 
 # 에러 핸들러
 setup_error_handlers(app)
 
+# 통합 예외 핸들러 추가
+@app.exception_handler(UnifiedException)
+async def fragrance_ai_exception_handler(request: Request, exc: UnifiedException):
+    """FragranceAI 예외 핸들러"""
+    error_info = global_error_handler.handle_error(exc)
+
+    return JSONResponse(
+        status_code=getattr(exc, 'status_code', 500),
+        content={
+            "error": True,
+            "error_code": exc.error_code.value,
+            "message": exc.message,
+            "details": exc.details,
+            "timestamp": exc.timestamp.isoformat()
+        }
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """일반 예외 핸들러"""
+    # 예상치 못한 예외를 FragranceAI 예외로 변환
+    fragrance_exc = UnifiedException(
+        message=f"Unexpected server error: {str(exc)}",
+        cause=exc
+    )
+
+    error_info = global_error_handler.handle_error(fragrance_exc)
+
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": True,
+            "error_code": fragrance_exc.error_code.value,
+            "message": "Internal server error",
+            "timestamp": fragrance_exc.timestamp.isoformat()
+        }
+    )
+
 # 라우터 등록
 app.include_router(user_auth_router, prefix="/api/v2")
 app.include_router(external_services_router, prefix="/api/v2")
+
+# 새로운 인증 및 레시피 라우터 추가
+from .routes.auth import router as auth_router
+from .routes.public_recipes import router as public_recipes_router
+from .routes.generation import router as generation_router
+from .routes.agentic import router as agentic_router
+
+app.include_router(auth_router, prefix="/api/v2")
+app.include_router(public_recipes_router, prefix="/api/v2")
+app.include_router(generation_router, prefix="/api/v2/admin", tags=["관리자 전용"])
+app.include_router(agentic_router, prefix="/api/v2", tags=["🤖 AI Orchestrator"])  # New agentic system
 
 
 # 배치 처리 함수들
@@ -300,7 +362,9 @@ async def root():
             "docs": "/api/v2/docs",
             "semantic_search": "/api/v2/semantic-search",
             "rag_chat": "/api/v2/rag-chat",
-            "generate_recipe": "/api/v2/generate-recipe",
+            "auth_login": "/api/v2/auth/login",
+            "public_recipes": "/api/v2/public/recipes/generate",
+            "admin_recipes": "/api/v2/admin/recipe",
             "performance": "/api/v2/performance"
         }
     }
@@ -365,7 +429,59 @@ async def advanced_health_check(request: Request):
         return health_status
 
 
+@app.get("/api/v2/monitoring")
+async def get_monitoring_dashboard():
+    """실시간 모니터링 대시보드 데이터"""
+    try:
+        dashboard = get_monitoring_dashboard()
+        dashboard_data = dashboard.get_dashboard_data()
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "data": dashboard_data,
+                "timestamp": time.time()
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to get monitoring data: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve monitoring data"
+        )
+
+
+@app.get("/api/v2/monitoring/alerts")
+async def get_recent_alerts():
+    """최근 알림 조회"""
+    try:
+        dashboard = get_monitoring_dashboard()
+        alerts = dashboard.alert_manager.get_recent_alerts(limit=20)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "alerts": alerts,
+                "total_count": len(alerts),
+                "timestamp": time.time()
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to get alerts: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve alerts"
+        )
+
+
 @app.post("/api/v2/semantic-search")
+@validate_input({
+    "query": {"type": "text", "max_length": 500},
+    "top_k": {"type": "numeric", "min": 1, "max": 100},
+    "min_similarity": {"type": "numeric", "min": 0.0, "max": 1.0}
+})
 async def advanced_semantic_search(
     request: SemanticSearchRequest,
     background_tasks: BackgroundTasks,
@@ -464,10 +580,22 @@ async def rag_chat(
         context=error_ctx,
         attempt_recovery=True
     ):
-        # RAG 시스템으로 생성
-        result = await app.state.rag_system.generate_with_rag(
-            query=query,
-            context=context,
+        # RAG 시스템으로 생성 (성능 로깅 포함)
+        with logger.log_performance("rag_generation"):
+            result = await app.state.rag_system.generate_with_rag(
+                query=query,
+                context=context,
+                temperature=temperature,
+                enable_reasoning=enable_reasoning
+            )
+
+        # AI 모델 성능 로그
+        logger.info(
+            f"RAG generation completed for query length {len(query)}",
+            category=LogCategory.AI_MODEL,
+            query_length=len(query),
+            confidence_score=result.confidence_score,
+            documents_retrieved=len(result.source_documents),
             temperature=temperature,
             enable_reasoning=enable_reasoning
         )

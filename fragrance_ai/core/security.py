@@ -48,6 +48,38 @@ class AccessLevel(str, Enum):
     SUPER_ADMIN = "super_admin"
 
 
+class ThreatType(str, Enum):
+    """위협 유형"""
+    SQL_INJECTION = "sql_injection"
+    XSS = "xss"
+    BRUTE_FORCE = "brute_force"
+    RATE_LIMIT_EXCEEDED = "rate_limit_exceeded"
+    SUSPICIOUS_PATTERN = "suspicious_pattern"
+    MALWARE = "malware"
+    UNAUTHORIZED_ACCESS = "unauthorized_access"
+    DATA_EXFILTRATION = "data_exfiltration"
+
+
+@dataclass
+class SecurityContext:
+    """보안 컨텍스트"""
+    ip_address: str
+    user_agent: str
+    timestamp: datetime
+    user_id: Optional[str] = None
+    session_id: Optional[str] = None
+    endpoint: Optional[str] = None
+    method: Optional[str] = None
+    headers: Optional[Dict[str, str]] = None
+    threat_score: float = 0.0
+    threat_indicators: List[str] = None
+    is_blocked: bool = False
+
+    def __post_init__(self):
+        if self.threat_indicators is None:
+            self.threat_indicators = []
+
+
 @dataclass
 class SecurityEvent:
     """보안 이벤트"""
@@ -182,7 +214,7 @@ class EncryptionManager:
 
     def __init__(self):
         # 각 암호화마다 다른 키를 생성하므로 초기화 시 마스터키 생성하지 않음
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
         self.logger.info("EncryptionManager initialized")
 
     def _derive_key_from_password_and_salt(self, password: bytes, salt: bytes) -> bytes:
@@ -555,18 +587,172 @@ class RateLimiter:
 
 
 class SecurityMonitor:
-    """보안 모니터링"""
-    
+    """고급 보안 모니터링 및 위협 탐지"""
+
     def __init__(self):
         self.events: List[SecurityEvent] = []
         self.max_events = 10000
-        self.suspicious_patterns = {
-            'sql_injection': [r'union\s+select', r'drop\s+table', r'exec\s*\('],
-            'xss_attempt': [r'<script', r'javascript:', r'onload='],
-            'path_traversal': [r'\.\./', r'\.\.\\', r'%2e%2e%2f'],
-            'command_injection': [r';\s*cat\s+', r';\s*ls\s+', r'`.*`']
-        }
         self.lock = threading.Lock()
+
+        # 확장된 위협 패턴 데이터베이스
+        self.threat_patterns = {
+            'sql_injection': [
+                r'(\bUNION\b.*\bSELECT\b)',
+                r'(\bSELECT\b.*\bFROM\b.*\bWHERE\b)',
+                r'(\bINSERT\b.*\bINTO\b)',
+                r'(\bDELETE\b.*\bFROM\b)',
+                r'(\bUPDATE\b.*\bSET\b)',
+                r'(\bDROP\b.*\bTABLE\b)',
+                r'(\bALTER\b.*\bTABLE\b)',
+                r'(\bCREATE\b.*\bTABLE\b)',
+                r"('.*OR.*')",
+                r'(;.*--)',
+                r'(\bOR\b.*=.*)',
+                r'(\bAND\b.*=.*)',
+                r'(\bEXEC\b\s*\()',
+                r'(\bEXECUTE\b\s*\()',
+                r'(\bsp_executesql\b)',
+                r'(\bxp_cmdshell\b)',
+                r'(\'.*;\s*--)',
+                r'(\".*;\s*--)',
+                r'(\b0x[0-9a-fA-F]+)'
+            ],
+            'xss_attempt': [
+                r'<script[^>]*>.*?</script>',
+                r'<iframe[^>]*>.*?</iframe>',
+                r'<object[^>]*>.*?</object>',
+                r'<embed[^>]*>.*?</embed>',
+                r'<form[^>]*>.*?</form>',
+                r'<img[^>]*onerror[^>]*>',
+                r'javascript:',
+                r'vbscript:',
+                r'data:text/html',
+                r'on\w+\s*=',
+                r'eval\s*\(',
+                r'expression\s*\(',
+                r'setTimeout\s*\(',
+                r'setInterval\s*\(',
+                r'document\.cookie',
+                r'document\.write',
+                r'window\.location',
+                r'alert\s*\(',
+                r'confirm\s*\(',
+                r'prompt\s*\('
+            ],
+            'path_traversal': [
+                r'\.\./',
+                r'\.\.\\',
+                r'%2e%2e%2f',
+                r'%2e%2e%5c',
+                r'%252e%252e%252f',
+                r'%c0%ae%c0%ae%c0%af',
+                r'%uff0e%uff0e%uff0f',
+                r'..%2f',
+                r'..%5c',
+                r'%2e%2e/',
+                r'%2e%2e\\',
+                r'\.\.%2f',
+                r'\.\.%5c'
+            ],
+            'command_injection': [
+                r';\s*cat\s+',
+                r';\s*ls\s+',
+                r';\s*dir\s+',
+                r';\s*type\s+',
+                r';\s*more\s+',
+                r';\s*less\s+',
+                r';\s*head\s+',
+                r';\s*tail\s+',
+                r';\s*grep\s+',
+                r';\s*find\s+',
+                r';\s*locate\s+',
+                r';\s*ps\s+',
+                r';\s*kill\s+',
+                r';\s*rm\s+',
+                r';\s*del\s+',
+                r';\s*mv\s+',
+                r';\s*cp\s+',
+                r';\s*chmod\s+',
+                r';\s*chown\s+',
+                r';\s*wget\s+',
+                r';\s*curl\s+',
+                r';\s*nc\s+',
+                r';\s*netcat\s+',
+                r';\s*telnet\s+',
+                r';\s*ssh\s+',
+                r';\s*ping\s+',
+                r';\s*nslookup\s+',
+                r'`.*`',
+                r'\$\(.*\)',
+                r'\|\s*sh',
+                r'\|\s*bash',
+                r'\|\s*cmd',
+                r'\|\s*powershell'
+            ],
+            'nosql_injection': [
+                r'\$where',
+                r'\$ne',
+                r'\$gt',
+                r'\$lt',
+                r'\$gte',
+                r'\$lte',
+                r'\$in',
+                r'\$nin',
+                r'\$regex',
+                r'\$or',
+                r'\$and',
+                r'\$nor',
+                r'\$not',
+                r'\$exists',
+                r'\$type',
+                r'\$mod',
+                r'\$all',
+                r'\$size',
+                r'\$elemMatch'
+            ],
+            'ldap_injection': [
+                r'\*\)',
+                r'\(\|',
+                r'\(\&',
+                r'\(\!',
+                r'\).*\(',
+                r'admin\*',
+                r'\*admin',
+                r'objectclass=\*'
+            ],
+            'header_injection': [
+                r'\r\n',
+                r'\n',
+                r'%0d%0a',
+                r'%0a',
+                r'%0d',
+                r'Content-Type:',
+                r'Content-Length:',
+                r'Set-Cookie:',
+                r'Location:'
+            ],
+            'file_inclusion': [
+                r'php://filter',
+                r'php://input',
+                r'data://',
+                r'file://',
+                r'ftp://',
+                r'http://',
+                r'https://',
+                r'expect://',
+                r'zip://',
+                r'compress.zlib://',
+                r'compress.bzip2://'
+            ],
+            'xml_injection': [
+                r'<!ENTITY',
+                r'<!DOCTYPE',
+                r'SYSTEM\s+["\']',
+                r'PUBLIC\s+["\']',
+                r'&\w+;',
+                r'%\w+;'
+            ]
+        }
     
     def log_security_event(
         self,
@@ -722,3 +908,38 @@ encryption_manager = EncryptionManager()
 api_key_manager = ApiKeyManager()
 rate_limiter = RateLimiter()
 security_monitor = SecurityMonitor()
+
+
+class SecurityManager:
+    """통합 보안 관리자"""
+
+    def __init__(self):
+        self.password_validator = password_validator
+        self.encryption_manager = encryption_manager
+        self.api_key_manager = api_key_manager
+        self.rate_limiter = rate_limiter
+        self.security_monitor = security_monitor
+
+    def validate_password(self, password: str) -> bool:
+        """비밀번호 검증"""
+        return self.password_validator.validate_password(password)
+
+    def create_api_key(self, user_id: str, name: str, **kwargs) -> str:
+        """API 키 생성"""
+        return self.api_key_manager.create_api_key(user_id, name, **kwargs)
+
+    def validate_api_key(self, api_key: str) -> Optional['ApiKey']:
+        """API 키 검증"""
+        return self.api_key_manager.validate_api_key(api_key)
+
+    def check_rate_limit(self, identifier: str, **kwargs) -> bool:
+        """속도 제한 확인"""
+        return self.rate_limiter.check_rate_limit(identifier, **kwargs)
+
+    def log_security_event(self, **kwargs):
+        """보안 이벤트 로깅"""
+        return self.security_monitor.log_security_event(**kwargs)
+
+
+# 전역 보안 관리자 인스턴스
+security_manager = SecurityManager()
