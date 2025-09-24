@@ -35,15 +35,40 @@ export default function SecureAdminDashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    // 관리자 인증 확인
-    const adminData = localStorage.getItem('deulsoom_admin_secure');
-    if (!adminData) {
-      router.push('/system-control/deulsoom-mgr');
-      return;
-    }
+    // 서버 세션 확인
+    const checkSession = async () => {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
-    const user = JSON.parse(adminData);
-    setAdminUser(user);
+      try {
+        const response = await fetch(`${API_URL}/api/v1/auth/admin/session`, {
+          method: 'GET',
+          credentials: 'include', // 쿠키 포함
+          headers: {
+            'X-CSRF-Token': sessionStorage.getItem('csrf_token') || ''
+          }
+        });
+
+        if (!response.ok) {
+          router.push('/system-control/deulsoom-mgr/login');
+          return;
+        }
+
+        const userData = await response.json();
+        setAdminUser({
+          id: userData.user_id,
+          username: userData.username || userData.email,
+          role: userData.role || 'admin',
+          loginTime: userData.login_time || new Date().toISOString(),
+          sessionToken: 'server-managed'
+        });
+      } catch (error) {
+        console.error('Session check failed:', error);
+        router.push('/system-control/deulsoom-mgr/login');
+        return;
+      }
+    };
+
+    checkSession();
 
     // 통합 서비스에서 실시간 통계 로드
     const loadStats = () => {
@@ -78,9 +103,23 @@ export default function SecureAdminDashboard() {
     };
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('deulsoom_admin_secure');
-    router.push('/system-control/deulsoom-mgr');
+  const handleLogout = async () => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+
+    try {
+      await fetch(`${API_URL}/api/v1/auth/admin/logout`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'X-CSRF-Token': sessionStorage.getItem('csrf_token') || ''
+        }
+      });
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      sessionStorage.removeItem('csrf_token');
+      router.push('/system-control/deulsoom-mgr/login');
+    }
   };
 
   const getRoleDisplayName = (role: string) => {

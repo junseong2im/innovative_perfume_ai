@@ -271,12 +271,14 @@ from .routes.public_recipes import router as public_recipes_router
 from .routes.generation import router as generation_router
 from .routes.agentic import router as agentic_router
 from .routes.customer_service import router as customer_service_router
+from .routes.admin_auth import router as admin_auth_router  # 관리자 인증 라우터
 
 app.include_router(auth_router, prefix="/api/v2")
 app.include_router(public_recipes_router, prefix="/api/v2")
 app.include_router(generation_router, prefix="/api/v2/admin", tags=["관리자 전용"])
 app.include_router(agentic_router, prefix="/api/v2", tags=["🤖 AI Orchestrator"])  # New agentic system
 app.include_router(customer_service_router, tags=["Customer Service"])  # Customer service routes
+app.include_router(admin_auth_router, tags=["Admin Authentication"])  # 관리자 세션 기반 인증
 
 
 # 배치 처리 함수들
