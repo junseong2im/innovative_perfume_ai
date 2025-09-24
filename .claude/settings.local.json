@@ -75,7 +75,8 @@
       "Bash(start http://localhost:8000/docs)",
       "Bash(taskkill:*)",
       "Bash(git reset:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(deep)"
     ],
     "deny": [],
     "ask": []
