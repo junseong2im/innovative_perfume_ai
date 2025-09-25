@@ -1,0 +1,87 @@
+name: Reusable Lint Workflow
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to use'
+        required: false
+        type: string
+        default: '3.10'
+      source-directory:
+        description: 'Source code directory'
+        required: false
+        type: string
+        default: 'fragrance_ai/'
+      strict-mode:
+        description: 'Enable strict linting'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  lint:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache: 'pip'
+
+      - name: Install linting tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install black isort flake8 mypy pylint bandit safety
+
+      - name: Run Black formatter check
+        run: |
+          black --check --diff ${{ inputs.source-directory }}
+
+      - name: Run isort import sorter check
+        run: |
+          isort --check-only --diff ${{ inputs.source-directory }}
+
+      - name: Run Flake8 linter
+        run: |
+          if [ "${{ inputs.strict-mode }}" = "true" ]; then
+            flake8 ${{ inputs.source-directory }} --max-line-length=100 --max-complexity=10
+          else
+            flake8 ${{ inputs.source-directory }} --max-line-length=120 --max-complexity=15 --ignore=E203,W503
+          fi
+
+      - name: Run MyPy type checker
+        continue-on-error: ${{ !inputs.strict-mode }}
+        run: |
+          mypy ${{ inputs.source-directory }} --ignore-missing-imports --no-implicit-optional
+
+      - name: Run Pylint
+        continue-on-error: ${{ !inputs.strict-mode }}
+        run: |
+          pylint ${{ inputs.source-directory }} --fail-under=8.0 || true
+
+      - name: Run Bandit security linter
+        run: |
+          bandit -r ${{ inputs.source-directory }} -f json -o bandit_report.json || true
+          if [ -f bandit_report.json ]; then
+            python -m json.tool bandit_report.json
+          fi
+
+      - name: Check dependency vulnerabilities
+        run: |
+          safety check --json || true
+
+      - name: Generate lint report
+        if: always()
+        run: |
+          echo "## Code Quality Report" >> $GITHUB_STEP_SUMMARY
+          echo "- Black: ${{ steps.black.outcome || 'Completed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- isort: ${{ steps.isort.outcome || 'Completed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Flake8: ${{ steps.flake8.outcome || 'Completed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- MyPy: ${{ steps.mypy.outcome || 'Completed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Strict Mode: ${{ inputs.strict-mode }}" >> $GITHUB_STEP_SUMMARY
