@@ -9,6 +9,7 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 from fastapi.responses import HTMLResponse
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -46,7 +47,7 @@ class APIDocumentationGenerator:
                     "description": "Staging server"
                 },
                 {
-                    "url": "http://localhost:8000",
+                    "url": os.environ.get("API_BASE_URL", "http://localhost:8000"),
                     "description": "Development server"
                 }
             ]

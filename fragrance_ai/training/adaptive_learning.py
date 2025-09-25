@@ -943,35 +943,3 @@ def create_adaptive_learning_system(base_model: nn.Module,
 
     return system
 
-if __name__ == "__main__":
-    # 테스트용 더미 모델
-    class DummyModel(nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.linear = nn.Linear(100, 50)
-
-        def forward(self, input_ids, **kwargs):
-            return {'logits': self.linear(input_ids.float())}
-
-    # 시스템 테스트
-    dummy_model = DummyModel()
-    adaptive_system = create_adaptive_learning_system(dummy_model)
-
-    # 더미 피드백 추가
-    input_data = {'input_ids': torch.randn(1, 100)}
-    output_data = {'logits': torch.randn(1, 50)}
-
-    adaptive_system.add_feedback(input_data, output_data, 0.8, "test_user")
-
-    # 적응형 학습 시작
-    adaptive_system.start_adaptive_learning()
-
-    # 몇 초 후 중지
-    time.sleep(2)
-    adaptive_system.stop_adaptive_learning()
-
-    # 통계 출력
-    stats = adaptive_system.get_learning_statistics()
-    print("학습 통계:", stats)
-
-    print("실시간 적응형 학습 시스템 테스트 완료!")

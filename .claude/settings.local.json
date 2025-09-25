@@ -76,7 +76,8 @@
       "Bash(taskkill:*)",
       "Bash(git reset:*)",
       "Bash(rm:*)",
-      "Bash(deep)"
+      "Bash(deep)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []

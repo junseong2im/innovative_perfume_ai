@@ -15,8 +15,8 @@ Fragrance AI - 애플리케이션 설정 관리 모듈
 사용 예시:
     from fragrance_ai.core.config import settings
 
-    print(f"API 포트: {settings.api_port}")
-    print(f"디버그 모드: {settings.debug}")
+    api_port = settings.api_port
+    debug_mode = settings.debug
 """
 
 from typing import List, Optional

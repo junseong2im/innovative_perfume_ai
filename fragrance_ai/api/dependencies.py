@@ -1,6 +1,10 @@
 from fastapi import HTTPException, Depends, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional, Dict, Any
+from functools import lru_cache
+import threading
+import gc
+import torch
 import jwt
 from datetime import datetime, timedelta
 import hashlib
@@ -9,12 +13,113 @@ import hmac
 from ..core.config import settings
 from ..core.logging_config import get_logger
 from ..core.security import api_key_manager, AccessLevel
+from ..core.model_manager import get_model_manager
 from ..services.search_service import SearchService
 from ..services.generation_service import GenerationService
 from .auth import auth_manager, authz_manager, EnhancedAuthenticationError, EnhancedAuthorizationError
 
 logger = get_logger(__name__)
 security = HTTPBearer()
+
+
+class SingletonModelFactory:
+    """
+    Thread-safe singleton factory for AI models
+    Prevents memory exhaustion from duplicate model loading
+    """
+
+    _instance = None
+    _lock = threading.Lock()
+    _models: Dict[str, Any] = {}
+
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+                    cls._instance._initialized = False
+        return cls._instance
+
+    def __init__(self):
+        if self._initialized:
+            return
+
+        with self._lock:
+            if not self._initialized:
+                self._models = {}
+                self._model_manager = get_model_manager()
+                self._initialized = True
+                logger.info("SingletonModelFactory initialized")
+
+    def get_model(self, model_name: str, model_class: type = None) -> Any:
+        """Get or create a model instance"""
+        if model_name not in self._models:
+            with self._lock:
+                if model_name not in self._models:
+                    model = self._model_manager.get_model(model_name)
+                    if model is None and model_class is not None:
+                        model = model_class()
+                        self._model_manager.register_model(model_name, model)
+
+                    self._models[model_name] = model
+                    logger.info(f"Model '{model_name}' loaded into memory")
+
+        return self._models[model_name]
+
+    def preload_essential_models(self):
+        """Preload essential models at startup"""
+        essential_models = [
+            "embedding_model",
+            "generator",
+            "rag_system",
+            "master_perfumer",
+            "scientific_validator",
+            "ollama_client"
+        ]
+
+        for model_name in essential_models:
+            try:
+                self.get_model(model_name)
+            except Exception as e:
+                logger.warning(f"Failed to preload {model_name}: {e}")
+
+    def clear_model(self, model_name: str):
+        """Clear a specific model from memory"""
+        if model_name in self._models:
+            with self._lock:
+                if model_name in self._models:
+                    model = self._models.pop(model_name)
+                    del model
+                    gc.collect()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    logger.info(f"Model '{model_name}' cleared from memory")
+
+    def get_memory_usage(self) -> Dict[str, Any]:
+        """Get memory usage statistics"""
+        stats = {
+            "loaded_models": list(self._models.keys()),
+            "total_models": len(self._models),
+            "gpu_memory_allocated": 0,
+            "gpu_memory_cached": 0
+        }
+
+        if torch.cuda.is_available():
+            stats["gpu_memory_allocated"] = torch.cuda.memory_allocated() / 1024**3
+            stats["gpu_memory_cached"] = torch.cuda.memory_reserved() / 1024**3
+
+        return stats
+
+
+_model_factory = None
+
+@lru_cache()
+def get_model_factory() -> SingletonModelFactory:
+    """Get singleton model factory instance"""
+    global _model_factory
+    if _model_factory is None:
+        _model_factory = SingletonModelFactory()
+    return _model_factory
 
 
 # Legacy error classes - use Enhanced versions from auth.py

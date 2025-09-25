@@ -259,7 +259,7 @@ print(f"Found {len(results['results'])} fragrances")''',
                     "sdk": '''from fragranceai import FragranceAI
 
 # Initialize client
-client = FragranceAI(api_key="your_api_key_here")
+client = FragranceAI(api_key=os.environ.get("FRAGRANCE_AI_API_KEY"))
 
 # Search for fragrances
 results = client.search.semantic(
