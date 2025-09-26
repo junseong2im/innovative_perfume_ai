@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getApiUrl } from '@/lib/config';
 
 interface Message {
   id: string;
@@ -20,7 +21,7 @@ export default function ArtisanChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+  // Using centralized config for API URL
 
   useEffect(() => {
     // 부드러운 스크롤
@@ -58,7 +59,7 @@ export default function ArtisanChat() {
     setIsTyping(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/v1/generate/chat`, {
+      const response = await fetch(getApiUrl('generate/chat'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
