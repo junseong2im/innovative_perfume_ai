@@ -1,0 +1,214 @@
+version: '3.8'
+
+services:
+  # vLLM 서빙 엔진 - 고성능 LLM 추론
+  vllm-server:
+    image: vllm/vllm-openai:latest
+    container_name: fragrance-vllm
+    restart: unless-stopped
+    ports:
+      - "8100:8000"  # vLLM API 포트
+    volumes:
+      - ./models/huggingface:/models  # 모델 저장 경로
+      - vllm-cache:/root/.cache  # 캐시 디렉토리
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - VLLM_MODEL_NAME=meta-llama/Llama-3-8b-chat-hf
+      - VLLM_TENSOR_PARALLEL_SIZE=1
+      - VLLM_GPU_MEMORY_UTILIZATION=0.9
+      - VLLM_MAX_MODEL_LEN=4096
+      - VLLM_DTYPE=float16
+      - VLLM_ENABLE_STREAMING=true
+      - VLLM_MAX_NUM_BATCHED_TOKENS=8192
+      - VLLM_MAX_NUM_SEQS=256
+      - VLLM_SWAP_SPACE=4  # GB of CPU swap space
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: >
+      python -m vllm.entrypoints.openai.api_server
+      --model /models/llama3-8b
+      --host 0.0.0.0
+      --port 8000
+      --max-num-batched-tokens 8192
+      --enable-chunked-prefill
+      --enable-prefix-caching
+      --use-v2-block-manager
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - fragrance-network
+
+  # TGI (Text Generation Inference) - Hugging Face 대안
+  tgi-server:
+    image: ghcr.io/huggingface/text-generation-inference:latest
+    container_name: fragrance-tgi
+    restart: unless-stopped
+    ports:
+      - "8101:80"
+    volumes:
+      - ./models/huggingface:/data
+      - tgi-cache:/root/.cache
+    environment:
+      - MODEL_ID=meta-llama/Llama-3-8b-chat-hf
+      - MAX_INPUT_LENGTH=2048
+      - MAX_TOTAL_TOKENS=4096
+      - MAX_BATCH_PREFILL_TOKENS=4096
+      - MAX_BATCH_TOTAL_TOKENS=8192
+      - MAX_CONCURRENT_REQUESTS=256
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
+      - CUDA_VISIBLE_DEVICES=0
+      - DTYPE=float16
+      - TRUST_REMOTE_CODE=true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: >
+      --model-id /data/llama3-8b
+      --num-shard 1
+      --max-batch-prefill-tokens 4096
+      --max-batch-total-tokens 8192
+      --max-concurrent-requests 256
+      --quantize bitsandbytes-nf4
+    networks:
+      - fragrance-network
+
+  # Triton Inference Server - NVIDIA 최적화
+  triton-server:
+    image: nvcr.io/nvidia/tritonserver:24.01-py3
+    container_name: fragrance-triton
+    restart: unless-stopped
+    ports:
+      - "8102:8000"  # HTTP
+      - "8103:8001"  # gRPC
+      - "8104:8002"  # Metrics
+    volumes:
+      - ./models/triton:/models
+      - triton-cache:/opt/tritonserver/cache
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: >
+      tritonserver
+      --model-repository=/models
+      --model-control-mode=explicit
+      --strict-model-config=false
+      --http-port=8000
+      --grpc-port=8001
+      --metrics-port=8002
+      --log-verbose=1
+      --backend-config=python,shm-region-prefix-name=prefix0_
+      --backend-config=tensorflow,version=2
+    networks:
+      - fragrance-network
+
+  # Ray Serve - 분산 모델 서빙
+  ray-head:
+    image: rayproject/ray:2.9.0-gpu
+    container_name: fragrance-ray-head
+    restart: unless-stopped
+    ports:
+      - "8265:8265"  # Ray Dashboard
+      - "10001:10001"  # Ray Client
+      - "8105:8000"  # Ray Serve
+    volumes:
+      - ./fragrance_ai:/app/fragrance_ai
+      - ./models:/models
+      - ray-storage:/tmp/ray
+    environment:
+      - RAY_HEAD_SERVICE_HOST=ray-head
+      - RAY_HEAD_SERVICE_PORT=6379
+      - RAY_SERVE_ENABLE_EXPERIMENTAL_STREAMING=1
+      - CUDA_VISIBLE_DEVICES=0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: >
+      bash -c "ray start --head --port=6379 --dashboard-host=0.0.0.0 --dashboard-port=8265 &&
+               python /app/fragrance_ai/serving/ray_serve_deployment.py &&
+               tail -f /dev/null"
+    networks:
+      - fragrance-network
+
+  # Nginx Load Balancer for Model Serving
+  nginx-model-lb:
+    image: nginx:alpine
+    container_name: fragrance-model-lb
+    restart: unless-stopped
+    ports:
+      - "8099:80"
+    volumes:
+      - ./configs/nginx-models.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - vllm-server
+      - tgi-server
+      - triton-server
+      - ray-head
+    networks:
+      - fragrance-network
+
+  # Prometheus for Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: fragrance-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - fragrance-network
+
+  # Grafana for Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: fragrance-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./configs/grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./configs/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    networks:
+      - fragrance-network
+
+networks:
+  fragrance-network:
+    driver: bridge
+
+volumes:
+  vllm-cache:
+  tgi-cache:
+  triton-cache:
+  ray-storage:
+  prometheus-data:
+  grafana-data:

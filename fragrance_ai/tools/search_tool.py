@@ -4,17 +4,22 @@
 - 시맨틱 검색 및 필터링 기능
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from pydantic import BaseModel, Field
 import logging
 from datetime import datetime
+import asyncio
+import hashlib
+import json
 
 # 향수 데이터베이스 및 벡터 스토어 임포트
 from ..services.search_service import SearchService
 from ..core.vector_store import VectorStore
 from ..database.models import Recipe, FragranceNote
+from ..core.cache_service import CacheService
 
 logger = logging.getLogger(__name__)
+cache_service = CacheService()
 
 # Pydantic 스키마
 class SearchQuery(BaseModel):
@@ -56,11 +61,65 @@ def get_search_service():
         search_service = SearchService()
     return search_service
 
+async def _merge_search_results(
+    vector_results: Optional[Dict],
+    filter_results: Optional[Dict],
+    limit: int
+) -> Dict[str, Any]:
+    """벡터 검색과 SQL 필터링 결과를 병합"""
+    if not vector_results and not filter_results:
+        return {"results": [], "total_count": 0}
+
+    if not filter_results:
+        # 벡터 검색 결과만 사용
+        results = vector_results.get("results", [])[:limit]
+        return {
+            "results": results,
+            "total_count": len(results)
+        }
+
+    if not vector_results:
+        # 필터 결과만 사용
+        results = filter_results.get("results", [])[:limit]
+        return {
+            "results": results,
+            "total_count": len(results)
+        }
+
+    # 두 결과를 병합하고 중복 제거
+    seen_ids = set()
+    merged = []
+
+    # 벡터 검색 결과 우선 (유사도 높은 순)
+    for item in vector_results.get("results", []):
+        if item.get("id") not in seen_ids:
+            seen_ids.add(item.get("id"))
+            # 필터 결과에도 있는지 확인
+            filter_ids = {r.get("id") for r in filter_results.get("results", [])}
+            if item.get("id") in filter_ids:
+                item["boost"] = 1.2  # 양쪽 모두에 있으면 부스트
+            merged.append(item)
+
+    # 필터링만 된 결과 추가
+    for item in filter_results.get("results", []):
+        if item.get("id") not in seen_ids:
+            seen_ids.add(item.get("id"))
+            merged.append(item)
+
+    # 점수 기반 정렬
+    merged.sort(key=lambda x: x.get("score", 0) * x.get("boost", 1), reverse=True)
+
+    return {
+        "results": merged[:limit],
+        "total_count": len(merged)
+    }
+
 async def hybrid_search(
     text_query: str,
     metadata_filters: Optional[Dict[str, Any]] = None,
     top_k: int = 10,
-    similarity_threshold: float = 0.7
+    similarity_threshold: float = 0.7,
+    use_cache: bool = True
 ) -> SearchResult:
     """
     # LLM TOOL DESCRIPTION (FOR ORCHESTRATOR)
@@ -80,15 +139,60 @@ async def hybrid_search(
     start_time = datetime.now()
 
     try:
+        # 캐시 키 생성
+        cache_key = None
+        if use_cache:
+            cache_data = {
+                "query": text_query,
+                "filters": metadata_filters or {},
+                "top_k": top_k,
+                "threshold": similarity_threshold
+            }
+            cache_key = f"search:{hashlib.md5(json.dumps(cache_data, sort_keys=True).encode()).hexdigest()}"
+
+            # 캐시 확인
+            cached = await cache_service.get(cache_key)
+            if cached:
+                logger.info(f"Cache hit for query: {text_query[:50]}")
+                cached["cached"] = True
+                return SearchResult(**cached)
+
         service = get_search_service()
 
-        # 하이브리드 검색 수행
-        raw_results = await service.hybrid_search(
-            query=text_query,
-            collection_name="perfumes",
-            filters=metadata_filters,
-            top_k=top_k,
-            threshold=similarity_threshold
+        # 병렬 처리: 벡터 검색과 SQL 필터링 동시 실행
+        async def vector_search():
+            """벡터 유사도 검색"""
+            return await service.vector_search(
+                query=text_query,
+                collection_name="perfumes",
+                top_k=top_k * 2,  # 필터링을 위해 더 많이 가져옴
+                threshold=similarity_threshold
+            )
+
+        async def sql_filter():
+            """SQL 기반 메타데이터 필터링"""
+            if not metadata_filters:
+                return None
+            return await service.filter_search(
+                filters=metadata_filters,
+                collection_name="perfumes",
+                limit=top_k * 2
+            )
+
+        # 병렬 실행
+        tasks = [vector_search()]
+        if metadata_filters:
+            tasks.append(sql_filter())
+
+        results = await asyncio.gather(*tasks)
+        vector_results = results[0]
+        filter_results = results[1] if len(results) > 1 else None
+
+        # 결과 병합
+        raw_results = await _merge_search_results(
+            vector_results,
+            filter_results,
+            top_k
         )
 
         # 결과 변환
@@ -111,13 +215,19 @@ async def hybrid_search(
         # 검색 시간 계산
         search_time = (datetime.now() - start_time).total_seconds() * 1000
 
-        return SearchResult(
+        result = SearchResult(
             query=text_query,
             total_results=len(search_items),
             results=search_items,
             search_time_ms=search_time,
             filters_applied=metadata_filters or {}
         )
+
+        # 캐시 저장 (TTL: 1시간)
+        if use_cache and cache_key:
+            await cache_service.set(cache_key, result.dict(), ttl=3600)
+
+        return result
 
     except Exception as e:
         logger.error(f"Hybrid search failed: {e}")
