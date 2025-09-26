@@ -246,6 +246,18 @@ site/
 .vscode/launch.json
 .vscode/extensions.json
 
+# Legacy code test files
+legacy_code/test_*
+legacy_code/demo_*
+legacy_code/temp_*
+legacy_code/tmp_*
+legacy_code/frontend_old/node_modules/
+
+# Commerce Next.js
+commerce/.next/
+commerce/out/
+commerce/node_modules/
+
 # Keep example files
 !.env.example
 !config.example.yaml

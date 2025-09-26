@@ -77,7 +77,9 @@
       "Bash(git reset:*)",
       "Bash(rm:*)",
       "Bash(deep)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(grep:*)",
+      "Bash(xargs rm:*)"
     ],
     "deny": [],
     "ask": []
