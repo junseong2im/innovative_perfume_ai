@@ -90,7 +90,7 @@ export default function GlobalNav() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b text-white shadow-sm" style={{backgroundColor: 'var(--vintage-navy)', borderColor: 'var(--vintage-gray-dark)'}}>
+    <nav className="sticky top-0 z-50 border-b shadow-sm bg-[var(--luxury-midnight)] border-[var(--luxury-silk)]">
       <div className="mx-auto max-w-screen-2xl px-4 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Left side - Logo and Navigation items */}
@@ -98,14 +98,14 @@ export default function GlobalNav() {
             {/* Logo - Home Link */}
             <Link
               href="/"
-              className="text-lg font-normal tracking-[0.12em] text-white hover:opacity-80 transition-opacity"
+              className="text-lg font-normal tracking-[0.12em] text-[var(--luxury-gold)] hover:text-[var(--luxury-rose-gold)] transition-colors"
               style={{fontFamily: 'Playfair Display, Didot, Garamond, Times New Roman, serif'}}
             >
               Deulsoom
             </Link>
 
             {/* Divider */}
-            <div className="h-6 w-px bg-neutral-400 opacity-50"></div>
+            <div className="h-6 w-px bg-[var(--luxury-gold)] opacity-30"></div>
 
             {/* Navigation Links */}
             <div className="flex items-center space-x-6">
@@ -113,8 +113,8 @@ export default function GlobalNav() {
                 href="/new-products"
                 className={`text-sm font-light tracking-wide transition-colors ${
                   pathname === '/new-products'
-                    ? 'text-white font-medium'
-                    : 'text-neutral-300 hover:text-white'
+                    ? 'text-[var(--luxury-gold)] font-medium'
+                    : 'text-[var(--luxury-pearl)] hover:text-[var(--luxury-gold)]'
                 }`}
               >
                 신제품 & 추천
@@ -123,8 +123,8 @@ export default function GlobalNav() {
                 href="/products"
                 className={`text-sm font-light tracking-wide transition-colors ${
                   pathname === '/products'
-                    ? 'text-white font-medium'
-                    : 'text-neutral-300 hover:text-white'
+                    ? 'text-[var(--luxury-gold)] font-medium'
+                    : 'text-[var(--luxury-pearl)] hover:text-[var(--luxury-gold)]'
                 }`}
               >
                 제품
@@ -133,8 +133,8 @@ export default function GlobalNav() {
                 href="/about"
                 className={`text-sm font-light tracking-wide transition-colors ${
                   pathname === '/about'
-                    ? 'text-white font-medium'
-                    : 'text-neutral-300 hover:text-white'
+                    ? 'text-[var(--luxury-gold)] font-medium'
+                    : 'text-[var(--luxury-pearl)] hover:text-[var(--luxury-gold)]'
                 }`}
               >
                 스토리
@@ -143,7 +143,7 @@ export default function GlobalNav() {
               {/* Search Button */}
               <button
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
-                className="text-neutral-300 hover:text-white transition-colors ml-2"
+                className="text-[var(--luxury-pearl)] hover:text-[var(--luxury-gold)] transition-colors ml-2"
                 aria-label="검색"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,7 +159,7 @@ export default function GlobalNav() {
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="text-sm font-light tracking-wide text-neutral-300 transition-colors hover:text-white flex items-center space-x-1"
+                  className="text-sm font-light tracking-wide text-[var(--luxury-pearl)] transition-colors hover:text-[var(--luxury-gold)] flex items-center space-x-1"
                 >
                   <span>{userName}님</span>
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,7 +201,7 @@ export default function GlobalNav() {
             ) : (
               <Link
                 href="/login"
-                className="text-sm font-light tracking-wide text-neutral-300 transition-colors hover:text-white"
+                className="text-sm font-light tracking-wide text-[var(--luxury-pearl)] transition-colors hover:text-[var(--luxury-gold)]"
               >
                 로그인
               </Link>
@@ -209,14 +209,14 @@ export default function GlobalNav() {
 
             <Link
               href="/wishlist"
-              className="text-neutral-300 hover:text-white transition-colors relative"
+              className="text-[var(--luxury-pearl)] hover:text-[var(--luxury-gold)] transition-colors relative"
               aria-label="위시리스트"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
               {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-white text-neutral-900 text-xs rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 h-4 w-4 bg-[var(--luxury-gold)] text-[var(--luxury-midnight)] text-xs rounded-full flex items-center justify-center">
                   {wishlistCount}
                 </span>
               )}
@@ -224,14 +224,14 @@ export default function GlobalNav() {
 
             <Link
               href="/cart"
-              className="text-neutral-300 hover:text-white transition-colors relative"
+              className="text-[var(--luxury-pearl)] hover:text-[var(--luxury-gold)] transition-colors relative"
               aria-label="카트"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-white text-neutral-900 text-xs rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 h-4 w-4 bg-[var(--luxury-gold)] text-[var(--luxury-midnight)] text-xs rounded-full flex items-center justify-center">
                   {cartCount}
                 </span>
               )}

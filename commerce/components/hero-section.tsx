@@ -60,28 +60,28 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="text-white" style={{backgroundColor: 'var(--light-brown)'}}>
+    <section className="bg-[var(--luxury-midnight)] text-[var(--luxury-pearl)]">
       {/* Extended Navigation */}
-      <nav className="border-b" style={{borderColor: 'var(--light-brown-dark)'}}>
+      <nav className="border-b border-[var(--luxury-gold)] border-opacity-30">
         <div className="mx-auto max-w-screen-2xl px-4 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             {/* Left side - Navigation items */}
             <div className="flex items-center space-x-6">
               <Link
                 href="/new-products"
-                className="text-sm font-light tracking-wide text-neutral-300 transition-colors hover:text-white"
+                className="text-sm font-light tracking-wide text-[var(--luxury-pearl)] transition-colors hover:text-[var(--luxury-gold)]"
               >
                 신제품 & 추천
               </Link>
               <Link
                 href="/products"
-                className="text-sm font-light tracking-wide text-neutral-300 transition-colors hover:text-white"
+                className="text-sm font-light tracking-wide text-[var(--luxury-pearl)] transition-colors hover:text-[var(--luxury-gold)]"
               >
                 제품
               </Link>
               <Link
                 href="/about"
-                className="text-sm font-light tracking-wide text-neutral-300 transition-colors hover:text-white"
+                className="text-sm font-light tracking-wide text-[var(--luxury-pearl)] transition-colors hover:text-[var(--luxury-gold)]"
               >
                 스토리
               </Link>
@@ -89,7 +89,7 @@ export default function HeroSection() {
               {/* Search Button */}
               <button
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
-                className="text-neutral-300 hover:text-white transition-colors ml-2"
+                className="text-[var(--luxury-pearl)] hover:text-[var(--luxury-gold)] transition-colors ml-2"
                 aria-label="검색"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,7 +104,7 @@ export default function HeroSection() {
                 <div className="relative">
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="text-sm font-light tracking-wide text-neutral-300 transition-colors hover:text-white flex items-center space-x-1"
+                    className="text-sm font-light tracking-wide text-[var(--luxury-pearl)] transition-colors hover:text-[var(--luxury-gold)] flex items-center space-x-1"
                   >
                     <span>{userName}님</span>
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,7 +131,7 @@ export default function HeroSection() {
               ) : (
                 <Link
                   href="/login"
-                  className="text-sm font-light tracking-wide text-neutral-300 transition-colors hover:text-white"
+                  className="text-sm font-light tracking-wide text-[var(--luxury-pearl)] transition-colors hover:text-[var(--luxury-gold)]"
                 >
                   로그인
                 </Link>
@@ -139,14 +139,14 @@ export default function HeroSection() {
 
               <button
                 onClick={toggleWishlist}
-                className="text-neutral-300 hover:text-white transition-colors relative"
+                className="text-[var(--luxury-pearl)] hover:text-[var(--luxury-gold)] transition-colors relative"
                 aria-label="위시리스트"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-white text-neutral-900 text-xs rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-[var(--luxury-gold)] text-[var(--luxury-midnight)] text-xs rounded-full flex items-center justify-center">
                     {wishlistCount}
                   </span>
                 )}
@@ -154,14 +154,14 @@ export default function HeroSection() {
 
               <button
                 onClick={toggleCart}
-                className="text-neutral-300 hover:text-white transition-colors relative"
+                className="text-[var(--luxury-pearl)] hover:text-[var(--luxury-gold)] transition-colors relative"
                 aria-label="카트"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                 </svg>
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-white text-neutral-900 text-xs rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-[var(--luxury-gold)] text-[var(--luxury-midnight)] text-xs rounded-full flex items-center justify-center">
                     {cartCount}
                   </span>
                 )}
@@ -201,14 +201,14 @@ export default function HeroSection() {
           {/* Left side - Text content */}
           <div className="px-4 lg:px-8 xl:px-16 2xl:px-24 flex items-center py-8 lg:py-0">
             <div>
-              <h1 className="mb-8 text-4xl font-normal tracking-[0.15em] text-white lg:text-5xl" style={{fontFamily: 'Playfair Display, Didot, Garamond, Times New Roman, serif'}}>
+              <h1 className="mb-8 text-4xl font-normal tracking-[0.15em] text-[var(--luxury-gold)] lg:text-5xl" style={{fontFamily: 'var(--font-display)'}}>
                 Deulsoom
               </h1>
               <div className="space-y-6">
-                <p className="text-xs font-normal tracking-[0.25em] text-neutral-300 uppercase" style={{fontFamily: 'Helvetica Neue, Arial, sans-serif'}}>
+                <p className="text-xs font-normal tracking-[0.25em] text-[var(--luxury-rose-gold)] uppercase" style={{fontFamily: 'var(--font-body)'}}>
                   보이지 않는 가장 깊은 기억
                 </p>
-                <p className="max-w-xl text-sm font-normal text-neutral-400 leading-relaxed" style={{fontFamily: 'Helvetica Neue, Arial, sans-serif', letterSpacing: '0.02em'}}>
+                <p className="max-w-xl text-sm font-normal text-[var(--luxury-pearl)] leading-relaxed" style={{fontFamily: 'var(--font-body)', letterSpacing: '0.02em'}}>
                   향기는 보이지 않는 가장 깊은 기억입니다.
                   우리는 당신의 보이지 않는 상상의 조각들을 모아,
                   세상에 단 하나뿐인 향기로 빚어냅니다.
@@ -218,8 +218,8 @@ export default function HeroSection() {
           </div>
 
           {/* Right side - Image */}
-          <div className="relative h-full">
-            <div className="absolute inset-0 bg-neutral-800/20">
+          <div className="relative h-full border-l border-[var(--luxury-gold)] border-opacity-20">
+            <div className="absolute inset-0 bg-gradient-to-r from-[var(--luxury-midnight)] via-transparent to-transparent">
               {/* 이미지 파일을 C:\Users\user\Desktop\새 폴더 (2)\Newss\commerce\public\images\ 폴더에 넣으세요 */}
               {/* 지원 형식: jpg, png, webp */}
               <img
@@ -234,7 +234,7 @@ export default function HeroSection() {
               />
               <div
                 id="image-placeholder"
-                className="absolute inset-0 bg-gradient-to-br from-neutral-700 to-neutral-900 items-center justify-center hidden"
+                className="absolute inset-0 bg-gradient-to-br from-[var(--luxury-charcoal)] to-[var(--luxury-obsidian)] items-center justify-center hidden"
               >
                 <div className="text-center text-white/60">
                   <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

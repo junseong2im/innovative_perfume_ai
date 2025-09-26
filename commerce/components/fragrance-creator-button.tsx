@@ -4,13 +4,13 @@ import Link from 'next/link';
 
 export default function FragranceCreatorButton() {
   return (
-    <section className="py-16 lg:py-20" style={{backgroundColor: 'var(--ivory-light)'}}>
+    <section className="py-16 lg:py-20 bg-[var(--luxury-pearl)] border-t-4 border-[var(--luxury-gold)]">
       <div className="mx-auto max-w-4xl px-4 lg:px-8">
         <div className="text-center">
-          <h2 className="text-3xl font-light text-neutral-900 mb-4 lg:text-4xl">
+          <h2 className="text-3xl font-light text-[var(--luxury-midnight)] mb-4 lg:text-4xl font-[var(--font-display)]">
             당신의 언어가 향이 되는 과정
           </h2>
-          <p className="text-lg text-neutral-600 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg text-[var(--luxury-charcoal)] mb-8 max-w-2xl mx-auto">
             당신의 기억, 감정, 꿈의 조각들을 들려주세요.
             들숨의 AI 아티스트가 세상에 단 하나뿐인 당신만의 향의 서사를 조율합니다.
           </p>
@@ -18,10 +18,7 @@ export default function FragranceCreatorButton() {
           <div className="flex justify-center">
             <Link
               href="/create"
-              className="inline-flex items-center justify-center px-12 py-5 text-xl font-medium text-white rounded-lg transition-all transform hover:scale-105"
-              style={{backgroundColor: 'var(--vintage-gold)'}}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--vintage-gold-dark)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--vintage-gold)'}
+              className="inline-flex items-center justify-center px-12 py-5 text-xl font-medium text-[var(--luxury-cream)] bg-[var(--luxury-midnight)] hover:bg-[var(--luxury-charcoal)] rounded-lg transition-all transform hover:scale-105 shadow-lg"
             >
               <svg
                 className="w-6 h-6 mr-3"

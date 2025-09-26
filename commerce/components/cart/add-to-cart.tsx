@@ -1,7 +1,7 @@
 'use client';
 
 import { PlusIcon } from '@heroicons/react/24/outline';
-import clsx from 'clsx';
+import Button from 'components/ui/button';
 import { addItem } from 'components/cart/actions';
 import { useProduct } from 'components/product/product-context';
 import { Product, ProductVariant } from 'lib/shopify/types';
@@ -15,45 +15,48 @@ function SubmitButton({
   availableForSale: boolean;
   selectedVariantId: string | undefined;
 }) {
-  const buttonClasses =
-    'relative flex w-full items-center justify-center rounded-full bg-blue-600 p-4 tracking-wide text-white';
-  const disabledClasses = 'cursor-not-allowed opacity-60 hover:opacity-60';
-
   if (!availableForSale) {
     return (
-      <button disabled className={clsx(buttonClasses, disabledClasses)}>
+      <Button
+        disabled
+        variant="primary"
+        size="lg"
+        className="w-full rounded-full"
+      >
         Out Of Stock
-      </button>
+      </Button>
     );
   }
 
   if (!selectedVariantId) {
     return (
-      <button
+      <Button
         aria-label="Please select an option"
         disabled
-        className={clsx(buttonClasses, disabledClasses)}
+        variant="primary"
+        size="lg"
+        className="relative w-full rounded-full"
       >
         <div className="absolute left-0 ml-4">
           <PlusIcon className="h-5" />
         </div>
         Add To Cart
-      </button>
+      </Button>
     );
   }
 
   return (
-    <button
+    <Button
       aria-label="Add to cart"
-      className={clsx(buttonClasses, {
-        'hover:opacity-90': true
-      })}
+      variant="primary"
+      size="lg"
+      className="relative w-full rounded-full"
     >
       <div className="absolute left-0 ml-4">
         <PlusIcon className="h-5" />
       </div>
       Add To Cart
-    </button>
+    </Button>
   );
 }
 

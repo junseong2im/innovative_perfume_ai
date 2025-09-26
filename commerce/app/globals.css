@@ -1,5 +1,5 @@
-@import 'tailwindcss';
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Manrope:wght@300;400;500;600&display=swap');
+@import 'tailwindcss';
 
 @plugin "@tailwindcss/container-queries";
 @plugin "@tailwindcss/typography";
@@ -38,7 +38,7 @@
   body {
     background: linear-gradient(180deg, var(--luxury-cream) 0%, var(--luxury-pearl) 100%);
     font-family: var(--font-body);
-    color: var(--luxury-midnight);
+    color: #2d2d2d;
     line-height: 1.6;
     letter-spacing: 0.02em;
   }
@@ -47,6 +47,7 @@
     font-family: var(--font-display);
     font-weight: 400;
     letter-spacing: 0.04em;
+    color: #1a1a1a;
   }
 
   /* Luxury Animations */

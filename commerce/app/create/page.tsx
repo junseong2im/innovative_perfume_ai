@@ -113,11 +113,19 @@ export default function CreateFragrancePage() {
 
     setIsLoading(true);
 
+    // 계절 선택에 따른 제대로 된 매핑
+    const seasonMapping: { [key: string]: string } = {
+      'spring': '봄',
+      'summer': '여름',
+      'autumn': '가을',
+      'winter': '겨울'
+    };
+
     const request: FragranceGenerationRequest = {
       fragrance_family: cardSelections.family,
       mood: cardSelections.mood || 'fresh',
       intensity: cardSelections.intensity || 'moderate',
-      season: cardSelections.season,
+      season: cardSelections.season ? seasonMapping[cardSelections.season] || cardSelections.season : undefined,
       korean_region: cardSelections.region,
       traditional_element: cardSelections.traditional
     };
@@ -330,11 +338,11 @@ export default function CreateFragrancePage() {
     else if (/은은|부드러운|가벼운|연한/.test(allUserMessages)) preferences.intensity = 'light';
     else preferences.intensity = 'moderate';
 
-    // 계절 분석
-    if (/봄|벚꽃|새싹|3월|4월|5월/.test(allUserMessages)) preferences.season = 'spring';
-    else if (/여름|더위|시원|6월|7월|8월/.test(allUserMessages)) preferences.season = 'summer';
-    else if (/가을|단풍|차분|9월|10월|11월/.test(allUserMessages)) preferences.season = 'autumn';
-    else if (/겨울|추위|따뜻|12월|1월|2월/.test(allUserMessages)) preferences.season = 'winter';
+    // 계절 분석 - 한글 계절명 직접 사용
+    if (/봄|벚꽃|새싹|3월|4월|5월|spring/.test(allUserMessages)) preferences.season = '봄';
+    else if (/여름|더위|시원|6월|7월|8월|summer/.test(allUserMessages)) preferences.season = '여름';
+    else if (/가을|단풍|차분|9월|10월|11월|autumn|fall/.test(allUserMessages)) preferences.season = '가을';
+    else if (/겨울|추위|따뜻|크리스마스|눈|12월|1월|2월|winter/.test(allUserMessages)) preferences.season = '겨울';
 
     return preferences;
   };
@@ -345,6 +353,8 @@ export default function CreateFragrancePage() {
       mood: preferences.mood || 'fresh',
       intensity: preferences.intensity || 'moderate',
       season: preferences.season,
+      korean_region: preferences.korean_region,
+      traditional_element: preferences.traditional_elements?.[0],
       unique_request: userInput,
       conversation_context: chatMessages.filter(m => m.role === 'user').map(m => m.content).join('\n')
     };
@@ -723,19 +733,19 @@ export default function CreateFragrancePage() {
                   <div className="space-y-3 text-sm text-neutral-700">
                     <div>
                       <div className="font-medium text-neutral-900 mb-1">어울리는 시간</div>
-                      <p className="text-xs">오전 10시 - 오후 6시, 특별한 만남</p>
+                      <p className="text-xs">{result.customer_info.best_time || '오전 10시 - 오후 6시, 특별한 만남'}</p>
                     </div>
                     <div>
                       <div className="font-medium text-neutral-900 mb-1">추천 계절</div>
-                      <p className="text-xs">봄, 초여름 (3월 - 6월)</p>
+                      <p className="text-xs">{result.customer_info.recommended_season || '사계절'}</p>
                     </div>
                     <div>
                       <div className="font-medium text-neutral-900 mb-1">어울리는 스타일</div>
-                      <p className="text-xs">캐주얼 엘레강스, 로맨틱 페미닌</p>
+                      <p className="text-xs">{result.customer_info.style_match || '캐주얼 엘레강스, 로맨틱 페미닌'}</p>
                     </div>
                     <div>
                       <div className="font-medium text-neutral-900 mb-1">예상 가격대</div>
-                      <p className="text-xs font-medium text-neutral-900">150,000 - 200,000원 (50ml)</p>
+                      <p className="text-xs font-medium text-neutral-900">{result.customer_info.price_range || '150,000 - 200,000원 (50ml)'}</p>
                     </div>
                   </div>
                 </div>

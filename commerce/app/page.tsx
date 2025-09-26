@@ -29,13 +29,13 @@ export default async function HomePage() {
       <FragranceCreatorButton />
 
       {/* Featured Products Section */}
-      <section style={{backgroundColor: 'var(--ivory-light)'}} className="py-16 lg:py-24">
+      <section className="py-16 lg:py-24 bg-[var(--luxury-cream)] border-t border-[var(--luxury-silk)]">
         <div className="mx-auto max-w-screen-2xl px-4 lg:px-8">
           <div className="mb-16 text-center">
-            <h2 className="mb-6 text-3xl font-light tracking-wide text-neutral-900 lg:text-4xl">
+            <h2 className="mb-6 text-3xl font-light tracking-wide text-[var(--luxury-midnight)] lg:text-4xl font-[var(--font-display)]">
               시그니처 컬렉션
             </h2>
-            <p className="mx-auto max-w-2xl text-lg text-neutral-600 leading-relaxed">
+            <p className="mx-auto max-w-2xl text-lg text-[var(--luxury-charcoal)] leading-relaxed">
               후각의 우수성에 세심한 주의를 기울여 제작된
               독특한 향수들을 만나보세요.
             </p>

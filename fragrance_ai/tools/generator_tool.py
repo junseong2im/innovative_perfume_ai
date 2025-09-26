@@ -10,6 +10,7 @@ import logging
 import json
 import torch
 from datetime import datetime
+from ..utils.season_mapper import get_season_mapper
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,7 @@ class SpecialistGenerator:
         self.config = self._load_config(config_path)
         self.model = None
         self.tokenizer = None
+        self.season_mapper = get_season_mapper()
         self._initialize_model()
 
     def _load_config(self, config_path: str) -> dict:
@@ -246,36 +248,60 @@ class SpecialistGenerator:
         import uuid
         recipe_id = str(uuid.uuid4())[:8]
 
-        # 향수 계열별 기본 템플릿
-        templates = {
-            "floral": {
-                "top": ["Bergamot", "Neroli", "Peach"],
-                "heart": ["Rose", "Jasmine", "Ylang-ylang"],
-                "base": ["Sandalwood", "Musk", "Vanilla"]
-            },
-            "woody": {
-                "top": ["Bergamot", "Black Pepper", "Cardamom"],
-                "heart": ["Cedar", "Vetiver", "Iris"],
-                "base": ["Sandalwood", "Patchouli", "Amber"]
-            },
-            "citrus": {
-                "top": ["Lemon", "Bergamot", "Grapefruit"],
-                "heart": ["Neroli", "Petitgrain", "Green Tea"],
-                "base": ["White Musk", "Cedar", "Amber"]
-            },
-            "oriental": {
-                "top": ["Bergamot", "Cinnamon", "Cardamom"],
-                "heart": ["Rose", "Jasmine", "Orchid"],
-                "base": ["Vanilla", "Amber", "Benzoin"]
+        # 계절 확인 및 적용
+        season = None
+        if request.season:
+            season = self.season_mapper.identify_season_from_text(request.season)
+        elif request.description:
+            season = self.season_mapper.identify_season_from_text(request.description)
+
+        # 계절별 템플릿 우선, 아니면 향수 계열별 기본 템플릿
+        if season and season.value == "winter":
+            # 겨울 향수 템플릿
+            template = {
+                "top": ["Bergamot", "Black Pepper", "Pink Pepper"],
+                "heart": ["Rose", "Jasmine", "Tuberose"],
+                "base": ["Vanilla", "Amber", "Musk", "Oud", "Sandalwood"]
             }
-        }
+            family = "oriental"
+        elif season and season.value == "summer":
+            # 여름 향수 템플릿
+            template = {
+                "top": ["Lemon", "Lime", "Grapefruit"],
+                "heart": ["Neroli", "Orange Blossom", "Coconut"],
+                "base": ["Light Musk", "Driftwood", "Sea Salt"]
+            }
+            family = "citrus"
+        else:
+            # 기존 템플릿 로직
+            templates = {
+                "floral": {
+                    "top": ["Bergamot", "Neroli", "Peach"],
+                    "heart": ["Rose", "Jasmine", "Ylang-ylang"],
+                    "base": ["Sandalwood", "Musk", "Vanilla"]
+                },
+                "woody": {
+                    "top": ["Bergamot", "Black Pepper", "Cardamom"],
+                    "heart": ["Cedar", "Vetiver", "Iris"],
+                    "base": ["Sandalwood", "Patchouli", "Amber"]
+                },
+                "citrus": {
+                    "top": ["Lemon", "Bergamot", "Grapefruit"],
+                    "heart": ["Neroli", "Petitgrain", "Green Tea"],
+                    "base": ["White Musk", "Cedar", "Amber"]
+                },
+                "oriental": {
+                    "top": ["Bergamot", "Cinnamon", "Cardamom"],
+                    "heart": ["Rose", "Jasmine", "Orchid"],
+                    "base": ["Vanilla", "Amber", "Benzoin"]
+                }
+            }
 
-        # 템플릿 선택
-        family = request.fragrance_family or "floral"
-        if family not in templates:
-            family = "floral"
-
-        template = templates[family]
+            # 템플릿 선택
+            family = request.fragrance_family or "floral"
+            if family not in templates:
+                family = "floral"
+            template = templates[family]
 
         # 노트 구성
         top_notes = []
@@ -302,30 +328,61 @@ class SpecialistGenerator:
             role = "primary" if i == 0 else "modifier"
             base_notes.append(NoteComponent(name=note, percentage=percentage, role=role))
 
-        # 강도별 특성
-        intensity_map = {
-            "light": ("4-6 hours", "Light to moderate"),
-            "moderate": ("6-8 hours", "Moderate to strong"),
-            "strong": ("8-12 hours", "Strong to heavy")
-        }
+        # 계절에 맞는 강도 특성 적용
+        if season:
+            season_intensity = self.season_mapper.get_season_intensity(season)
+            longevity = season_intensity["longevity"]
+            sillage = season_intensity["sillage"]
+        else:
+            # 강도별 특성
+            intensity_map = {
+                "light": ("4-6 hours", "Light to moderate"),
+                "moderate": ("6-8 hours", "Moderate to strong"),
+                "strong": ("8-12 hours", "Strong to heavy")
+            }
+            longevity, sillage = intensity_map.get(request.intensity or "moderate", ("6-8 hours", "Moderate"))
 
-        longevity, sillage = intensity_map.get(request.intensity or "moderate", ("6-8 hours", "Moderate"))
+        # 추천 계절 결정
+        if season:
+            if season.value == "winter":
+                recommended_season = "가을/겨울"
+            elif season.value == "summer":
+                recommended_season = "봄/여름"
+            elif season.value == "spring":
+                recommended_season = "봄/초여름"
+            elif season.value == "autumn" or season.value == "fall":
+                recommended_season = "가을"
+            else:
+                recommended_season = "사계절"
+        else:
+            # 노트 구성에 따라 추천 계절 결정
+            notes_dict = {"top": [n.name for n in top_notes], "heart": [n.name for n in heart_notes], "base": [n.name for n in base_notes]}
+            recommended_seasons = self.season_mapper.get_recommended_season_for_notes(notes_dict)
+            if recommended_seasons:
+                if any(s.value in ["winter", "autumn"] for s in recommended_seasons):
+                    recommended_season = "가을/겨울"
+                elif any(s.value in ["spring", "summer"] for s in recommended_seasons):
+                    recommended_season = "봄/여름"
+                else:
+                    recommended_season = "사계절"
+            else:
+                recommended_season = "사계절"
 
         return GeneratedRecipe(
             recipe_id=recipe_id,
             name=f"Artisan {family.title()} #{recipe_id}",
-            description=f"{request.description} - A {request.mood} {family} fragrance",
+            description=f"{request.description} - A {request.mood} {family} fragrance for {recommended_season}",
             top_notes=top_notes,
             heart_notes=heart_notes,
             base_notes=base_notes,
             fragrance_family=family,
-            character=f"{request.mood.title()} and {request.style or 'modern'}",
+            character=f"{request.mood.title() if request.mood else 'Elegant'} and {request.style or 'modern'}",
             longevity=longevity,
             sillage=sillage,
             total_ingredients=len(top_notes) + len(heart_notes) + len(base_notes),
             complexity_level="moderate",
             estimated_cost=request.price_range or "premium",
-            story=f"Inspired by {request.description}, this fragrance captures the essence of {request.mood} in a {family} composition.",
+            story=f"Inspired by {request.description}, this {recommended_season} fragrance captures the essence of {request.mood or 'sophistication'} in a {family} composition.",
             wearing_occasions=self._suggest_occasions(request)
         )
 
@@ -341,11 +398,17 @@ class SpecialistGenerator:
             "sophisticated": ["Business meetings", "Formal events", "Dinner parties"]
         }
 
+        # 계절별 정확한 상황 매칭
         season_occasions = {
             "spring": ["Garden parties", "Brunch", "Weddings"],
             "summer": ["Beach", "Vacation", "Outdoor festivals"],
             "fall": ["Cozy gatherings", "Wine tasting", "Theater"],
-            "winter": ["Holiday parties", "Indoor events", "Fireplace evenings"]
+            "autumn": ["Cozy gatherings", "Wine tasting", "Theater"],
+            "winter": ["Holiday parties", "Indoor events", "Fireplace evenings"],
+            "겨울": ["Holiday parties", "Indoor events", "Fireplace evenings"],
+            "여름": ["Beach", "Vacation", "Outdoor festivals"],
+            "봄": ["Garden parties", "Brunch", "Weddings"],
+            "가을": ["Cozy gatherings", "Wine tasting", "Theater"]
         }
 
         if request.mood in mood_occasions:
