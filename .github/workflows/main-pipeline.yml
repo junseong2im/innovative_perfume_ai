@@ -22,42 +22,20 @@ env:
   NODE_VERSION: '18'
 
 jobs:
-  # ========== Lint Stage ==========
-  lint:
-    name: Code Quality
-    uses: ./.github/workflows/reusable/lint.yml
+  # ========== CI Stage - Using Reusable Workflow ==========
+  ci:
+    name: Continuous Integration
+    uses: ./.github/workflows/reusable-ci.yml
     with:
       python-version: '3.10'
-      source-directory: 'fragrance_ai/'
-      strict-mode: ${{ github.ref == 'refs/heads/master' }}
-
-  # ========== Test Stage ==========
-  test:
-    name: Testing
-    needs: lint
-    uses: ./.github/workflows/reusable/test.yml
-    with:
-      python-version: '3.10'
-      test-directory: 'tests/'
-      coverage-threshold: 80
-    secrets:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-  # ========== Security Stage ==========
-  security:
-    name: Security
-    needs: lint
-    uses: ./.github/workflows/reusable/security.yml
-    with:
-      python-version: '3.10'
-      enable-dependency-check: true
-      enable-code-scan: true
-      enable-secrets-scan: true
+      environment: ${{ github.ref == 'refs/heads/master' && 'production' || 'development' }}
+      run-security-checks: true
+    secrets: inherit
 
   # ========== Build Stage ==========
   build:
     name: Build Application
-    needs: [test, security]
+    needs: ci
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
 
