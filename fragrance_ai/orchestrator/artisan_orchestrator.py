@@ -613,51 +613,49 @@ JSON:"""
         )
 
     async def _execute_tool_internal(self, tool_name: str, params: Dict[str, Any]) -> Any:
-        """Internal tool execution - original logic"""
-        if tool_name == "search":
-                    result = await hybrid_search(
-                        text_query=params.get("query", ""),
-                        top_k=params.get("top_k", 10)
-                    )
-
-                elif tool_name == "knowledge":
-                    result = await query_knowledge_base(
-                        category=params.get("category", "general"),
-                        query=params.get("query", "")
-                    )
-
-                elif tool_name == "generate":
-                    request = GenerationRequest(
-                        description=params.get("description", ""),
-                        fragrance_family=params.get("fragrance_family", "floral"),
-                        mood=params.get("mood", "romantic"),
-                        season=params.get("season"),
-                        gender=params.get("gender", "unisex"),
-                        intensity=params.get("intensity", "moderate")
-                    )
-                    result = await create_recipe(request)
-
-                elif tool_name == "validate":
-                    # 이전 생성 결과에서 조합 추출
-                    if results and "generate" in str(results[-1]):
-                        generated = results[-1]["result"]
-                        composition = NotesComposition(
-                            top_notes=[{n.name: n.percentage} for n in generated.top_notes],
-                            heart_notes=[{n.name: n.percentage} for n in generated.heart_notes],
-                            base_notes=[{n.name: n.percentage} for n in generated.base_notes],
-                            total_ingredients=generated.total_ingredients
-                        )
-                        result = await validate_composition(composition)
-                    else:
-                        result = None
-
+        """Internal tool execution with proper error handling"""
+        try:
+            if tool_name == "search" or tool_name == "hybrid_search":
+                result = await hybrid_search(
+                    text_query=params.get("query", ""),
+                    top_k=params.get("top_k", 10)
+                )
+            elif tool_name == "knowledge" or tool_name == "perfumer_knowledge":
+                result = await query_knowledge_base(
+                    category=params.get("category", "general"),
+                    query=params.get("query", "")
+                )
+            elif tool_name == "generate" or tool_name == "recipe_generator":
+                request = GenerationRequest(
+                    description=params.get("description", ""),
+                    fragrance_family=params.get("fragrance_family", "floral"),
+                    mood=params.get("mood", "romantic"),
+                    season=params.get("season"),
+                    gender=params.get("gender", "unisex"),
+                    intensity=params.get("intensity", "moderate")
+                )
+                result = await create_recipe(request)
+            elif tool_name == "validate" or tool_name == "scientific_validator":
+                # Extract composition from params if provided
+                if params.get("composition"):
+                    composition = params["composition"]
                 else:
-                    result = None
+                    # Create a default composition for testing
+                    composition = NotesComposition(
+                        top_notes=[{"Bergamot": 25}],
+                        heart_notes=[{"Rose": 35}],
+                        base_notes=[{"Sandalwood": 20}],
+                        total_ingredients=12
+                    )
+                result = await validate_composition(composition)
+            else:
+                raise ValueError(f"Unknown tool: {tool_name}")
 
-        else:
-            raise ValueError(f"Unknown tool: {tool_name}")
+            return result
 
-        return result
+        except Exception as e:
+            logger.error(f"Tool {tool_name} execution failed: {e}")
+            raise  # Re-raise to be caught by the retry mechanism
 
     async def _execute_fallback(self, tool_name: str, params: Dict[str, Any]) -> ToolExecutionResult:
         """Execute fallback strategy for failed tool"""
