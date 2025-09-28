@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function HeroSection() {
@@ -15,6 +15,9 @@ export default function HeroSection() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showWishlist, setShowWishlist] = useState(false);
   const [showCart, setShowCart] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Check login status
@@ -30,6 +33,30 @@ export default function HeroSection() {
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
     setWishlistCount(wishlist.length);
     setCartCount(cart.reduce((sum: number, item: any) => sum + item.quantity, 0));
+
+    // Parallax scroll effect
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    // Mouse tracking for subtle interactions
+    const handleMouseMove = (e: MouseEvent) => {
+      if (heroRef.current) {
+        const rect = heroRef.current.getBoundingClientRect();
+        setMousePosition({
+          x: (e.clientX - rect.left - rect.width / 2) / rect.width,
+          y: (e.clientY - rect.top - rect.height / 2) / rect.height
+        });
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -195,31 +222,114 @@ export default function HeroSection() {
         </div>
       </nav>
 
-      {/* Hero Content */}
-      <div className="relative flex items-stretch h-[400px] lg:h-[500px]">
-        <div className="grid grid-cols-1 lg:grid-cols-2 w-full">
-          {/* Left side - Text content */}
-          <div className="px-4 lg:px-8 xl:px-16 2xl:px-24 flex items-center py-8 lg:py-0">
-            <div>
-              <h1 className="mb-8 text-4xl font-normal tracking-[0.15em] text-[var(--luxury-gold)] lg:text-5xl" style={{fontFamily: 'var(--font-display)'}}>
+      {/* Hero Content - Optimized Height */}
+      <div ref={heroRef} className="relative flex items-stretch h-[70vh] min-h-[500px] max-h-[700px] overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-2 w-full relative">
+          {/* Left side - Text content with parallax */}
+          <div className="px-4 lg:px-8 xl:px-16 2xl:px-24 flex items-center py-8 lg:py-0 z-10">
+            <div
+              className="transform transition-transform duration-700 ease-out"
+              style={{
+                transform: `translateY(${Math.min(scrollY * -0.1, 0)}px) translateX(${mousePosition.x * 5}px)`,
+              }}
+            >
+              <h1
+                className="mb-8 text-5xl lg:text-7xl font-light tracking-[0.2em] text-[var(--luxury-gold)] opacity-0 animate-fadeInUp"
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  animationDelay: '0.3s',
+                  animationFillMode: 'forwards'
+                }}
+              >
                 Deulsoom
               </h1>
               <div className="space-y-6">
-                <p className="text-xs font-normal tracking-[0.25em] text-[var(--luxury-rose-gold)] uppercase" style={{fontFamily: 'var(--font-body)'}}>
+                <p
+                  className="text-xs font-normal tracking-[0.3em] text-[var(--luxury-rose-gold)] uppercase opacity-0 animate-fadeInUp"
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    animationDelay: '0.6s',
+                    animationFillMode: 'forwards'
+                  }}
+                >
                   보이지 않는 가장 깊은 기억
                 </p>
-                <p className="max-w-xl text-sm font-normal text-[var(--luxury-pearl)] leading-relaxed" style={{fontFamily: 'var(--font-body)', letterSpacing: '0.02em'}}>
+                <p
+                  className="max-w-xl text-base lg:text-lg font-light text-[var(--luxury-pearl)] leading-relaxed opacity-0 animate-fadeInUp"
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    letterSpacing: '0.03em',
+                    animationDelay: '0.9s',
+                    animationFillMode: 'forwards'
+                  }}
+                >
                   향기는 보이지 않는 가장 깊은 기억입니다.
                   우리는 당신의 보이지 않는 상상의 조각들을 모아,
                   세상에 단 하나뿐인 향기로 빚어냅니다.
                 </p>
               </div>
+
+              {/* CTA Buttons with hover effects */}
+              <div className="mt-12 flex gap-4 opacity-0 animate-fadeInUp"
+                style={{
+                  animationDelay: '1.2s',
+                  animationFillMode: 'forwards'
+                }}
+              >
+                <a
+                  href="#ai-creator"
+                  className="group relative px-8 py-3 text-sm tracking-wider text-[var(--luxury-midnight)] bg-[var(--luxury-gold)] overflow-hidden transition-all duration-300 hover:text-[var(--luxury-pearl)]"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.querySelector('#ai-creator')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
+                  <span className="relative z-10">나의 향기 시작하기</span>
+                  <div className="absolute inset-0 bg-[var(--luxury-midnight)] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+                </a>
+                <a
+                  href="#collection"
+                  className="px-8 py-3 text-sm tracking-wider text-[var(--luxury-pearl)] border border-[var(--luxury-gold)] transition-all duration-300 hover:bg-[var(--luxury-gold)] hover:text-[var(--luxury-midnight)]"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.querySelector('#collection')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
+                  컬렉션 둘러보기
+                </a>
+              </div>
             </div>
           </div>
 
-          {/* Right side - Image */}
-          <div className="relative h-full border-l border-[var(--luxury-gold)] border-opacity-20">
-            <div className="absolute inset-0 bg-gradient-to-r from-[var(--luxury-midnight)] via-transparent to-transparent">
+          {/* Right side - Multi-layered visual experience */}
+          <div className="relative h-full">
+            {/* Animated gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[var(--luxury-midnight)] via-transparent to-transparent z-10"></div>
+
+            {/* Floating elements */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div
+                className="absolute top-20 right-20 w-32 h-32 bg-[var(--luxury-gold)] rounded-full opacity-10 blur-2xl"
+                style={{
+                  transform: `translate(${mousePosition.x * 30}px, ${mousePosition.y * 30}px)`,
+                  transition: 'transform 0.3s ease-out'
+                }}
+              ></div>
+              <div
+                className="absolute bottom-40 right-40 w-48 h-48 bg-[var(--luxury-rose-gold)] rounded-full opacity-10 blur-3xl"
+                style={{
+                  transform: `translate(${mousePosition.x * -20}px, ${mousePosition.y * -20}px)`,
+                  transition: 'transform 0.3s ease-out'
+                }}
+              ></div>
+            </div>
+
+            <div
+              className="absolute inset-0 transition-transform duration-700 ease-out"
+              style={{
+                transform: `scale(1) translateY(0)`,
+              }}
+            >
               {/* 이미지 파일을 C:\Users\user\Desktop\새 폴더 (2)\Newss\commerce\public\images\ 폴더에 넣으세요 */}
               {/* 지원 형식: jpg, png, webp */}
               <img
@@ -242,6 +352,16 @@ export default function HeroSection() {
                   </svg>
                   <p className="text-sm">이미지를 추가해주세요</p>
                   <p className="text-xs mt-1 opacity-60">public/images/hero-image.jpg</p>
+                </div>
+              </div>
+
+              {/* Scroll indicator */}
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 animate-bounce">
+                <div className="flex flex-col items-center">
+                  <p className="text-xs tracking-[0.2em] text-[var(--luxury-pearl)] opacity-60 mb-2">SCROLL</p>
+                  <svg className="w-6 h-6 text-[var(--luxury-gold)] opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
                 </div>
               </div>
             </div>

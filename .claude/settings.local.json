@@ -79,7 +79,8 @@
       "Bash(deep)",
       "Bash(git log:*)",
       "Bash(grep:*)",
-      "Bash(xargs rm:*)"
+      "Bash(xargs rm:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

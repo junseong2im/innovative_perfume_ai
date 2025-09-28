@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { getProducts } from 'lib/shopify';
 import Footer from 'components/layout/footer';
-import FragranceCreatorButton from 'components/fragrance-creator-button';
+import FragranceCreatorExpanded from 'components/fragrance-creator-expanded';
 import ProductGrid from 'components/product-grid';
 import CompanyIntro from 'components/company-intro';
 import HeroSection from 'components/hero-section';
@@ -25,11 +25,11 @@ export default async function HomePage() {
       {/* Hero Section with Navigation */}
       <HeroSection />
 
-      {/* Fragrance Creator Button Section */}
-      <FragranceCreatorButton />
+      {/* AI Fragrance Creator Section */}
+      <FragranceCreatorExpanded />
 
       {/* Featured Products Section */}
-      <section className="py-16 lg:py-24 bg-[var(--luxury-cream)] border-t border-[var(--luxury-silk)]">
+      <section id="collection" className="py-16 lg:py-24 bg-[var(--luxury-cream)] border-t border-[var(--luxury-silk)]">
         <div className="mx-auto max-w-screen-2xl px-4 lg:px-8">
           <div className="mb-16 text-center">
             <h2 className="mb-6 text-3xl font-light tracking-wide text-[var(--luxury-midnight)] lg:text-4xl font-[var(--font-display)]">
