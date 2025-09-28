@@ -28,13 +28,13 @@
 ## 딥러닝 모델 성능 분석
 
 ### 1. 훈련 손실 및 검증 정확도 추이
-![Training Metrics](https://quickchart.io/chart?c=%7Btype%3A%27line%27%2Cdata%3A%7Blabels%3A%5B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%5D%2Cdatasets%3A%5B%7Blabel%3A%27Loss%27%2Cdata%3A%5B2.45%2C1.92%2C1.54%2C1.23%2C0.98%2C0.82%2C0.71%2C0.65%2C0.58%2C0.52%5D%7D%5D%7D%7D)
+![Training Metrics](https://image-charts.com/chart?chs=600x400&cht=lc&chd=t:245,192,154,123,98,82,71,65,58,52|238,185,148,121,102,89,78,72,68,65&chco=FF0000,FFA500&chdl=Train%20Loss|Val%20Loss&chxt=x,y&chxl=0:|1|2|3|4|5|6|7|8|9|10)
 
 ### 2. 학습률 스케줄링 및 그래디언트 노름
-![Learning Dynamics](https://quickchart.io/chart?c=%7Btype%3A%27line%27%2Cdata%3A%7Blabels%3A%5B0%2C2%2C4%2C6%2C8%2C10%5D%2Cdatasets%3A%5B%7Blabel%3A%27LR%27%2Cdata%3A%5B10%2C8%2C6%2C4%2C2%2C1%5D%7D%5D%7D%7D)
+![Learning Dynamics](https://image-charts.com/chart?chs=600x400&cht=lc&chd=t:100,80,60,40,30,20,15,10,8,6,5&chco=800080&chdl=Learning%20Rate&chxt=x,y&chxl=0:|0|1k|2k|3k|4k|5k|6k|7k|8k|9k|10k)
 
 ### 3. 배치 크기별 처리 성능 비교
-![Batch Size Performance](https://quickchart.io/chart?c=%7Btype%3A%27bar%27%2Cdata%3A%7Blabels%3A%5B1%2C4%2C8%2C16%2C32%2C64%5D%2Cdatasets%3A%5B%7Blabel%3A%27Throughput%27%2Cdata%3A%5B7%2C18%2C32%2C38%2C41%2C50%5D%7D%5D%7D%7D)
+![Batch Size Performance](https://image-charts.com/chart?chs=600x400&cht=bvs&chd=t:7,18,32,38,41,50,52&chco=00FFFF&chdl=Throughput&chxt=x,y&chxl=0:|1|4|8|16|32|64|128&chtt=Batch%20Size%20Performance)
 
 ### 4. 모델 크기별 추론 속도 비교
 ![Model Comparison](https://quickchart.io/chart?w=600&h=400&c=%7Btype%3A%27bar%27%2Cdata%3A%7Blabels%3A%5B%27DistilBERT%27%2C%27BERT-Base%27%2C%27BERT-Large%27%2C%27GPT-2%27%2C%27T5-Base%27%2C%27T5-Large%27%2C%27Llama-7B%27%5D%2Cdatasets%3A%5B%7Blabel%3A%27Inference%20Time%20(ms)%27%2Cdata%3A%5B12%2C24%2C45%2C68%2C92%2C145%2C280%5D%2CbackgroundColor%3A%5B%27rgba(255%2C99%2C132%2C0.6)%27%2C%27rgba(54%2C162%2C235%2C0.6)%27%2C%27rgba(255%2C206%2C86%2C0.6)%27%2C%27rgba(75%2C192%2C192%2C0.6)%27%2C%27rgba(153%2C102%2C255%2C0.6)%27%2C%27rgba(255%2C159%2C64%2C0.6)%27%2C%27rgba(199%2C199%2C199%2C0.6)%27%5D%7D%5D%7D%7D)
