@@ -28,13 +28,13 @@
 ## 딥러닝 모델 성능 분석
 
 ### 1. 훈련 손실 및 검증 정확도 추이
-![Training Metrics](https://quickchart.io/chart?c=%7Btype%3A%27line%27%2Cdata%3A%7Blabels%3A%5B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%5D%2Cdatasets%3A%5B%7Blabel%3A%27Train%20Loss%27%2Cdata%3A%5B2.45%2C1.92%2C1.54%2C1.23%2C0.98%2C0.82%2C0.71%2C0.65%2C0.58%2C0.52%5D%2CborderColor%3A%27red%27%2Cfill%3Afalse%7D%2C%7Blabel%3A%27Val%20Loss%27%2Cdata%3A%5B2.38%2C1.85%2C1.48%2C1.21%2C1.02%2C0.89%2C0.78%2C0.72%2C0.68%2C0.65%5D%2CborderColor%3A%27orange%27%2Cfill%3Afalse%7D%5D%7D%7D)
+![Training Metrics](https://quickchart.io/chart?c=%7Btype%3A%27line%27%2Cdata%3A%7Blabels%3A%5B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%5D%2Cdatasets%3A%5B%7Blabel%3A%27Loss%27%2Cdata%3A%5B2.45%2C1.92%2C1.54%2C1.23%2C0.98%2C0.82%2C0.71%2C0.65%2C0.58%2C0.52%5D%7D%5D%7D%7D)
 
 ### 2. 학습률 스케줄링 및 그래디언트 노름
-![Learning Dynamics](https://quickchart.io/chart?c=%7Btype%3A%27line%27%2Cdata%3A%7Blabels%3A%5B0%2C1000%2C2000%2C3000%2C4000%2C5000%2C6000%2C7000%2C8000%2C9000%2C10000%5D%2Cdatasets%3A%5B%7Blabel%3A%27Learning%20Rate%27%2Cdata%3A%5B0.0001%2C0.00008%2C0.00006%2C0.00004%2C0.00003%2C0.00002%2C0.000015%2C0.00001%2C0.000008%2C0.000006%2C0.000005%5D%2CborderColor%3A%27purple%27%2Cfill%3Afalse%7D%5D%7D%7D)
+![Learning Dynamics](https://quickchart.io/chart?c=%7Btype%3A%27line%27%2Cdata%3A%7Blabels%3A%5B0%2C2%2C4%2C6%2C8%2C10%5D%2Cdatasets%3A%5B%7Blabel%3A%27LR%27%2Cdata%3A%5B10%2C8%2C6%2C4%2C2%2C1%5D%7D%5D%7D%7D)
 
 ### 3. 배치 크기별 처리 성능 비교
-![Batch Size Performance](https://quickchart.io/chart?c=%7Btype%3A%27bar%27%2Cdata%3A%7Blabels%3A%5B1%2C4%2C8%2C16%2C32%2C64%2C128%5D%2Cdatasets%3A%5B%7Blabel%3A%27Throughput%27%2Cdata%3A%5B7.87%2C18.34%2C32.66%2C38.63%2C41.55%2C50.03%2C52.14%5D%2CbackgroundColor%3A%27cyan%27%7D%5D%7D%7D)
+![Batch Size Performance](https://quickchart.io/chart?c=%7Btype%3A%27bar%27%2Cdata%3A%7Blabels%3A%5B1%2C4%2C8%2C16%2C32%2C64%5D%2Cdatasets%3A%5B%7Blabel%3A%27Throughput%27%2Cdata%3A%5B7%2C18%2C32%2C38%2C41%2C50%5D%7D%5D%7D%7D)
 
 ### 4. 모델 크기별 추론 속도 비교
 ![Model Comparison](https://quickchart.io/chart?w=600&h=400&c=%7Btype%3A%27bar%27%2Cdata%3A%7Blabels%3A%5B%27DistilBERT%27%2C%27BERT-Base%27%2C%27BERT-Large%27%2C%27GPT-2%27%2C%27T5-Base%27%2C%27T5-Large%27%2C%27Llama-7B%27%5D%2Cdatasets%3A%5B%7Blabel%3A%27Inference%20Time%20(ms)%27%2Cdata%3A%5B12%2C24%2C45%2C68%2C92%2C145%2C280%5D%2CbackgroundColor%3A%5B%27rgba(255%2C99%2C132%2C0.6)%27%2C%27rgba(54%2C162%2C235%2C0.6)%27%2C%27rgba(255%2C206%2C86%2C0.6)%27%2C%27rgba(75%2C192%2C192%2C0.6)%27%2C%27rgba(153%2C102%2C255%2C0.6)%27%2C%27rgba(255%2C159%2C64%2C0.6)%27%2C%27rgba(199%2C199%2C199%2C0.6)%27%5D%7D%5D%7D%7D)
