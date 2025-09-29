@@ -4,6 +4,10 @@ Real-time Adaptive Learning System
 
 이 모듈은 사용자 피드백과 실시간 데이터를 기반으로
 향수 생성 모델을 지속적으로 개선하는 적응형 학습 시스템을 제공합니다.
+
+NOTE: 이 모듈은 메타 학습과 온라인 학습을 구현합니다.
+강화학습(RLHF) 구현은 reinforcement_learning.py에서 PPO 알고리즘으로 제공됩니다.
+유전 알고리즘은 moga_optimizer.py에서 실제 MOGA로 구현되어 있습니다.
 """
 
 import torch

@@ -1,5 +1,6 @@
 """
 고급 옵티마이저 설정 및 관리 모듈
+딥러닝 옵티마이저와 유전 알고리즘 통합
 """
 
 from typing import Dict, Any, Optional, Union, List
@@ -13,6 +14,14 @@ from transformers.optimization import (
 )
 import logging
 import math
+
+# MOGA 옵티마이저 임포트
+try:
+    from .moga_optimizer import MOGAOptimizer, create_fragrance_optimizer
+    MOGA_AVAILABLE = True
+except ImportError:
+    MOGA_AVAILABLE = False
+    logging.warning("MOGA optimizer not available")
 
 logger = logging.getLogger(__name__)
 
@@ -279,5 +288,91 @@ class AdvancedOptimizerManager:
         logger.info("================================")
 
 
+class GeneticOptimizerManager:
+    """유전 알고리즘 최적화 관리자"""
+
+    def __init__(self):
+        self.moga_available = MOGA_AVAILABLE
+
+    def create_moga_optimizer(
+        self,
+        num_ingredients: int = 20,
+        population_size: int = 100,
+        max_generations: int = 50,
+        objectives: Dict[str, Any] = None
+    ) -> Optional[MOGAOptimizer]:
+        """MOGA 옵티마이저 생성"""
+        if not self.moga_available:
+            logger.error("MOGA optimizer not available")
+            return None
+
+        try:
+            optimizer = create_fragrance_optimizer(
+                num_ingredients=num_ingredients
+            )
+
+            # 커스텀 설정 적용
+            optimizer.population_size = population_size
+            optimizer.max_generations = max_generations
+
+            logger.info(f"Created MOGA optimizer with {num_ingredients} ingredients")
+            logger.info(f"Population: {population_size}, Generations: {max_generations}")
+
+            return optimizer
+
+        except Exception as e:
+            logger.error(f"Failed to create MOGA optimizer: {e}")
+            return None
+
+    def optimize_fragrance(
+        self,
+        optimizer: MOGAOptimizer,
+        objective_weights: Dict[str, float] = None
+    ) -> Dict[str, Any]:
+        """향수 레시피 최적화 실행"""
+        if not optimizer:
+            return {}
+
+        try:
+            # 최적화 실행
+            pareto_front = optimizer.optimize(verbose=False)
+
+            if not pareto_front:
+                logger.warning("Optimization failed - empty Pareto front")
+                return {}
+
+            # 최적 해 선택
+            best_solution = optimizer.get_best_solution(objective_weights)
+
+            result = {
+                'genes': best_solution.genes.tolist(),
+                'objectives': best_solution.objectives,
+                'fitness': best_solution.fitness,
+                'pareto_front_size': len(pareto_front),
+                'generation': optimizer.generation
+            }
+
+            logger.info(f"Optimization complete: {len(pareto_front)} solutions found")
+            return result
+
+        except Exception as e:
+            logger.error(f"Optimization failed: {e}")
+            return {}
+
+    def get_optimization_stats(self, optimizer: MOGAOptimizer) -> Dict[str, Any]:
+        """최적화 통계 반환"""
+        if not optimizer:
+            return {}
+
+        return {
+            'population_size': optimizer.population_size,
+            'current_generation': optimizer.generation,
+            'max_generations': optimizer.max_generations,
+            'pareto_front_size': len(optimizer.pareto_front),
+            'best_fitness': max([ind.fitness for ind in optimizer.population]) if optimizer.population else 0,
+            'moga_enabled': True
+        }
+
 # 전역 매니저 인스턴스
 optimizer_manager = AdvancedOptimizerManager()
+genetic_optimizer_manager = GeneticOptimizerManager()
