@@ -34,7 +34,7 @@ export default function AIFragranceChat() {
   }, [messages]);
 
   const generateFragrance = async (description: string) => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
     try {
       const response = await fetch(`${API_URL}/api/v1/generate/recipe`, {
@@ -44,15 +44,8 @@ export default function AIFragranceChat() {
         },
         body: JSON.stringify({
           description: description,
-          fragrance_family: 'fresh', // 기본값, 추후 AI가 분석하여 결정
-          mood: 'elegant',
-          intensity: 'moderate',
-          gender: 'unisex',
-          season: 'all',
-          preferences: {
-            notes: [],
-            exclude_notes: []
-          }
+          // AI가 설명을 분석하여 모든 파라미터를 자동으로 결정하도록 함
+          // 하드코딩된 기본값 제거
         }),
       });
 
@@ -62,17 +55,21 @@ export default function AIFragranceChat() {
 
       const data = await response.json();
 
-      // API 응답을 프론트엔드 포맷으로 변환
+      // API 응답을 그대로 사용 (fallback 제거)
+      if (!data.recipe || !data.recipe.name) {
+        throw new Error('Invalid API response');
+      }
+
       return {
-        name: data.recipe.name || `${description.split(' ')[0]} 에센스`,
+        name: data.recipe.name,
         notes: {
           top: data.recipe.composition.top_notes.map((note: any) => note.name),
           middle: data.recipe.composition.heart_notes.map((note: any) => note.name),
           base: data.recipe.composition.base_notes.map((note: any) => note.name)
         },
-        description: data.recipe.description || `"${description}"의 느낌을 완벽하게 구현한 맞춤 향수`,
-        intensity: data.recipe.characteristics.intensity || '중간',
-        season: data.recipe.characteristics.season || '사계절'
+        description: data.recipe.description,
+        intensity: data.recipe.characteristics.intensity,
+        season: data.recipe.characteristics.season
       };
     } catch (error) {
       console.error('API 호출 실패:', error);

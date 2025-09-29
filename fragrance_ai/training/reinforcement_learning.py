@@ -163,10 +163,10 @@ class FragranceRLHF:
         self.value_net = ValueNetwork(state_dim)
         self.reward_model = RewardModel(state_dim)
 
-        # 옵티마이저
-        self.policy_optimizer = optim.Adam(self.policy_net.parameters(), lr=0.0001)
-        self.value_optimizer = optim.Adam(self.value_net.parameters(), lr=0.001)
-        self.reward_optimizer = optim.Adam(self.reward_model.parameters(), lr=0.001)
+        # 옵티마이저 - 학습률 증가
+        self.policy_optimizer = optim.Adam(self.policy_net.parameters(), lr=0.003)  # 30배 증가
+        self.value_optimizer = optim.Adam(self.value_net.parameters(), lr=0.003)
+        self.reward_optimizer = optim.Adam(self.reward_model.parameters(), lr=0.003)
 
         # 경험 버퍼
         self.experience_buffer = deque(maxlen=10000)
