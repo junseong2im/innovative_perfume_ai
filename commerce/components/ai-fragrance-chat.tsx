@@ -77,36 +77,8 @@ export default function AIFragranceChat() {
     } catch (error) {
       console.error('API 호출 실패:', error);
 
-      // 폴백: 로컬 시뮬레이션
-      const keywords = description.toLowerCase();
-      let topNotes = ['베르가못', '레몬', '그레이프프루트'];
-      let middleNotes = ['라벤더', '제라늄', '네롤리'];
-      let baseNotes = ['화이트머스크', '앰브록산', '시더우드'];
-      let intensity = '중간';
-      let season = '사계절';
-
-      if (keywords.includes('상쾌') || keywords.includes('시원') || keywords.includes('fresh')) {
-        intensity = '가벼움';
-        season = '봄/여름';
-      } else if (keywords.includes('따뜻') || keywords.includes('warm')) {
-        topNotes = ['복숭아', '배', '블랙커런트'];
-        middleNotes = ['장미', '자스민', '일랑일랑'];
-        baseNotes = ['앰버', '바닐라', '머스크'];
-        intensity = '강함';
-        season = '가을/겨울';
-      }
-
-      return {
-        name: `${description.split(' ')[0]} 에센스`,
-        notes: {
-          top: topNotes,
-          middle: middleNotes,
-          base: baseNotes
-        },
-        description: `"${description}"의 느낌을 완벽하게 구현한 맞춤 향수`,
-        intensity,
-        season
-      };
+      // 에러 처리: 사용자에게 재시도 유도
+      throw new Error('AI 서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
     }
   };
 
@@ -122,20 +94,31 @@ export default function AIFragranceChat() {
     setInput('');
     setIsLoading(true);
 
-    // API 호출 중 로딩 표시 (최소 500ms)
+    try {
+      const fragranceData = await generateFragrance(input);
 
-    const fragranceData = await generateFragrance(input);
-
-    const assistantMessage: Message = {
-      role: 'assistant',
-      content: `"${input}"를 바탕으로 향수를 제작했습니다.
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: `"${input}"를 바탕으로 향수를 제작했습니다.
 
 당신이 원하시는 향의 특성을 분석하여, 최대한 비슷하게 구현했습니다.`,
-      fragranceData
-    };
+        fragranceData
+      };
 
-    setMessages(prev => [...prev, assistantMessage]);
-    setIsLoading(false);
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      // 에러 발생 시 사용자에게 명확한 피드백
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: `죄송합니다. AI 서버와 연결하는 중 문제가 발생했습니다.
+
+잠시 후 다시 시도해주시거나, 가이드 모드를 이용해주세요.`
+      };
+
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
