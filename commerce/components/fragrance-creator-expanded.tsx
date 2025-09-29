@@ -88,15 +88,53 @@ export default function FragranceCreatorExpanded() {
     e.preventDefault();
     if (!userInput.trim() || isLoading) return;
 
-    const userMessage = { role: 'user' as const, content: userInput };
+    const message = userInput.trim();
+    const userMessage = { role: 'user' as const, content: message };
     setChatMessages(prev => [...prev, userMessage]);
-    setConversationContext(prev => [...prev, userInput]);
+
+    const newContext = [...conversationContext, message];
+    setConversationContext(newContext);
     setUserInput('');
     setIsLoading(true);
 
-    // AI 시스템을 사용한 응답 생성
-    setTimeout(() => {
-      const aiResponse = aiSystem.generateConversationalResponse(userInput, conversationContext);
+    try {
+      // 실제 API 호출
+      const response = await fetch('/api/ai-perfumer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          context: conversationContext
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('API request failed');
+      }
+
+      const data = await response.json();
+
+      // AI 응답 추가
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        content: data.response
+      }]);
+
+      // 향수가 생성된 경우 표시
+      if (data.fragrance) {
+        setGeneratedFragrance(data.fragrance);
+        setChatMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `✨ 당신만의 향수 "${data.fragrance.korean_name}"가 완성되었습니다.\n\n${data.fragrance.story}`
+        }]);
+      }
+    } catch (error) {
+      console.error('API call failed, falling back to local AI:', error);
+
+      // 실패 시 로컬 AI 시스템 사용 (폴백)
+      const aiResponse = aiSystem.generateConversationalResponse(message, conversationContext);
 
       setChatMessages(prev => [...prev, {
         role: 'assistant',
@@ -104,14 +142,14 @@ export default function FragranceCreatorExpanded() {
       }]);
 
       // 3-4번의 대화 후 향수 생성
-      if (conversationContext.length >= 3) {
+      if (newContext.length >= 3) {
         setTimeout(() => {
           generateFragrance();
         }, 1500);
       }
-
+    } finally {
       setIsLoading(false);
-    }, 1000 + Math.random() * 1000);
+    }
   };
 
   const generateFragrance = () => {
@@ -279,7 +317,7 @@ export default function FragranceCreatorExpanded() {
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
                   placeholder="당신의 이야기를 들려주세요..."
-                  className="flex-1 px-4 py-3 border border-[var(--luxury-silk)] rounded-lg focus:ring-2 focus:ring-[var(--luxury-gold)] focus:border-transparent"
+                  className="flex-1 px-4 py-3 border border-[var(--luxury-silk)] rounded-lg focus:ring-2 focus:ring-[var(--luxury-gold)] focus:border-transparent text-[var(--luxury-midnight)] placeholder:text-[var(--luxury-stone)]"
                   disabled={isLoading || !!generatedFragrance}
                   autoFocus
                 />
