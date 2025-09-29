@@ -18,16 +18,18 @@ import asyncio
 from contextlib import asynccontextmanager
 
 from ..core.config import settings
-from ..core.production_logging import get_logger, LogCategory
-from ..core.logging_middleware import RequestLoggingMiddleware, SecurityLoggingMiddleware
+# from ..core.production_logging import get_logger, LogCategory
+# from ..core.logging_middleware import RequestLoggingMiddleware, SecurityLoggingMiddleware
+import logging
+logger = logging.getLogger(__name__)
 from ..core.exceptions import FragranceAIException, SystemException, ErrorCode
-from ..core.exceptions_unified import (
-    FragranceAIException as UnifiedException,
-    APIException,
-    ModelException,
-    global_error_handler,
-    handle_exceptions_async
-)
+# from ..core.exceptions_unified import (
+#     FragranceAIException as UnifiedException,
+#     APIException,
+#     ModelException,
+#     global_error_handler,
+#     handle_exceptions_async
+# )
 from ..core.advanced_caching import FragranceCacheManager, CachePolicy
 from ..core.performance_optimizer import global_performance_optimizer
 from ..core.error_handling import (

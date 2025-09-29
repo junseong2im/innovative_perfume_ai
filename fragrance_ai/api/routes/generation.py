@@ -4,6 +4,7 @@ import logging
 import time
 import uuid
 import asyncio
+from datetime import datetime
 from pydantic import BaseModel, Field
 
 from ..schemas import (
@@ -497,3 +498,65 @@ async def chat_with_artisan(
             status_code=500,
             detail=f"대화 처리 중 오류가 발생했습니다: {str(e)}"
         )
+
+
+# AI Perfumer (공감각 조향사) 엔드포인트
+class AIPerfumerRequest(BaseModel):
+    """AI 조향사 요청 모델"""
+    message: str = Field(..., description="사용자 메시지")
+    context: List[str] = Field(default_factory=list, description="대화 맥락")
+    session_id: Optional[str] = Field(None, description="세션 ID")
+
+
+class AIPerfumerResponse(BaseModel):
+    """AI 조향사 응답 모델"""
+    response: str = Field(..., description="AI 응답")
+    fragrance: Optional[Dict[str, Any]] = Field(None, description="생성된 향수")
+    timestamp: str = Field(..., description="응답 시간")
+    session_id: str = Field(..., description="세션 ID")
+
+
+@router.post("/ai-perfumer/chat", response_model=AIPerfumerResponse)
+async def ai_perfumer_chat(
+    request: AIPerfumerRequest,
+    current_user: Optional[dict] = Depends(get_optional_user)
+):
+    """
+    AI 조향사와 대화 (공감각적 향수 창조)
+
+    세상의 모든 개념을 향으로 번역하는 예술가와 대화합니다.
+    추상적 개념, 감정, 기억을 향수로 변환합니다.
+    """
+    try:
+        # AI Perfumer 오케스트레이터 임포트
+        from ...orchestrator.ai_perfumer_orchestrator import get_ai_perfumer_orchestrator
+
+        # 오케스트레이터 가져오기
+        orchestrator = get_ai_perfumer_orchestrator()
+
+        # 세션 관리
+        session_id = request.session_id or f"session_{uuid.uuid4().hex[:12]}"
+
+        # 대화 처리
+        response = orchestrator.generate_response(
+            message=request.message,
+            context=request.context
+        )
+
+        # 충분한 대화 후 향수 생성
+        fragrance = None
+        if len(request.context) >= 2:
+            full_context = ' '.join(request.context + [request.message])
+            fragrance_data = orchestrator.execute_creative_process(full_context)
+            fragrance = fragrance_data
+
+        return AIPerfumerResponse(
+            response=response,
+            fragrance=fragrance,
+            timestamp=datetime.now().isoformat(),
+            session_id=session_id
+        )
+
+    except Exception as e:
+        logger.error(f"AI Perfumer chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

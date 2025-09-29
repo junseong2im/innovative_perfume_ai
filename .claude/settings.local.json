@@ -81,7 +81,8 @@
       "Bash(grep:*)",
       "Bash(xargs rm:*)",
       "Bash(timeout:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(ping:*)"
     ],
     "deny": [],
     "ask": []
