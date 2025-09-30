@@ -1,465 +1,428 @@
 """
-진짜 강화학습 기반 향수 진화 시스템
-Reinforcement Learning from Human Feedback (RLHF) 구현
+'진화' 엔진: EpigeneticVariationAI
+PyTorch를 사용한 강화학습(RLHF) 모델 구현
+목표: 사용자의 주관적인 선택(피드백)을 '보상'으로 삼아, 어떤 종류의 '변형'이 사용자를 만족시키는지 학습
 """
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass
 import json
 from collections import deque
 import random
 from datetime import datetime
+import logging
+
+# 프로젝트 내부 모듈 imports
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent.parent))
+
+# OlfactoryDNA와 CreativeBrief import
+from fragrance_ai.training.moga_optimizer import OlfactoryDNA, CreativeBrief
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 @dataclass
-class State:
-    """향수 상태 표현"""
-    dna_features: np.ndarray  # DNA 특징 벡터
-    phenotype_features: np.ndarray  # 표현형 특징 벡터
-    user_context: np.ndarray  # 사용자 컨텍스트
+class ScentPhenotype:
+    """향수 표현형 - 사용자에게 제시될 변형된 향수"""
+    dna: OlfactoryDNA
+    variation_applied: str  # 적용된 변형 종류
+    user_rating: Optional[float] = None  # 사용자 평가 (1-10)
 
-    def to_tensor(self) -> torch.Tensor:
-        """텐서로 변환"""
-        combined = np.concatenate([
-            self.dna_features,
-            self.phenotype_features,
-            self.user_context
-        ])
-        return torch.FloatTensor(combined)
-
-@dataclass
-class Action:
-    """향수 수정 행동"""
-    modification_type: str  # 'amplify', 'silence', 'modulate', 'substitute'
-    target_gene: str  # 수정 대상
-    modification_strength: float  # 수정 강도 (0-1)
-
-    def to_vector(self) -> np.ndarray:
-        """벡터로 변환"""
-        type_encoding = {
-            'amplify': [1, 0, 0, 0],
-            'silence': [0, 1, 0, 0],
-            'modulate': [0, 0, 1, 0],
-            'substitute': [0, 0, 0, 1]
-        }
-
-        gene_encoding = {
-            'top': [1, 0, 0],
-            'middle': [0, 1, 0],
-            'base': [0, 0, 1],
-            'all': [1, 1, 1]
-        }
-
-        return np.array(
-            type_encoding.get(self.modification_type, [0, 0, 0, 0]) +
-            gene_encoding.get(self.target_gene, [0, 0, 0]) +
-            [self.modification_strength]
-        )
-
-@dataclass
-class Experience:
-    """경험 (상태, 행동, 보상, 다음 상태)"""
-    state: State
-    action: Action
-    reward: float
-    next_state: State
-    done: bool
 
 class PolicyNetwork(nn.Module):
-    """정책 네트워크 - 어떤 수정을 할지 결정"""
+    """
+    1단계: 정책 신경망(Policy Network) 모델 정의
+    torch.nn.Module을 상속받는 간단한 MLP(Multi-Layer Perceptron) 모델
 
-    def __init__(self, state_dim: int, hidden_dim: int = 256):
+    입력(State): 현재 향수의 OlfactoryDNA 벡터와 사용자의 피드백(CreativeBrief) 벡터를 합친 벡터
+    출력(Action): 가능한 모든 '변형' 방법에 대한 확률 분포
+    """
+
+    def __init__(self, input_dim: int = 100, hidden_dim: int = 256):
         super(PolicyNetwork, self).__init__()
 
-        self.fc1 = nn.Linear(state_dim, hidden_dim)
+        # MLP 레이어들
+        self.fc1 = nn.Linear(input_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.fc3 = nn.Linear(hidden_dim, 128)
 
-        # 출력 헤드들
-        self.action_type_head = nn.Linear(128, 4)  # 4가지 수정 타입
-        self.target_gene_head = nn.Linear(128, 4)  # top, middle, base, all
-        self.strength_head = nn.Linear(128, 1)  # 수정 강도
+        # 출력 레이어 - 변형 방법에 대한 확률
+        # 변형의 종류: ['Amplify_Note_A', 'Silence_Note_B', 'Add_New_Note_C', ...]
+        self.action_head = nn.Linear(128, 30)  # 10개 노트 x 3개 행동 = 30개 액션
 
         self.dropout = nn.Dropout(0.1)
-        self.activation = nn.ReLU()
-
-    def forward(self, state: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """순방향 전파"""
-        x = self.activation(self.fc1(state))
-        x = self.dropout(x)
-        x = self.activation(self.fc2(x))
-        x = self.dropout(x)
-        x = self.activation(self.fc3(x))
-
-        # 각 출력 계산
-        action_type = torch.softmax(self.action_type_head(x), dim=-1)
-        target_gene = torch.softmax(self.target_gene_head(x), dim=-1)
-        strength = torch.sigmoid(self.strength_head(x))
-
-        return action_type, target_gene, strength
-
-class ValueNetwork(nn.Module):
-    """가치 네트워크 - 상태의 가치 평가"""
-
-    def __init__(self, state_dim: int, hidden_dim: int = 256):
-        super(ValueNetwork, self).__init__()
-
-        self.fc1 = nn.Linear(state_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.fc3 = nn.Linear(hidden_dim, 64)
-        self.value_head = nn.Linear(64, 1)
-
-        self.dropout = nn.Dropout(0.1)
-        self.activation = nn.ReLU()
 
     def forward(self, state: torch.Tensor) -> torch.Tensor:
-        """순방향 전파"""
-        x = self.activation(self.fc1(state))
+        """
+        순방향 전파
+        마지막 레이어는 Softmax 활성화 함수를 사용하여 각 행동에 대한 확률 값을 출력
+        """
+        x = F.relu(self.fc1(state))
         x = self.dropout(x)
-        x = self.activation(self.fc2(x))
+        x = F.relu(self.fc2(x))
         x = self.dropout(x)
-        x = self.activation(self.fc3(x))
+        x = F.relu(self.fc3(x))
 
-        value = self.value_head(x)
-        return value
+        # Softmax를 통한 확률 분포 생성
+        action_probs = F.softmax(self.action_head(x), dim=-1)
 
-class RewardModel(nn.Module):
-    """보상 모델 - 인간 피드백 학습"""
+        return action_probs
 
-    def __init__(self, state_dim: int, action_dim: int = 8):
-        super(RewardModel, self).__init__()
 
-        self.fc1 = nn.Linear(state_dim + action_dim, 256)
-        self.fc2 = nn.Linear(256, 128)
-        self.fc3 = nn.Linear(128, 64)
-        self.reward_head = nn.Linear(64, 1)
+class EpigeneticVariationAI:
+    """
+    진화 엔진: 사용자 피드백을 통해 학습하는 강화학습 모델
+    REINFORCE 알고리즘을 사용한 정책 경사(Policy Gradient) 구현
+    """
 
-        self.activation = nn.ReLU()
-        self.dropout = nn.Dropout(0.1)
+    def __init__(self,
+                 state_dim: int = 100,
+                 learning_rate: float = 0.001,
+                 gamma: float = 0.99):
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
-        """예측 보상 계산"""
-        x = torch.cat([state, action], dim=-1)
-        x = self.activation(self.fc1(x))
-        x = self.dropout(x)
-        x = self.activation(self.fc2(x))
-        x = self.dropout(x)
-        x = self.activation(self.fc3(x))
-
-        reward = torch.tanh(self.reward_head(x))  # -1 ~ 1 범위
-        return reward
-
-class FragranceRLHF:
-    """향수 강화학습 시스템"""
-
-    def __init__(self, state_dim: int = 100):
         self.state_dim = state_dim
+        self.learning_rate = learning_rate
+        self.gamma = gamma  # 할인율
 
-        # 신경망들
-        self.policy_net = PolicyNetwork(state_dim)
-        self.value_net = ValueNetwork(state_dim)
-        self.reward_model = RewardModel(state_dim)
+        # 정책 신경망 초기화
+        self.policy_network = PolicyNetwork(input_dim=state_dim)
+        self.optimizer = optim.Adam(self.policy_network.parameters(), lr=learning_rate)
 
-        # 옵티마이저 - 학습률 증가
-        self.policy_optimizer = optim.Adam(self.policy_net.parameters(), lr=0.003)  # 30배 증가
-        self.value_optimizer = optim.Adam(self.value_net.parameters(), lr=0.003)
-        self.reward_optimizer = optim.Adam(self.reward_model.parameters(), lr=0.003)
+        # 경험 버퍼 (에피소드 기록)
+        self.episode_log_probs = []
+        self.episode_rewards = []
 
-        # 경험 버퍼
-        self.experience_buffer = deque(maxlen=10000)
-        self.human_feedback_buffer = deque(maxlen=5000)
+        # 변형 액션 정의
+        self.action_space = self._define_action_space()
 
-        # 하이퍼파라미터
-        self.gamma = 0.99  # 할인율
-        self.gae_lambda = 0.95  # GAE 람다
-        self.ppo_epsilon = 0.2  # PPO 클리핑
-        self.entropy_coef = 0.01  # 엔트로피 보너스
+        # 학습 히스토리
+        self.training_history = []
 
-        # 통계
-        self.training_stats = {
-            'policy_loss': [],
-            'value_loss': [],
-            'reward_loss': [],
-            'average_reward': []
+    def _define_action_space(self) -> List[str]:
+        """
+        가능한 변형 행동들 정의
+        출력(Action): 가능한 모든 '변형' 방법
+        ['Amplify_Note_A', 'Silence_Note_B', 'Add_New_Note_C', ...]
+        """
+        actions = []
+        note_names = ['Bergamot', 'Lemon', 'Rose', 'Jasmine', 'Sandalwood',
+                     'Cedar', 'Vanilla', 'Musk', 'Amber', 'Patchouli']
+
+        for note in note_names:
+            actions.append(f"Amplify_{note}")
+            actions.append(f"Silence_{note}")
+            actions.append(f"Add_{note}")
+
+        return actions
+
+    def encode_state(self, dna: OlfactoryDNA, brief: CreativeBrief) -> torch.Tensor:
+        """
+        입력(State): 현재 향수의 OlfactoryDNA 벡터와 사용자의 피드백(CreativeBrief) 벡터를 합친 벡터
+        """
+        # DNA 인코딩 (노트와 농도)
+        dna_vector = np.zeros(50)  # 10 노트 x 5 특징
+        for i, (note_id, percentage) in enumerate(dna.genes[:10]):
+            if i < 10:
+                dna_vector[i*5] = note_id / 10.0  # 정규화
+                dna_vector[i*5 + 1] = percentage / 30.0  # 정규화
+                dna_vector[i*5 + 2] = dna.fitness_scores[0] if dna.fitness_scores else 0
+                dna_vector[i*5 + 3] = dna.fitness_scores[1] if dna.fitness_scores else 0
+                dna_vector[i*5 + 4] = dna.fitness_scores[2] if dna.fitness_scores else 0
+
+        # CreativeBrief 인코딩
+        brief_vector = np.zeros(50)
+        brief_vector[:3] = brief.emotional_palette[:3]
+        brief_vector[3] = brief.intensity
+        # 추가 특징들을 인코딩할 수 있음
+
+        # 상태 벡터 합치기 (concatenate)
+        state_vector = np.concatenate([dna_vector, brief_vector])
+
+        return torch.FloatTensor(state_vector).unsqueeze(0)  # 배치 차원 추가
+
+    def sample_action(self, state: torch.Tensor) -> Tuple[int, torch.Tensor]:
+        """
+        2단계: 행동 실행 및 보상 획득
+        a. 행동 샘플링: 현재 State를 정책 신경망에 입력하여,
+        출력된 확률 분포에 따라 여러 개의 '변형' 행동(Action)을 샘플링
+        """
+        # 정책 네트워크를 통한 확률 분포 계산
+        action_probs = self.policy_network(state)
+
+        # 확률 분포에 따라 행동 샘플링
+        action_distribution = torch.distributions.Categorical(action_probs)
+        action = action_distribution.sample()
+
+        # 로그 확률 계산 (나중에 학습에 사용)
+        log_prob = action_distribution.log_prob(action)
+
+        return action.item(), log_prob
+
+    def apply_variation(self, dna: OlfactoryDNA, action_idx: int) -> OlfactoryDNA:
+        """
+        샘플링된 행동을 DNA에 적용하여 변형된 DNA 생성
+        """
+        # 행동 해석
+        action_name = self.action_space[action_idx]
+        action_type, note_name = action_name.split('_', 1)
+
+        # DNA 복사
+        new_genes = list(dna.genes)
+
+        # 노트 ID 매핑 (간단한 예시)
+        note_mapping = {
+            'Bergamot': 1, 'Lemon': 2, 'Rose': 3, 'Jasmine': 4,
+            'Sandalwood': 5, 'Cedar': 6, 'Vanilla': 7, 'Musk': 8,
+            'Amber': 9, 'Patchouli': 10
         }
 
-    def encode_fragrance_state(self, dna: Any, phenotype: Optional[Any] = None) -> State:
-        """향수를 상태로 인코딩"""
-        # DNA 특징 추출
-        dna_features = []
+        note_id = note_mapping.get(note_name, 1)
 
-        # 각 노트의 특징
-        for note_type in ['top', 'middle', 'base']:
-            genes = dna.genotype.get(note_type, [])
-            if genes:
-                concentrations = [g.concentration for g in genes]
-                expressions = [g.expression_level for g in genes]
-                dna_features.extend([
-                    np.mean(concentrations),
-                    np.std(concentrations),
-                    np.mean(expressions),
-                    np.std(expressions)
-                ])
-            else:
-                dna_features.extend([0, 0, 0, 0])
+        if action_type == "Amplify":
+            # 해당 노트의 농도 증가
+            for i, (nid, percentage) in enumerate(new_genes):
+                if nid == note_id:
+                    new_genes[i] = (nid, min(percentage * 1.5, 30.0))
+                    break
 
-        # 표현형 잠재력
-        for key in ['longevity', 'sillage', 'complexity', 'balance']:
-            dna_features.append(dna.phenotype_potential.get(key, 0.5))
+        elif action_type == "Silence":
+            # 해당 노트 제거 또는 감소
+            for i, (nid, percentage) in enumerate(new_genes):
+                if nid == note_id:
+                    new_genes[i] = (nid, percentage * 0.3)
+                    break
 
-        # 표현형 특징 (있으면)
-        phenotype_features = []
-        if phenotype:
-            for key in ['temperature_sensitivity', 'humidity_response',
-                       'temporal_stability', 'emotional_resonance']:
-                phenotype_features.append(
-                    phenotype.environmental_response.get(key, 0.5)
-                )
-        else:
-            phenotype_features = [0.5] * 4
+        elif action_type == "Add":
+            # 새로운 노트 추가 (빈 슬롯이 있으면)
+            added = False
+            for i, (nid, percentage) in enumerate(new_genes):
+                if percentage < 0.1:  # 거의 사용하지 않는 슬롯
+                    new_genes[i] = (note_id, random.uniform(1.0, 5.0))
+                    added = True
+                    break
 
-        # 사용자 컨텍스트 (간단한 예시)
-        user_context = [
-            random.random(),  # 시간대
-            random.random(),  # 계절
-            random.random(),  # 선호도
-        ]
+            if not added and len(new_genes) < 15:
+                # 슬롯 추가
+                new_genes.append((note_id, random.uniform(1.0, 5.0)))
 
-        # 패딩으로 차원 맞추기
-        dna_features = np.array(dna_features)
-        phenotype_features = np.array(phenotype_features)
-        user_context = np.array(user_context)
+        # 새로운 DNA 객체 생성
+        return OlfactoryDNA(
+            genes=new_genes,
+            fitness_scores=dna.fitness_scores  # 일단 동일하게 유지
+        )
 
-        # 고정 크기로 패딩
-        dna_features = np.pad(dna_features, (0, 50 - len(dna_features)), 'constant')
-        phenotype_features = np.pad(phenotype_features, (0, 30 - len(phenotype_features)), 'constant')
-        user_context = np.pad(user_context, (0, 20 - len(user_context)), 'constant')
+    def generate_variations(self, dna: OlfactoryDNA, brief: CreativeBrief, num_variations: int = 3) -> List[ScentPhenotype]:
+        """
+        b. 사용자에게 제시: 이 행동들을 적용하여 생성된 여러 개의 ScentPhenotype 후보 A, B, C를 생성
+        """
+        variations = []
+        state = self.encode_state(dna, brief)
 
-        return State(dna_features, phenotype_features, user_context)
+        for _ in range(num_variations):
+            # 행동 샘플링
+            action_idx, log_prob = self.sample_action(state)
 
-    def select_action(self, state: State, epsilon: float = 0.1) -> Action:
-        """행동 선택 (epsilon-greedy)"""
-        if random.random() < epsilon:
-            # 탐색: 랜덤 행동
-            action_types = ['amplify', 'silence', 'modulate', 'substitute']
-            target_genes = ['top', 'middle', 'base', 'all']
+            # 변형 적용
+            varied_dna = self.apply_variation(dna, action_idx)
 
-            return Action(
-                modification_type=random.choice(action_types),
-                target_gene=random.choice(target_genes),
-                modification_strength=random.random()
+            # ScentPhenotype 생성
+            phenotype = ScentPhenotype(
+                dna=varied_dna,
+                variation_applied=self.action_space[action_idx]
             )
-        else:
-            # 활용: 정책 네트워크 사용
-            with torch.no_grad():
-                state_tensor = state.to_tensor().unsqueeze(0)
-                action_type_probs, target_gene_probs, strength = self.policy_net(state_tensor)
 
-                # 확률적 샘플링
-                action_type_idx = torch.multinomial(action_type_probs, 1).item()
-                target_gene_idx = torch.multinomial(target_gene_probs, 1).item()
+            variations.append(phenotype)
 
-                action_types = ['amplify', 'silence', 'modulate', 'substitute']
-                target_genes = ['top', 'middle', 'base', 'all']
+            # 로그 확률 저장 (학습용)
+            self.episode_log_probs.append(log_prob)
 
-                return Action(
-                    modification_type=action_types[action_type_idx],
-                    target_gene=target_genes[target_gene_idx],
-                    modification_strength=strength.item()
-                )
+        return variations
 
-    def calculate_reward(self, state: State, action: Action, human_rating: Optional[float] = None) -> float:
-        """보상 계산"""
-        if human_rating is not None:
-            # 실제 인간 평가 사용 (1-5 -> -1~1로 정규화)
-            return (human_rating - 3) / 2
-        else:
-            # 학습된 보상 모델 사용
-            with torch.no_grad():
-                state_tensor = state.to_tensor().unsqueeze(0)
-                action_tensor = torch.FloatTensor(action.to_vector()).unsqueeze(0)
-                predicted_reward = self.reward_model(state_tensor, action_tensor)
-                return predicted_reward.item()
+    def update_policy_with_feedback(self, variations: List[ScentPhenotype], selected_idx: int):
+        """
+        3단계: 정책 업데이트 (학습)
+        REINFORCE 알고리즘을 사용하여 정책 신경망의 가중치를 업데이트
 
-    def store_experience(self, experience: Experience):
-        """경험 저장"""
-        self.experience_buffer.append(experience)
+        c. 보상 정의: 사용자가 후보 B를 선택하면, 행동 B에 대한 보상(reward)은 +1,
+        선택받지 못한 A와 C에 대한 보상은 -1 (또는 0)로 설정
+        """
 
-    def store_human_feedback(self, state: State, action: Action, rating: float):
-        """인간 피드백 저장"""
-        self.human_feedback_buffer.append((state, action, rating))
-
-    def train_reward_model(self, batch_size: int = 32):
-        """보상 모델 학습 (인간 피드백 기반)"""
-        if len(self.human_feedback_buffer) < batch_size:
-            return
-
-        # 배치 샘플링
-        batch = random.sample(self.human_feedback_buffer, batch_size)
-
-        states = torch.stack([item[0].to_tensor() for item in batch])
-        actions = torch.stack([torch.FloatTensor(item[1].to_vector()) for item in batch])
-        ratings = torch.FloatTensor([(item[2] - 3) / 2 for item in batch])  # 정규화
-
-        # 예측 및 손실 계산
-        predicted_rewards = self.reward_model(states, actions).squeeze()
-        loss = nn.MSELoss()(predicted_rewards, ratings)
-
-        # 역전파
-        self.reward_optimizer.zero_grad()
-        loss.backward()
-        self.reward_optimizer.step()
-
-        self.training_stats['reward_loss'].append(loss.item())
-
-    def compute_gae(self, rewards: List[float], values: List[float], next_values: List[float]) -> List[float]:
-        """Generalized Advantage Estimation 계산"""
-        advantages = []
-        gae = 0
-
-        for t in reversed(range(len(rewards))):
-            if t == len(rewards) - 1:
-                next_value = next_values[t]
+        # 보상 설정
+        rewards = []
+        for i, phenotype in enumerate(variations):
+            if i == selected_idx:
+                # 선택된 변형에 대한 긍정적 보상
+                reward = 1.0
+                logger.info(f"✨ 사용자가 선택한 변형: {phenotype.variation_applied}")
             else:
-                next_value = values[t + 1]
+                # 선택되지 않은 변형에 대한 부정적/중립적 보상
+                reward = -0.5  # 또는 0
 
-            delta = rewards[t] + self.gamma * next_value - values[t]
-            gae = delta + self.gamma * self.gae_lambda * gae
-            advantages.insert(0, gae)
+            rewards.append(reward)
+            phenotype.user_rating = reward  # 기록용
 
-        return advantages
+        self.episode_rewards.extend(rewards)
 
-    def train_ppo(self, batch_size: int = 64, epochs: int = 4):
-        """PPO 알고리즘으로 정책 학습"""
-        if len(self.experience_buffer) < batch_size:
+        # REINFORCE 알고리즘 적용
+        self._update_policy()
+
+    def _update_policy(self):
+        """
+        REINFORCE 알고리즘을 사용한 정책 업데이트
+        핵심 수식: Loss = -log(P(action_chosen)) * reward
+
+        - P(action_chosen): 정책 신경망이 '사용자가 선택한 행동'을 예측했던 확률
+        - reward: 위에서 정의한 보상 값(+1 또는 -0.5)
+
+        만약 보상이 긍정적(+1)이면, 손실 함수는 log(P(action_chosen))를 최대화
+        만약 보상이 부정적(-1)이면, 손실 함수는 log(P(action_chosen))를 최소화
+        """
+
+        if len(self.episode_rewards) == 0:
             return
 
-        # 배치 샘플링
-        batch = random.sample(self.experience_buffer, batch_size)
+        # 리턴 계산 (할인된 누적 보상)
+        returns = []
+        G = 0
+        for reward in reversed(self.episode_rewards):
+            G = reward + self.gamma * G
+            returns.insert(0, G)
 
-        states = torch.stack([exp.state.to_tensor() for exp in batch])
-        actions = torch.stack([torch.FloatTensor(exp.action.to_vector()) for exp in batch])
-        rewards = [exp.reward for exp in batch]
+        returns = torch.FloatTensor(returns)
 
-        # 가치 계산
-        with torch.no_grad():
-            values = self.value_net(states).squeeze().tolist()
-            next_states = torch.stack([exp.next_state.to_tensor() for exp in batch])
-            next_values = self.value_net(next_states).squeeze().tolist()
+        # 정규화 (안정적인 학습을 위해)
+        if len(returns) > 1:
+            returns = (returns - returns.mean()) / (returns.std() + 1e-8)
 
-        # GAE 계산
-        advantages = self.compute_gae(rewards, values, next_values)
-        advantages = torch.FloatTensor(advantages)
-        returns = advantages + torch.FloatTensor(values)
+        # 정책 경사 손실 계산
+        policy_loss = []
+        for log_prob, G in zip(self.episode_log_probs, returns):
+            # Loss = -log(P(action)) * G
+            # 여기서 G는 해당 행동의 리턴(할인된 누적 보상)
+            policy_loss.append(-log_prob * G)
 
-        # 정규화
-        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+        # 전체 손실
+        loss = torch.stack(policy_loss).sum()
 
-        # 이전 정책의 로그 확률 저장
-        with torch.no_grad():
-            action_type_probs_old, target_gene_probs_old, strength_old = self.policy_net(states)
-            # 간단한 로그 확률 계산 (실제로는 더 복잡)
-            old_log_probs = torch.log(action_type_probs_old.mean(dim=1) + 1e-8)
+        # 역전파 및 가중치 업데이트
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
 
-        # PPO 업데이트
-        for _ in range(epochs):
-            # 정책 네트워크 출력
-            action_type_probs, target_gene_probs, strength = self.policy_net(states)
-            log_probs = torch.log(action_type_probs.mean(dim=1) + 1e-8)
+        # 학습 기록
+        self.training_history.append({
+            'loss': loss.item(),
+            'mean_reward': np.mean(self.episode_rewards),
+            'timestamp': datetime.now().isoformat()
+        })
 
-            # 비율 계산
-            ratio = torch.exp(log_probs - old_log_probs)
+        logger.info(f"📈 정책 업데이트 완료: Loss={loss.item():.4f}, "
+                   f"평균 보상={np.mean(self.episode_rewards):.2f}")
 
-            # PPO 손실
-            surr1 = ratio * advantages
-            surr2 = torch.clamp(ratio, 1 - self.ppo_epsilon, 1 + self.ppo_epsilon) * advantages
-            policy_loss = -torch.min(surr1, surr2).mean()
+        # 에피소드 버퍼 초기화
+        self.episode_log_probs = []
+        self.episode_rewards = []
 
-            # 엔트로피 보너스
-            entropy = -(action_type_probs * torch.log(action_type_probs + 1e-8)).sum(dim=1).mean()
-            policy_loss -= self.entropy_coef * entropy
+    def evolve_with_feedback(self,
+                            initial_dna: OlfactoryDNA,
+                            brief: CreativeBrief,
+                            num_iterations: int = 10) -> OlfactoryDNA:
+        """
+        사용자 피드백을 통한 진화 시뮬레이션
+        실제로는 사용자 인터페이스와 연동되어야 함
+        """
+
+        logger.info("🧬 진화 엔진 시작: 사용자 피드백 기반 향수 진화")
+
+        current_dna = initial_dna
+
+        for iteration in range(num_iterations):
+            logger.info(f"\n📍 진화 라운드 {iteration + 1}/{num_iterations}")
+
+            # 변형 생성
+            variations = self.generate_variations(current_dna, brief, num_variations=3)
+
+            # 사용자 선택 시뮬레이션 (실제로는 UI에서 받아야 함)
+            # 여기서는 랜덤하게 선택 (실제 구현시 사용자 입력 필요)
+            selected_idx = random.randint(0, len(variations) - 1)
 
             # 정책 업데이트
-            self.policy_optimizer.zero_grad()
-            policy_loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), 0.5)
-            self.policy_optimizer.step()
+            self.update_policy_with_feedback(variations, selected_idx)
 
-            # 가치 네트워크 업데이트
-            value_pred = self.value_net(states).squeeze()
-            value_loss = nn.MSELoss()(value_pred, returns)
+            # 선택된 변형을 새로운 현재 DNA로 설정
+            current_dna = variations[selected_idx].dna
 
-            self.value_optimizer.zero_grad()
-            value_loss.backward()
-            self.value_optimizer.step()
+        logger.info("✨ 진화 완료! 최종 향수 DNA 생성")
 
-        self.training_stats['policy_loss'].append(policy_loss.item())
-        self.training_stats['value_loss'].append(value_loss.item())
-        self.training_stats['average_reward'].append(np.mean(rewards))
+        return current_dna
 
-    def evolve_fragrance(self, dna: Any, user_feedback: str, rating: float) -> Dict[str, Any]:
-        """강화학습으로 향수 진화"""
-        # 현재 상태
-        current_state = self.encode_fragrance_state(dna)
+    def save_model(self, path: str):
+        """모델 저장"""
+        torch.save({
+            'model_state_dict': self.policy_network.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'training_history': self.training_history
+        }, path)
+        logger.info(f"💾 모델 저장 완료: {path}")
 
-        # 행동 선택
-        action = self.select_action(current_state, epsilon=0.1)
+    def load_model(self, path: str):
+        """모델 로드"""
+        checkpoint = torch.load(path)
+        self.policy_network.load_state_dict(checkpoint['model_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.training_history = checkpoint.get('training_history', [])
+        logger.info(f"📂 모델 로드 완료: {path}")
 
-        # 인간 피드백 저장
-        self.store_human_feedback(current_state, action, rating)
 
-        # 보상 계산
-        reward = self.calculate_reward(current_state, action, rating)
+def example_usage():
+    """사용 예시"""
 
-        # 수정 지시 생성
-        modification_instructions = {
-            'type': action.modification_type,
-            'target': action.target_gene,
-            'strength': action.modification_strength,
-            'user_feedback': user_feedback,
-            'reward': reward
-        }
+    # 초기 DNA 생성 (MOGA 엔진에서 가져올 수 있음)
+    initial_dna = OlfactoryDNA(
+        genes=[(1, 5.0), (3, 8.0), (5, 12.0), (7, 3.0), (9, 6.0)],
+        fitness_scores=(0.8, 0.7, 0.9)
+    )
 
-        # 다음 상태 시뮬레이션 (실제로는 수정 후 상태)
-        next_state = self.encode_fragrance_state(dna)  # 간단한 예시
+    # 사용자 요구사항
+    brief = CreativeBrief(
+        emotional_palette=[0.4, 0.6, 0.2],  # 활기, 우아함, 따뜻함
+        fragrance_family="oriental",
+        mood="sophisticated",
+        intensity=0.8,
+        season="autumn",
+        gender="unisex"
+    )
 
-        # 경험 저장
-        experience = Experience(
-            state=current_state,
-            action=action,
-            reward=reward,
-            next_state=next_state,
-            done=False
-        )
-        self.store_experience(experience)
+    # 진화 엔진 초기화
+    engine = EpigeneticVariationAI(
+        state_dim=100,
+        learning_rate=0.001,
+        gamma=0.99
+    )
 
-        # 모델 학습
-        if len(self.experience_buffer) >= 100:
-            self.train_reward_model()
-            self.train_ppo()
+    # 사용자 피드백 기반 진화 실행
+    print("🧬 진화 엔진: 사용자 피드백 기반 향수 진화 시작...")
+    evolved_dna = engine.evolve_with_feedback(
+        initial_dna=initial_dna,
+        brief=brief,
+        num_iterations=5
+    )
 
-        return modification_instructions
+    print("\n✨ 진화 완료!")
+    print(f"최종 DNA: {evolved_dna.genes[:5]}")  # 처음 5개 유전자만 출력
+    print(f"학습 히스토리 길이: {len(engine.training_history)}")
 
-    def get_statistics(self) -> Dict[str, Any]:
-        """학습 통계 반환"""
-        return {
-            'total_experiences': len(self.experience_buffer),
-            'total_human_feedbacks': len(self.human_feedback_buffer),
-            'avg_policy_loss': np.mean(self.training_stats['policy_loss'][-100:]) if self.training_stats['policy_loss'] else 0,
-            'avg_value_loss': np.mean(self.training_stats['value_loss'][-100:]) if self.training_stats['value_loss'] else 0,
-            'avg_reward_loss': np.mean(self.training_stats['reward_loss'][-100:]) if self.training_stats['reward_loss'] else 0,
-            'avg_reward': np.mean(self.training_stats['average_reward'][-100:]) if self.training_stats['average_reward'] else 0
-        }
+    # 모델 저장
+    engine.save_model("fragrance_rlhf_model.pth")
 
-# 싱글톤 인스턴스
-_fragrance_rlhf_instance = None
 
-def get_fragrance_rlhf() -> FragranceRLHF:
-    """싱글톤 FragranceRLHF 인스턴스 반환"""
-    global _fragrance_rlhf_instance
-    if _fragrance_rlhf_instance is None:
-        _fragrance_rlhf_instance = FragranceRLHF()
-    return _fragrance_rlhf_instance
+if __name__ == "__main__":
+    example_usage()

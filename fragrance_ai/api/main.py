@@ -274,6 +274,7 @@ from .routes.generation import router as generation_router
 from .routes.agentic import router as agentic_router
 from .routes.customer_service import router as customer_service_router
 from .routes.admin_auth import router as admin_auth_router  # 관리자 인증 라우터
+from .routes.generation_with_ai import router as ai_generation_router  # AI 생성 라우터 추가
 
 app.include_router(auth_router, prefix="/api/v2")
 app.include_router(public_recipes_router, prefix="/api/v2")
@@ -281,6 +282,7 @@ app.include_router(generation_router, prefix="/api/v2/admin", tags=["관리자 �
 app.include_router(agentic_router, prefix="/api/v2", tags=["AI Orchestrator"])  # New agentic system
 app.include_router(customer_service_router, tags=["Customer Service"])  # Customer service routes
 app.include_router(admin_auth_router, tags=["Admin Authentication"])  # 관리자 세션 기반 인증
+app.include_router(ai_generation_router, prefix="/api/v1/ai", tags=["AI Generation"])  # DEAP/RLHF AI 라우터
 
 
 # 배치 처리 함수들

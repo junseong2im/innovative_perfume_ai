@@ -72,10 +72,12 @@ export default function AIFragranceChat() {
         season: data.recipe.characteristics.season
       };
     } catch (error) {
-      console.error('API 호출 실패:', error);
+      console.error('AI 향수 생성 API 호출 실패:', error);
 
-      // 에러 처리: 사용자에게 재시도 유도
-      throw new Error('AI 서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+      // 4단계: 프론트엔드 폴백 제거
+      // 하드코딩된 시뮬레이션 코드를 반드시 제거
+      // 대신, API 호출 실패 시 사용자에게 명확한 에러 메시지를 보여주는 로직으로 교체
+      throw new Error('AI 서버와 연결이 원활하지 않습니다. 잠시 후 다시 시도해주세요.');
     }
   };
 
