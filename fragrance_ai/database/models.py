@@ -442,36 +442,175 @@ class GeneratedRecipe(Base, TimestampMixin):
 class GenerationLog(Base, TimestampMixin):
     """생성 로그 모델"""
     __tablename__ = "generation_logs"
-    
+
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     request_id = Column(String(100), nullable=False, index=True)
-    
+
     # 생성 요청 정보
     generation_type = Column(String(50), nullable=False)
     input_params = Column(JSON, nullable=False)
     generation_config = Column(JSON, default=dict)
-    
+
     # 결과 정보
     recipe_id = Column(String, ForeignKey("recipes.id"))
     generation_time_ms = Column(Float)
     quality_score = Column(Float)
-    
+
     # 상태
     status = Column(String(20), nullable=False)  # requested, processing, completed, failed
     error_message = Column(Text)
-    
+
     # 사용자 정보
     user_id = Column(String(100))
     session_id = Column(String(100))
-    
+
     # 모델 정보
     model_version = Column(String(50))
     model_params = Column(JSON)
-    
+
     __table_args__ = (
         Index('ix_generation_logs_request_id', 'request_id'),
         Index('ix_generation_logs_user_session', 'user_id', 'session_id'),
         Index('ix_generation_logs_status', 'status'),
-        CheckConstraint("status IN ('requested', 'processing', 'completed', 'failed')", 
+        CheckConstraint("status IN ('requested', 'processing', 'completed', 'failed')",
                        name='check_generation_status'),
+    )
+
+
+class OlfactoryDNA(Base, TimestampMixin):
+    """향수 DNA 모델 - 향수의 유전적 청사진"""
+    __tablename__ = "olfactory_dna"
+
+    dna_id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+
+    # 계보 정보 (부모 컨셉 저장)
+    lineage = Column(JSON, nullable=False, default=dict)
+    # 예: {
+    #   "parent_concepts": ["fresh", "citrus", "aquatic"],
+    #   "generation": 1,
+    #   "ancestors": ["DNA_ID_1", "DNA_ID_2"]
+    # }
+
+    # 유전자형 (노트 구성)
+    genotype = Column(JSON, nullable=False)
+    # 예: {
+    #   "top_notes": [
+    #     {"note": "bergamot", "percentage": 15, "intensity": 8},
+    #     {"note": "lemon", "percentage": 10, "intensity": 7}
+    #   ],
+    #   "heart_notes": [
+    #     {"note": "jasmine", "percentage": 20, "intensity": 6},
+    #     {"note": "rose", "percentage": 15, "intensity": 7}
+    #   ],
+    #   "base_notes": [
+    #     {"note": "sandalwood", "percentage": 25, "intensity": 5},
+    #     {"note": "musk", "percentage": 15, "intensity": 4}
+    #   ],
+    #   "modifiers": [
+    #     {"type": "enhancer", "note": "iso_e_super", "percentage": 0.5}
+    #   ]
+    # }
+
+    # 스토리와 컨셉
+    story = Column(Text, nullable=False)
+
+    # DNA 특성
+    dna_signature = Column(String(200))  # 고유 식별자 또는 해시
+    complexity_level = Column(Integer, default=5)  # 1-10
+    innovation_score = Column(Float)  # 0-10
+
+    # 메타데이터
+    creator_id = Column(String(100))  # AI 모델 또는 조향사 ID
+    creation_method = Column(String(50))  # ai_generated, manual, hybrid
+    tags = Column(JSON, default=list)  # ["summer", "fresh", "unisex", etc.]
+
+    # 품질 및 검증
+    is_validated = Column(Boolean, default=False)
+    validation_scores = Column(JSON, default=dict)  # 각종 검증 점수
+
+    # 관계
+    phenotypes = relationship("ScentPhenotype", back_populates="dna", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index('ix_olfactory_dna_signature', 'dna_signature'),
+        Index('ix_olfactory_dna_creator', 'creator_id'),
+        Index('ix_olfactory_dna_creation_method', 'creation_method'),
+        CheckConstraint('complexity_level >= 1 AND complexity_level <= 10', name='check_dna_complexity'),
+        CheckConstraint('innovation_score >= 0 AND innovation_score <= 10', name='check_dna_innovation'),
+    )
+
+
+class ScentPhenotype(Base, TimestampMixin):
+    """향수 표현형 모델 - DNA의 실제 표현"""
+    __tablename__ = "scent_phenotypes"
+
+    phenotype_id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+
+    # DNA 참조 (Foreign Key)
+    based_on_dna = Column(String, ForeignKey("olfactory_dna.dna_id", ondelete="CASCADE"), nullable=False)
+
+    # 환경적 요인 (피드백 요약)
+    epigenetic_trigger = Column(JSON, nullable=False)
+    # 예: {
+    #   "customer_feedback": ["too strong", "needs more freshness"],
+    #   "market_trends": ["minimalist", "clean beauty"],
+    #   "seasonal_factors": ["summer", "humid climate"],
+    #   "cultural_preferences": ["korean_market", "subtle_fragrance"]
+    # }
+
+    # 최종 레시피 (JSON)
+    recipe = Column(JSON, nullable=False)
+    # 예: {
+    #   "formula": {
+    #     "top_notes": [...],  # DNA genotype + 조정사항
+    #     "heart_notes": [...],
+    #     "base_notes": [...],
+    #     "final_adjustments": [
+    #       {"action": "diluted", "note": "bergamot", "factor": 0.7},
+    #       {"action": "added", "note": "green_tea", "percentage": 3}
+    #     ]
+    #   },
+    #   "production_notes": {
+    #     "dilution": "80% concentration",
+    #     "maceration_time": "6 weeks",
+    #     "filtering": "double_filtered"
+    #   },
+    #   "packaging": {
+    #     "bottle_type": "minimalist_glass",
+    #     "volume": "50ml",
+    #     "atomizer": "fine_mist"
+    #   }
+    # }
+
+    # 표현형 설명
+    description = Column(Text, nullable=False)
+
+    # 표현형 특성
+    phenotype_name = Column(String(200))
+    phenotype_code = Column(String(100), unique=True)  # 고유 식별 코드
+    variant_type = Column(String(50))  # original, seasonal, limited, custom
+
+    # 성능 메트릭
+    market_performance = Column(JSON, default=dict)  # 시장 반응 데이터
+    customer_rating = Column(Float)  # 평균 고객 평점
+    expert_score = Column(Float)  # 전문가 평가 점수
+
+    # 생산 정보
+    production_status = Column(String(50), default='concept')  # concept, prototype, production, discontinued
+    batch_info = Column(JSON, default=dict)  # 생산 배치 정보
+
+    # 관계
+    dna = relationship("OlfactoryDNA", back_populates="phenotypes")
+
+    __table_args__ = (
+        Index('ix_scent_phenotypes_dna', 'based_on_dna'),
+        Index('ix_scent_phenotypes_code', 'phenotype_code'),
+        Index('ix_scent_phenotypes_variant', 'variant_type'),
+        Index('ix_scent_phenotypes_status', 'production_status'),
+        CheckConstraint('customer_rating >= 0 AND customer_rating <= 5', name='check_phenotype_rating'),
+        CheckConstraint('expert_score >= 0 AND expert_score <= 10', name='check_phenotype_expert_score'),
+        CheckConstraint("variant_type IN ('original', 'seasonal', 'limited', 'custom')",
+                       name='check_phenotype_variant'),
+        CheckConstraint("production_status IN ('concept', 'prototype', 'production', 'discontinued')",
+                       name='check_phenotype_status'),
     )

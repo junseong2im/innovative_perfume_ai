@@ -105,15 +105,30 @@ class OlfactoryRecombinatorAI:
         db_path = Path(__file__).parent.parent.parent / "data" / "fragrance_recipes_database.json"
 
         if db_path.exists():
-            with open(db_path, 'r') as f:
-                return json.load(f)
+            try:
+                with open(db_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    # JSON 구조에 따라 처리
+                    if isinstance(data, list):
+                        return data
+                    elif isinstance(data, dict) and 'fragrances' in data:
+                        return data['fragrances']
+                    else:
+                        logger.warning("Unknown JSON structure, using sample data")
+                        return self._get_sample_fragrances()
+            except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                logger.warning(f"Error loading fragrance database: {e}. Using sample data")
+                return self._get_sample_fragrances()
         else:
-            # 샘플 데이터
-            return [
-                {"name": "Classic Citrus", "notes": [1, 2, 5], "percentages": [30, 20, 50]},
-                {"name": "Romantic Rose", "notes": [3, 4, 7], "percentages": [40, 30, 30]},
-                {"name": "Oriental Night", "notes": [4, 8, 9], "percentages": [25, 35, 40]},
-            ]
+            return self._get_sample_fragrances()
+
+    def _get_sample_fragrances(self) -> List[Dict]:
+        """샘플 향수 데이터"""
+        return [
+            {"name": "Classic Citrus", "notes": [1, 2, 5], "percentages": [30, 20, 50]},
+            {"name": "Romantic Rose", "notes": [3, 4, 7], "percentages": [40, 30, 30]},
+            {"name": "Oriental Night", "notes": [4, 8, 9], "percentages": [25, 35, 40]},
+        ]
 
     def _setup_deap_framework(self):
         """
@@ -128,30 +143,50 @@ class OlfactoryRecombinatorAI:
             del creator.Individual
 
         # 적합도 클래스 정의 - 3가지 목표 모두 최소화 (낮을수록 좋음)
+        # weights=(-1.0, -1.0, -1.0): 각각 안정성, 부적합도, 비창의성을 최소화
+        # 음수 가중치는 DEAP에서 최소화를 의미
         creator.create("FitnessMin", base.Fitness, weights=(-1.0, -1.0, -1.0))
 
         # 개체 정의 - 향수 레시피를 리스트로 표현
+        # Individual은 15개의 (note_id, percentage) 튜플로 구성된 리스트
+        # 각 개체는 하나의 완전한 향수 레시피를 나타냄
+        # fitness 속성을 통해 3가지 목표에 대한 평가값을 저장
         creator.create("Individual", list, fitness=creator.FitnessMin)
 
         # 툴박스 설정
         self.toolbox = base.Toolbox()
 
         # 유전자 생성 함수 - (note_id, percentage) 튜플 생성
+        # 각 유전자는 하나의 향료 노트와 그 농도를 나타냄
         self.toolbox.register("gene", self._generate_gene)
 
         # 개체 생성 - 15개의 노트로 구성된 향수 레시피
+        # n=15: 일반적인 향수는 10-20개 노트로 구성, 15개를 표준으로 설정
         self.toolbox.register("individual", tools.initRepeat, creator.Individual,
                              self.toolbox.gene, n=15)
 
         # 개체군 생성
+        # population_size 만큼의 개체를 생성하여 초기 개체군 구성
         self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
 
         # 3단계: 유전 연산자(Genetic Operators) 등록
+
+        # 평가 함수: 3가지 목표 (안정성, 부적합도, 비창의성)를 계산
         self.toolbox.register("evaluate", self.evaluate)
-        self.toolbox.register("mate", tools.cxTwoPoint)  # 두 점 교차
+
+        # 교차 연산: 두 점 교차 (Two-Point Crossover)
+        # 두 부모의 유전자를 두 지점에서 교환하여 자손 생성
+        self.toolbox.register("mate", tools.cxTwoPoint)
+
+        # 변이 연산: 균일 정수 변이 (Uniform Integer Mutation)
+        # indpb=0.1: 각 유전자가 10% 확률로 변이
+        # low=1, up=len(notes_db): 노트 ID 범위 내에서 변이
         self.toolbox.register("mutate", tools.mutUniformInt,
-                            low=1, up=len(self.notes_db), indpb=0.1)  # 균일 정수 변이
-        self.toolbox.register("select", tools.selNSGA2)  # NSGA-II 선택 알고리즘
+                            low=1, up=len(self.notes_db), indpb=0.1)
+
+        # 선택 연산: NSGA-II (Non-dominated Sorting Genetic Algorithm II)
+        # 다목적 최적화를 위한 파레토 최적 선택 알고리즘
+        self.toolbox.register("select", tools.selNSGA2)
 
     def _generate_gene(self) -> Tuple[int, float]:
         """
@@ -352,7 +387,7 @@ class OlfactoryRecombinatorAI:
         # CreativeBrief 저장
         self.creative_brief = creative_brief
 
-        logger.info(f"🧬 창세기 엔진 시작: 개체군 크기={self.population_size}, 세대수={self.generations}")
+        logger.info(f"[MOGA] Starting evolution: population={self.population_size}, generations={self.generations}")
 
         # 초기 개체군 생성
         population = self.toolbox.population(n=self.population_size)
@@ -382,8 +417,8 @@ class OlfactoryRecombinatorAI:
 
             # 진행 상황 로깅 (10세대마다)
             if gen % 10 == 0:
-                logger.info(f"  세대 {gen}: 안정성={record['min'][0]:.3f}, "
-                          f"부적합도={record['min'][1]:.3f}, 비창의성={record['min'][2]:.3f}")
+                logger.info(f"  Generation {gen}: stability={record['min'][0]:.3f}, "
+                          f"unfitness={record['min'][1]:.3f}, uncreativity={record['min'][2]:.3f}")
 
             # 선택 (NSGA-II 알고리즘 사용)
             offspring = self.toolbox.select(population, len(population))
@@ -427,10 +462,10 @@ class OlfactoryRecombinatorAI:
         best_individuals = tools.selBest(population, k=1)
         best_ind = best_individuals[0]
 
-        logger.info(f"✨ 진화 완료! 최적 DNA 발견")
-        logger.info(f"  최종 점수: 안정성={best_ind.fitness.values[0]:.3f}, "
-                   f"부적합도={best_ind.fitness.values[1]:.3f}, "
-                   f"비창의성={best_ind.fitness.values[2]:.3f}")
+        logger.info(f"[SUCCESS] Evolution complete! Optimal DNA found")
+        logger.info(f"  Final scores: stability={best_ind.fitness.values[0]:.3f}, "
+                   f"unfitness={best_ind.fitness.values[1]:.3f}, "
+                   f"uncreativity={best_ind.fitness.values[2]:.3f}")
 
         # OlfactoryDNA 객체로 변환하여 반환
         return OlfactoryDNA(
@@ -493,21 +528,21 @@ def example_usage():
     )
 
     # 진화 실행
-    print("🧬 창세기 엔진 시작: 후각적 DNA 생성 중...")
+    print("[MOGA] Starting OlfactoryRecombinatorAI: Generating olfactory DNA...")
     optimal_dna = engine.evolve(brief)
 
     # 결과 포맷팅
     recipe = engine.format_recipe(optimal_dna)
 
-    print("\n✨ 최적 향수 레시피 생성 완료!")
-    print(f"\n탑 노트: {recipe['top_notes']}")
-    print(f"미들 노트: {recipe['middle_notes']}")
-    print(f"베이스 노트: {recipe['base_notes']}")
-    print(f"총 농도: {recipe['total_concentration']:.1f}%")
-    print(f"\n평가 점수:")
-    print(f"  안정성: {recipe['fitness']['stability']:.3f}")
-    print(f"  적합도: {recipe['fitness']['suitability']:.3f}")
-    print(f"  창의성: {recipe['fitness']['creativity']:.3f}")
+    print("\n[SUCCESS] Optimal fragrance recipe generated!")
+    print(f"\nTop notes: {recipe['top_notes']}")
+    print(f"Middle notes: {recipe['middle_notes']}")
+    print(f"Base notes: {recipe['base_notes']}")
+    print(f"Total concentration: {recipe['total_concentration']:.1f}%")
+    print(f"\nFitness scores:")
+    print(f"  Stability: {recipe['fitness']['stability']:.3f}")
+    print(f"  Suitability: {recipe['fitness']['suitability']:.3f}")
+    print(f"  Creativity: {recipe['fitness']['creativity']:.3f}")
 
 
 if __name__ == "__main__":

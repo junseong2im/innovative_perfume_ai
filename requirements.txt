@@ -56,6 +56,9 @@ prometheus-client==0.19.0
 # onnx==1.15.0
 # onnxruntime-gpu==1.16.3
 
+# Genetic Algorithm and Optimization
+deap==1.4.1
+
 # Additional utilities
 python-dotenv==1.0.0
 click==8.1.7

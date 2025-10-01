@@ -1,0 +1,434 @@
+{
+  "version": "1.0",
+  "description": "Music to Fragrance Synesthesia Mapping Database",
+  "created_date": "2025-01-01",
+  "mappings": [
+    {
+      "id": "mf_001",
+      "music": {
+        "genre": "Classical",
+        "subgenre": "Baroque",
+        "piece": "Bach - Air on the G String",
+        "key": "D Major",
+        "tempo": "Andante (76 BPM)",
+        "mood": ["peaceful", "contemplative", "elegant"],
+        "instruments": ["strings", "continuo"],
+        "dynamics": "pp-mf",
+        "texture": "homophonic"
+      },
+      "fragrance": {
+        "name": "Ethereal Harmony",
+        "family": "Floral Woody",
+        "structure": {
+          "top_notes": [
+            {"note": "white_tea", "percentage": 15, "represents": "lightness"},
+            {"note": "bergamot", "percentage": 10, "represents": "clarity"}
+          ],
+          "heart_notes": [
+            {"note": "white_rose", "percentage": 25, "represents": "elegance"},
+            {"note": "lily_of_valley", "percentage": 20, "represents": "purity"}
+          ],
+          "base_notes": [
+            {"note": "white_musk", "percentage": 15, "represents": "softness"},
+            {"note": "cashmere_wood", "percentage": 15, "represents": "warmth"}
+          ]
+        },
+        "character": "Soft, ethereal, floating like the melodic line",
+        "synesthetic_reasoning": "The flowing legato of strings translates to smooth, blended florals. The D Major key's brightness is captured in bergamot and white tea."
+      }
+    },
+    {
+      "id": "mf_002",
+      "music": {
+        "genre": "Jazz",
+        "subgenre": "Cool Jazz",
+        "piece": "Miles Davis - Kind of Blue",
+        "key": "D Dorian",
+        "tempo": "Moderate (120 BPM)",
+        "mood": ["cool", "sophisticated", "nocturnal"],
+        "instruments": ["trumpet", "saxophone", "piano", "bass", "drums"],
+        "dynamics": "mp-mf",
+        "texture": "improvisational"
+      },
+      "fragrance": {
+        "name": "Midnight Blue",
+        "family": "Oriental Woody",
+        "structure": {
+          "top_notes": [
+            {"note": "gin_accord", "percentage": 10, "represents": "coolness"},
+            {"note": "black_pepper", "percentage": 8, "represents": "improvisation"}
+          ],
+          "heart_notes": [
+            {"note": "iris", "percentage": 20, "represents": "sophistication"},
+            {"note": "leather", "percentage": 15, "represents": "smoothness"},
+            {"note": "tobacco", "percentage": 10, "represents": "jazz_club"}
+          ],
+          "base_notes": [
+            {"note": "vetiver", "percentage": 20, "represents": "depth"},
+            {"note": "amber", "percentage": 17, "represents": "warmth"}
+          ]
+        },
+        "character": "Smooth, sophisticated, with unexpected turns",
+        "synesthetic_reasoning": "The modal harmonies translate to complex, layered notes. The trumpet's muted tones inspire iris and leather."
+      }
+    },
+    {
+      "id": "mf_003",
+      "music": {
+        "genre": "Electronic",
+        "subgenre": "Ambient",
+        "piece": "Brian Eno - Music for Airports",
+        "key": "C Major / Modal",
+        "tempo": "Largo (60 BPM)",
+        "mood": ["spacious", "meditative", "futuristic"],
+        "instruments": ["synthesizers", "tape_loops"],
+        "dynamics": "ppp-p",
+        "texture": "atmospheric"
+      },
+      "fragrance": {
+        "name": "Spatial Drift",
+        "family": "Ozonic Fresh",
+        "structure": {
+          "top_notes": [
+            {"note": "ozone", "percentage": 20, "represents": "space"},
+            {"note": "mint", "percentage": 10, "represents": "coolness"}
+          ],
+          "heart_notes": [
+            {"note": "iso_e_super", "percentage": 30, "represents": "transparency"},
+            {"note": "white_lotus", "percentage": 15, "represents": "meditation"}
+          ],
+          "base_notes": [
+            {"note": "ambroxan", "percentage": 15, "represents": "modernity"},
+            {"note": "white_cedar", "percentage": 10, "represents": "minimalism"}
+          ]
+        },
+        "character": "Transparent, floating, expansive",
+        "synesthetic_reasoning": "The ambient loops create a sense of space reflected in ozonic notes. The minimal dynamics translate to light, transparent molecules."
+      }
+    },
+    {
+      "id": "mf_004",
+      "music": {
+        "genre": "Rock",
+        "subgenre": "Psychedelic",
+        "piece": "Pink Floyd - Comfortably Numb",
+        "key": "B Minor",
+        "tempo": "Moderate (126 BPM)",
+        "mood": ["dreamy", "introspective", "emotional"],
+        "instruments": ["electric_guitar", "bass", "drums", "synthesizer"],
+        "dynamics": "p-ff",
+        "texture": "layered"
+      },
+      "fragrance": {
+        "name": "Velvet Haze",
+        "family": "Oriental Fougère",
+        "structure": {
+          "top_notes": [
+            {"note": "cannabis", "percentage": 8, "represents": "psychedelia"},
+            {"note": "pink_pepper", "percentage": 12, "represents": "electric"}
+          ],
+          "heart_notes": [
+            {"note": "violet", "percentage": 20, "represents": "dreaminess"},
+            {"note": "suede", "percentage": 15, "represents": "softness"},
+            {"note": "incense", "percentage": 10, "represents": "mysticism"}
+          ],
+          "base_notes": [
+            {"note": "patchouli", "percentage": 20, "represents": "earthiness"},
+            {"note": "benzoin", "percentage": 15, "represents": "warmth"}
+          ]
+        },
+        "character": "Hypnotic, layered, emotionally complex",
+        "synesthetic_reasoning": "The guitar solos' soaring quality translates to incense and violet. The B minor key's melancholy is captured in patchouli and benzoin."
+      }
+    },
+    {
+      "id": "mf_005",
+      "music": {
+        "genre": "Latin",
+        "subgenre": "Bossa Nova",
+        "piece": "Jobim - Girl from Ipanema",
+        "key": "F Major",
+        "tempo": "Moderate (120 BPM)",
+        "mood": ["sensual", "warm", "relaxed"],
+        "instruments": ["classical_guitar", "vocals", "light_percussion"],
+        "dynamics": "mp-mf",
+        "texture": "smooth"
+      },
+      "fragrance": {
+        "name": "Copacabana Sunset",
+        "family": "Floral Fruity",
+        "structure": {
+          "top_notes": [
+            {"note": "lime", "percentage": 15, "represents": "Brazilian_zest"},
+            {"note": "coconut", "percentage": 10, "represents": "beach"}
+          ],
+          "heart_notes": [
+            {"note": "frangipani", "percentage": 20, "represents": "tropical"},
+            {"note": "jasmine_sambac", "percentage": 18, "represents": "sensuality"},
+            {"note": "passion_fruit", "percentage": 12, "represents": "sweetness"}
+          ],
+          "base_notes": [
+            {"note": "sandalwood", "percentage": 15, "represents": "warmth"},
+            {"note": "solar_musk", "percentage": 10, "represents": "sun-kissed_skin"}
+          ]
+        },
+        "character": "Warm, sensual, effortlessly elegant",
+        "synesthetic_reasoning": "The swaying rhythm translates to tropical florals. The guitar's nylon strings inspire soft, creamy sandalwood."
+      }
+    },
+    {
+      "id": "mf_006",
+      "music": {
+        "genre": "Opera",
+        "subgenre": "Romantic",
+        "piece": "Puccini - Nessun Dorma",
+        "key": "G Major",
+        "tempo": "Andante sostenuto (72 BPM)",
+        "mood": ["triumphant", "passionate", "dramatic"],
+        "instruments": ["tenor_voice", "full_orchestra"],
+        "dynamics": "mp-fff",
+        "texture": "rich_orchestral"
+      },
+      "fragrance": {
+        "name": "Triumphant Aria",
+        "family": "Oriental Floral",
+        "structure": {
+          "top_notes": [
+            {"note": "saffron", "percentage": 8, "represents": "drama"},
+            {"note": "aldehydes", "percentage": 12, "represents": "brilliance"}
+          ],
+          "heart_notes": [
+            {"note": "damascena_rose", "percentage": 25, "represents": "passion"},
+            {"note": "tuberose", "percentage": 20, "represents": "intensity"},
+            {"note": "carnation", "percentage": 10, "represents": "spice"}
+          ],
+          "base_notes": [
+            {"note": "oud", "percentage": 15, "represents": "richness"},
+            {"note": "amber", "percentage": 10, "represents": "golden_warmth"}
+          ]
+        },
+        "character": "Opulent, dramatic, unforgettable",
+        "synesthetic_reasoning": "The soaring tenor voice translates to powerful white florals. The orchestral crescendo is captured in rich oud and amber."
+      }
+    },
+    {
+      "id": "mf_007",
+      "music": {
+        "genre": "Folk",
+        "subgenre": "Celtic",
+        "piece": "Traditional - Danny Boy",
+        "key": "E♭ Major",
+        "tempo": "Andante (80 BPM)",
+        "mood": ["nostalgic", "melancholic", "pastoral"],
+        "instruments": ["irish_flute", "harp", "fiddle"],
+        "dynamics": "p-mf",
+        "texture": "melodic"
+      },
+      "fragrance": {
+        "name": "Emerald Hills",
+        "family": "Green Aromatic",
+        "structure": {
+          "top_notes": [
+            {"note": "clary_sage", "percentage": 15, "represents": "herbs"},
+            {"note": "green_tea", "percentage": 12, "represents": "freshness"}
+          ],
+          "heart_notes": [
+            {"note": "heather", "percentage": 20, "represents": "Scottish_moors"},
+            {"note": "violet_leaf", "percentage": 15, "represents": "green"},
+            {"note": "wild_rose", "percentage": 13, "represents": "countryside"}
+          ],
+          "base_notes": [
+            {"note": "oakmoss", "percentage": 15, "represents": "earth"},
+            {"note": "hay_absolute", "percentage": 10, "represents": "pastoral"}
+          ]
+        },
+        "character": "Green, nostalgic, connected to the land",
+        "synesthetic_reasoning": "The flute's breathy quality translates to green, herbal notes. The melody's longing is captured in oakmoss and hay."
+      }
+    },
+    {
+      "id": "mf_008",
+      "music": {
+        "genre": "Hip-Hop",
+        "subgenre": "East Coast",
+        "piece": "Nas - N.Y. State of Mind",
+        "key": "C Minor",
+        "tempo": "90 BPM",
+        "mood": ["urban", "gritty", "confident"],
+        "instruments": ["drums", "bass", "samples", "rap_vocals"],
+        "dynamics": "f-ff",
+        "texture": "rhythmic"
+      },
+      "fragrance": {
+        "name": "Concrete Jungle",
+        "family": "Woody Spicy",
+        "structure": {
+          "top_notes": [
+            {"note": "black_pepper", "percentage": 15, "represents": "edge"},
+            {"note": "metallic_accord", "percentage": 8, "represents": "urban"}
+          ],
+          "heart_notes": [
+            {"note": "leather", "percentage": 25, "represents": "toughness"},
+            {"note": "cognac", "percentage": 15, "represents": "sophistication"},
+            {"note": "tobacco", "percentage": 12, "represents": "street"}
+          ],
+          "base_notes": [
+            {"note": "concrete_accord", "percentage": 15, "represents": "city"},
+            {"note": "dark_amber", "percentage": 10, "represents": "warmth"}
+          ]
+        },
+        "character": "Bold, urban, unapologetically confident",
+        "synesthetic_reasoning": "The heavy beats translate to leather and concrete. The rhythmic flow is captured in spices and cognac."
+      }
+    },
+    {
+      "id": "mf_009",
+      "music": {
+        "genre": "New Age",
+        "subgenre": "Meditation",
+        "piece": "Deuter - Silence is the Answer",
+        "key": "A Major",
+        "tempo": "Lento (50 BPM)",
+        "mood": ["peaceful", "spiritual", "healing"],
+        "instruments": ["tibetan_bowls", "flute", "nature_sounds"],
+        "dynamics": "ppp-p",
+        "texture": "minimal"
+      },
+      "fragrance": {
+        "name": "Inner Peace",
+        "family": "Aromatic Woody",
+        "structure": {
+          "top_notes": [
+            {"note": "lavender", "percentage": 20, "represents": "calm"},
+            {"note": "eucalyptus", "percentage": 10, "represents": "clarity"}
+          ],
+          "heart_notes": [
+            {"note": "frankincense", "percentage": 25, "represents": "spirituality"},
+            {"note": "myrrh", "percentage": 15, "represents": "meditation"},
+            {"note": "white_sage", "percentage": 10, "represents": "cleansing"}
+          ],
+          "base_notes": [
+            {"note": "sandalwood", "percentage": 15, "represents": "grounding"},
+            {"note": "cedar", "percentage": 5, "represents": "stability"}
+          ]
+        },
+        "character": "Meditative, grounding, spiritually uplifting",
+        "synesthetic_reasoning": "The singing bowls translate to resonant frankincense. The minimal texture is reflected in simple, pure notes."
+      }
+    },
+    {
+      "id": "mf_010",
+      "music": {
+        "genre": "Flamenco",
+        "subgenre": "Traditional",
+        "piece": "Paco de Lucía - Entre Dos Aguas",
+        "key": "E Phrygian",
+        "tempo": "Allegro (140 BPM)",
+        "mood": ["passionate", "fiery", "dramatic"],
+        "instruments": ["spanish_guitar", "palmas", "cajón"],
+        "dynamics": "mf-fff",
+        "texture": "rhythmically_complex"
+      },
+      "fragrance": {
+        "name": "Fuego Andaluz",
+        "family": "Spicy Oriental",
+        "structure": {
+          "top_notes": [
+            {"note": "blood_orange", "percentage": 15, "represents": "Spanish_sun"},
+            {"note": "cinnamon", "percentage": 10, "represents": "fire"}
+          ],
+          "heart_notes": [
+            {"note": "carnation", "percentage": 20, "represents": "passion"},
+            {"note": "spanish_jasmine", "percentage": 18, "represents": "night_blooming"},
+            {"note": "saffron", "percentage": 12, "represents": "luxury"}
+          ],
+          "base_notes": [
+            {"note": "labdanum", "percentage": 15, "represents": "resin"},
+            {"note": "castoreum", "percentage": 10, "represents": "animalic_passion"}
+          ]
+        },
+        "character": "Fiery, passionate, dramatically expressive",
+        "synesthetic_reasoning": "The rapid guitar strumming translates to spicy, vibrant notes. The Phrygian mode's exotic quality is captured in saffron and carnation."
+      }
+    },
+    {
+      "id": "mf_011",
+      "music": {
+        "genre": "Minimalism",
+        "subgenre": "Contemporary Classical",
+        "piece": "Philip Glass - Metamorphosis",
+        "key": "E♭ Minor",
+        "tempo": "Moderato (100 BPM)",
+        "mood": ["hypnotic", "repetitive", "evolving"],
+        "instruments": ["piano"],
+        "dynamics": "p-mp",
+        "texture": "repetitive_patterns"
+      },
+      "fragrance": {
+        "name": "Infinite Loop",
+        "family": "Minimalist Modern",
+        "structure": {
+          "top_notes": [
+            {"note": "bergamot", "percentage": 20, "represents": "clarity"}
+          ],
+          "heart_notes": [
+            {"note": "iso_e_super", "percentage": 40, "represents": "repetition"},
+            {"note": "white_musk", "percentage": 20, "represents": "simplicity"}
+          ],
+          "base_notes": [
+            {"note": "molecule_01", "percentage": 20, "represents": "evolution"}
+          ]
+        },
+        "character": "Hypnotic, evolving, deceptively simple",
+        "synesthetic_reasoning": "The repetitive patterns translate to molecular, minimalist ingredients. The gradual evolution is captured in shape-shifting iso e super."
+      }
+    },
+    {
+      "id": "mf_012",
+      "music": {
+        "genre": "Reggae",
+        "subgenre": "Roots",
+        "piece": "Bob Marley - Three Little Birds",
+        "key": "A Major",
+        "tempo": "76 BPM",
+        "mood": ["uplifting", "positive", "laid-back"],
+        "instruments": ["guitar", "bass", "drums", "vocals"],
+        "dynamics": "mf",
+        "texture": "groove-based"
+      },
+      "fragrance": {
+        "name": "Island Vibes",
+        "family": "Tropical Fresh",
+        "structure": {
+          "top_notes": [
+            {"note": "cannabis", "percentage": 8, "represents": "culture"},
+            {"note": "mango", "percentage": 15, "represents": "tropical"},
+            {"note": "lime", "percentage": 12, "represents": "zest"}
+          ],
+          "heart_notes": [
+            {"note": "coconut_milk", "percentage": 20, "represents": "caribbean"},
+            {"note": "ginger", "percentage": 10, "represents": "warmth"},
+            {"note": "ylang_ylang", "percentage": 15, "represents": "flowers"}
+          ],
+          "base_notes": [
+            {"note": "driftwood", "percentage": 12, "represents": "beach"},
+            {"note": "warm_sand_accord", "percentage": 8, "represents": "sun"}
+          ]
+        },
+        "character": "Relaxed, sunny, positive energy",
+        "synesthetic_reasoning": "The reggae rhythm translates to tropical, laid-back notes. The positive message is captured in bright, uplifting ingredients."
+      }
+    }
+  ],
+  "metadata": {
+    "total_mappings": 12,
+    "categories": ["Classical", "Jazz", "Electronic", "Rock", "Latin", "Opera", "Folk", "Hip-Hop", "New Age", "Flamenco", "Minimalism", "Reggae"],
+    "mapping_principles": {
+      "tempo_to_volatility": "Faster tempos map to more volatile top notes",
+      "key_to_brightness": "Major keys tend toward brighter, citrus notes; minor keys toward darker, resinous notes",
+      "dynamics_to_intensity": "Louder dynamics map to more intense, projecting notes",
+      "texture_to_complexity": "Complex musical textures translate to multi-layered accords",
+      "instrument_to_material": "Instrument timbres suggest specific fragrance materials"
+    }
+  }
+}

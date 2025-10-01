@@ -1,0 +1,59 @@
+{
+  "blending_rules": {
+    "max_total_percentage": 100,
+    "min_total_percentage": 95,
+    "note_balance": {
+      "top_notes": {
+        "min_percentage": 15,
+        "max_percentage": 30,
+        "min_count": 2,
+        "max_count": 5
+      },
+      "heart_notes": {
+        "min_percentage": 30,
+        "max_percentage": 50,
+        "min_count": 2,
+        "max_count": 6
+      },
+      "base_notes": {
+        "min_percentage": 25,
+        "max_percentage": 45,
+        "min_count": 1,
+        "max_count": 4
+      }
+    },
+    "incompatible_combinations": [
+      ["citrus", "vanilla"],
+      ["marine", "oriental"],
+      ["leather", "fresh_floral"]
+    ],
+    "recommended_combinations": [
+      ["bergamot", "jasmine", "sandalwood"],
+      ["lemon", "rose", "musk"],
+      ["lavender", "vanilla", "amber"]
+    ],
+    "concentration_limits": {
+      "eau_de_cologne": {
+        "min": 2,
+        "max": 5
+      },
+      "eau_de_toilette": {
+        "min": 5,
+        "max": 15
+      },
+      "eau_de_parfum": {
+        "min": 15,
+        "max": 20
+      },
+      "parfum": {
+        "min": 20,
+        "max": 30
+      }
+    },
+    "safety_rules": {
+      "max_allergen_percentage": 0.01,
+      "restricted_ingredients": ["musk_ambrette", "oakmoss_absolute"],
+      "max_single_ingredient": 30
+    }
+  }
+}

@@ -82,7 +82,9 @@
       "Bash(xargs rm:*)",
       "Bash(timeout:*)",
       "Bash(git config:*)",
-      "Bash(ping:*)"
+      "Bash(ping:*)",
+      "Bash(alembic current:*)",
+      "Bash(alembic:*)"
     ],
     "deny": [],
     "ask": []

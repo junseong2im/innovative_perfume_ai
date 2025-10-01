@@ -3,8 +3,10 @@
 import { useState, useRef, useEffect } from 'react';
 
 interface Message {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'error';
   content: string;
+  errorType?: 'CONNECTION' | 'SERVER_ERROR' | 'TIMEOUT' | 'INVALID_RESPONSE' | 'UNKNOWN';
+  retryable?: boolean;
   fragranceData?: {
     name: string;
     notes: {
@@ -71,13 +73,43 @@ export default function AIFragranceChat() {
         intensity: data.recipe.characteristics.intensity,
         season: data.recipe.characteristics.season
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI 향수 생성 API 호출 실패:', error);
 
-      // 4단계: 프론트엔드 폴백 제거
-      // 하드코딩된 시뮬레이션 코드를 반드시 제거
-      // 대신, API 호출 실패 시 사용자에게 명확한 에러 메시지를 보여주는 로직으로 교체
-      throw new Error('AI 서버와 연결이 원활하지 않습니다. 잠시 후 다시 시도해주세요.');
+      // API 호출 실패 시 에러 타입 분류
+      const errorInfo = {
+        type: 'UNKNOWN' as const,
+        message: 'AI 서버와 연결할 수 없습니다.',
+        retryable: true
+      };
+
+      // 네트워크 에러
+      if (error.message?.includes('fetch') || error.message?.includes('network')) {
+        errorInfo.type = 'CONNECTION' as const;
+        errorInfo.message = '네트워크 연결을 확인해주세요.';
+      }
+      // 서버 에러 (5xx)
+      else if (error.message?.includes('500') || error.message?.includes('502') || error.message?.includes('503')) {
+        errorInfo.type = 'SERVER_ERROR' as const;
+        errorInfo.message = 'AI 서버에 일시적인 문제가 발생했습니다.';
+      }
+      // 타임아웃
+      else if (error.message?.includes('timeout')) {
+        errorInfo.type = 'TIMEOUT' as const;
+        errorInfo.message = '응답 시간이 초과되었습니다.';
+      }
+      // 잘못된 응답
+      else if (error.message?.includes('Invalid API response')) {
+        errorInfo.type = 'INVALID_RESPONSE' as const;
+        errorInfo.message = 'AI 응답을 처리할 수 없습니다.';
+        errorInfo.retryable = false;
+      }
+
+      // 구조화된 에러 던지기
+      const enhancedError = new Error(errorInfo.message);
+      (enhancedError as any).errorType = errorInfo.type;
+      (enhancedError as any).retryable = errorInfo.retryable;
+      throw enhancedError;
     }
   };
 
@@ -105,13 +137,13 @@ export default function AIFragranceChat() {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
+    } catch (error: any) {
       // 에러 발생 시 사용자에게 명확한 피드백
       const errorMessage: Message = {
-        role: 'assistant',
-        content: `죄송합니다. AI 서버와 연결하는 중 문제가 발생했습니다.
-
-잠시 후 다시 시도해주시거나, 가이드 모드를 이용해주세요.`
+        role: 'error',
+        content: error.message || 'AI 서버와 연결하는 중 문제가 발생했습니다.',
+        errorType: error.errorType || 'UNKNOWN',
+        retryable: error.retryable !== false
       };
 
       setMessages(prev => [...prev, errorMessage]);
@@ -160,13 +192,50 @@ export default function AIFragranceChat() {
               messages.map((message, index) => (
                 <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-3xl ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
-                    <div className={`inline-block px-4 py-2 rounded-lg ${
-                      message.role === 'user'
-                        ? 'bg-neutral-900 text-white'
-                        : 'bg-neutral-100 text-neutral-900'
-                    }`}>
-                      <p className="whitespace-pre-wrap">{message.content}</p>
-                    </div>
+                    {message.role === 'error' ? (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex items-start">
+                          <svg className="w-5 h-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                          <div className="flex-1">
+                            <h4 className="text-red-900 font-medium mb-1">
+                              {message.errorType === 'CONNECTION' && '연결 오류'}
+                              {message.errorType === 'SERVER_ERROR' && '서버 오류'}
+                              {message.errorType === 'TIMEOUT' && '응답 시간 초과'}
+                              {message.errorType === 'INVALID_RESPONSE' && '응답 처리 오류'}
+                              {(!message.errorType || message.errorType === 'UNKNOWN') && '오류 발생'}
+                            </h4>
+                            <p className="text-red-700 text-sm mb-3">{message.content}</p>
+                            <div className="space-y-2">
+                              {message.retryable !== false && (
+                                <button
+                                  onClick={() => handleSubmit()}
+                                  disabled={isLoading}
+                                  className="text-sm px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
+                                >
+                                  다시 시도
+                                </button>
+                              )}
+                              <div className="text-sm text-gray-600">
+                                <p>다른 방법을 시도해보세요:</p>
+                                <a href="/create" className="text-blue-600 hover:underline">• 가이드 모드 이용하기</a>
+                                <br />
+                                <a href="/products" className="text-blue-600 hover:underline">• 기존 제품 둘러보기</a>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`inline-block px-4 py-2 rounded-lg ${
+                        message.role === 'user'
+                          ? 'bg-neutral-900 text-white'
+                          : 'bg-neutral-100 text-neutral-900'
+                      }`}>
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+                      </div>
+                    )}
 
                     {message.fragranceData && (
                       <div className="mt-4 p-6 bg-white border border-neutral-200 rounded-lg">

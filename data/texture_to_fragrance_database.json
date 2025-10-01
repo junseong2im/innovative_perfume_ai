@@ -1,0 +1,530 @@
+{
+  "version": "1.0",
+  "description": "Texture to Fragrance Tactile-Olfactory Mapping Database",
+  "created_date": "2025-01-01",
+  "mappings": [
+    {
+      "id": "tf_001",
+      "texture": {
+        "name": "Silk",
+        "category": "Fabric",
+        "properties": {
+          "smoothness": 10,
+          "softness": 9,
+          "temperature": "cool",
+          "weight": "light",
+          "elasticity": 3,
+          "porosity": 2
+        },
+        "tactile_descriptors": ["smooth", "flowing", "luxurious", "delicate"],
+        "visual_appearance": "lustrous, shimmering",
+        "sound_when_touched": "whisper-quiet rustling"
+      },
+      "fragrance": {
+        "name": "Silken Dreams",
+        "family": "Powdery Floral",
+        "structure": {
+          "top_notes": [
+            {"note": "aldehydes", "percentage": 10, "represents": "shimmer"},
+            {"note": "white_peach", "percentage": 15, "represents": "softness"}
+          ],
+          "heart_notes": [
+            {"note": "iris", "percentage": 25, "represents": "powder"},
+            {"note": "white_rose", "percentage": 20, "represents": "elegance"},
+            {"note": "rice_powder", "percentage": 10, "represents": "smoothness"}
+          ],
+          "base_notes": [
+            {"note": "white_musk", "percentage": 15, "represents": "skin-like"},
+            {"note": "cashmeran", "percentage": 5, "represents": "soft_warmth"}
+          ]
+        },
+        "character": "Smooth, powdery, elegant, weightless",
+        "tactile_translation": "The silk's smoothness translates to powdery iris, its coolness to aldehydes, its luxury to white rose"
+      }
+    },
+    {
+      "id": "tf_002",
+      "texture": {
+        "name": "Rough Bark",
+        "category": "Natural",
+        "properties": {
+          "smoothness": 1,
+          "softness": 2,
+          "temperature": "neutral",
+          "weight": "heavy",
+          "elasticity": 1,
+          "porosity": 8
+        },
+        "tactile_descriptors": ["rough", "textured", "organic", "protective"],
+        "visual_appearance": "deeply grooved, dark brown",
+        "sound_when_touched": "scratchy, hollow"
+      },
+      "fragrance": {
+        "name": "Forest Armor",
+        "family": "Woody Earthy",
+        "structure": {
+          "top_notes": [
+            {"note": "pine_needle", "percentage": 15, "represents": "sharpness"},
+            {"note": "black_pepper", "percentage": 8, "represents": "texture"}
+          ],
+          "heart_notes": [
+            {"note": "cedarwood", "percentage": 25, "represents": "bark"},
+            {"note": "vetiver", "percentage": 20, "represents": "earthiness"},
+            {"note": "oakmoss", "percentage": 12, "represents": "forest_floor"}
+          ],
+          "base_notes": [
+            {"note": "patchouli", "percentage": 12, "represents": "depth"},
+            {"note": "tree_moss", "percentage": 8, "represents": "texture"}
+          ]
+        },
+        "character": "Rough, earthy, protective, grounding",
+        "tactile_translation": "The bark's roughness becomes woody notes, its porosity translates to earthy depth"
+      }
+    },
+    {
+      "id": "tf_003",
+      "texture": {
+        "name": "Velvet",
+        "category": "Fabric",
+        "properties": {
+          "smoothness": 8,
+          "softness": 10,
+          "temperature": "warm",
+          "weight": "medium",
+          "elasticity": 4,
+          "porosity": 5
+        },
+        "tactile_descriptors": ["plush", "luxurious", "deep", "comforting"],
+        "visual_appearance": "rich depth, light-absorbing",
+        "sound_when_touched": "silent, muffled"
+      },
+      "fragrance": {
+        "name": "Velvet Embrace",
+        "family": "Oriental Gourmand",
+        "structure": {
+          "top_notes": [
+            {"note": "plum", "percentage": 15, "represents": "richness"},
+            {"note": "davana", "percentage": 8, "represents": "fruity_warmth"}
+          ],
+          "heart_notes": [
+            {"note": "cashmere_wood", "percentage": 20, "represents": "softness"},
+            {"note": "vanilla_orchid", "percentage": 18, "represents": "luxury"},
+            {"note": "heliotrope", "percentage": 12, "represents": "powdery_plush"}
+          ],
+          "base_notes": [
+            {"note": "benzoin", "percentage": 15, "represents": "warmth"},
+            {"note": "tonka_bean", "percentage": 12, "represents": "depth"}
+          ]
+        },
+        "character": "Plush, warm, enveloping, luxurious",
+        "tactile_translation": "Velvet's plushness becomes gourmand notes, its warmth translates to benzoin and tonka"
+      }
+    },
+    {
+      "id": "tf_004",
+      "texture": {
+        "name": "Ice Crystal",
+        "category": "Natural",
+        "properties": {
+          "smoothness": 9,
+          "softness": 0,
+          "temperature": "freezing",
+          "weight": "light",
+          "elasticity": 0,
+          "porosity": 0
+        },
+        "tactile_descriptors": ["crystalline", "sharp", "cold", "brittle"],
+        "visual_appearance": "transparent, prismatic, sparkling",
+        "sound_when_touched": "tinkling, cracking"
+      },
+      "fragrance": {
+        "name": "Arctic Prism",
+        "family": "Fresh Ozonic",
+        "structure": {
+          "top_notes": [
+            {"note": "mint", "percentage": 20, "represents": "cold"},
+            {"note": "eucalyptus", "percentage": 15, "represents": "sharpness"},
+            {"note": "ozone", "percentage": 10, "represents": "air"}
+          ],
+          "heart_notes": [
+            {"note": "metallic_accord", "percentage": 15, "represents": "crystalline"},
+            {"note": "white_tea", "percentage": 15, "represents": "clarity"},
+            {"note": "frozen_violet", "percentage": 10, "represents": "cold_floral"}
+          ],
+          "base_notes": [
+            {"note": "white_amber", "percentage": 10, "represents": "frozen_resin"},
+            {"note": "mineral_accord", "percentage": 5, "represents": "crystal"}
+          ]
+        },
+        "character": "Sharp, cold, crystalline, transparent",
+        "tactile_translation": "Ice's coldness becomes mint, its crystalline structure translates to metallic accords"
+      }
+    },
+    {
+      "id": "tf_005",
+      "texture": {
+        "name": "Leather",
+        "category": "Material",
+        "properties": {
+          "smoothness": 7,
+          "softness": 5,
+          "temperature": "cool_to_warm",
+          "weight": "heavy",
+          "elasticity": 6,
+          "porosity": 3
+        },
+        "tactile_descriptors": ["supple", "durable", "rich", "protective"],
+        "visual_appearance": "matte to glossy, natural grain",
+        "sound_when_touched": "creaking, subtle"
+      },
+      "fragrance": {
+        "name": "Noble Hide",
+        "family": "Leather Chypre",
+        "structure": {
+          "top_notes": [
+            {"note": "saffron", "percentage": 8, "represents": "luxury"},
+            {"note": "black_pepper", "percentage": 10, "represents": "bite"}
+          ],
+          "heart_notes": [
+            {"note": "leather", "percentage": 30, "represents": "material"},
+            {"note": "orris", "percentage": 15, "represents": "refinement"},
+            {"note": "jasmine", "percentage": 10, "represents": "contrast"}
+          ],
+          "base_notes": [
+            {"note": "birch_tar", "percentage": 12, "represents": "smokiness"},
+            {"note": "vetiver", "percentage": 15, "represents": "earthiness"}
+          ]
+        },
+        "character": "Supple, rich, sophisticated, durable",
+        "tactile_translation": "Leather's suppleness becomes the leather accord, its durability translates to woody base notes"
+      }
+    },
+    {
+      "id": "tf_006",
+      "texture": {
+        "name": "Sand",
+        "category": "Natural",
+        "properties": {
+          "smoothness": 4,
+          "softness": 6,
+          "temperature": "warm",
+          "weight": "variable",
+          "elasticity": 0,
+          "porosity": 10
+        },
+        "tactile_descriptors": ["granular", "shifting", "warm", "dry"],
+        "visual_appearance": "golden to white, sparkling particles",
+        "sound_when_touched": "soft shifting, rustling"
+      },
+      "fragrance": {
+        "name": "Desert Mirage",
+        "family": "Dry Amber",
+        "structure": {
+          "top_notes": [
+            {"note": "cardamom", "percentage": 12, "represents": "warmth"},
+            {"note": "pink_pepper", "percentage": 8, "represents": "dry_spice"}
+          ],
+          "heart_notes": [
+            {"note": "immortelle", "percentage": 20, "represents": "dry_flowers"},
+            {"note": "dates", "percentage": 15, "represents": "desert_fruit"},
+            {"note": "solar_accord", "percentage": 15, "represents": "heat"}
+          ],
+          "base_notes": [
+            {"note": "amber", "percentage": 20, "represents": "warm_resin"},
+            {"note": "dry_woods", "percentage": 10, "represents": "arid"}
+          ]
+        },
+        "character": "Warm, dry, shifting, sun-baked",
+        "tactile_translation": "Sand's warmth becomes amber, its dryness translates to immortelle and dry woods"
+      }
+    },
+    {
+      "id": "tf_007",
+      "texture": {
+        "name": "Moss",
+        "category": "Natural",
+        "properties": {
+          "smoothness": 5,
+          "softness": 8,
+          "temperature": "cool",
+          "weight": "light",
+          "elasticity": 7,
+          "porosity": 9
+        },
+        "tactile_descriptors": ["springy", "damp", "soft", "cushiony"],
+        "visual_appearance": "vibrant green, miniature forest",
+        "sound_when_touched": "silent, absorbing"
+      },
+      "fragrance": {
+        "name": "Forest Floor",
+        "family": "Green Chypre",
+        "structure": {
+          "top_notes": [
+            {"note": "galbanum", "percentage": 15, "represents": "green"},
+            {"note": "violet_leaf", "percentage": 12, "represents": "dampness"}
+          ],
+          "heart_notes": [
+            {"note": "oakmoss", "percentage": 25, "represents": "moss"},
+            {"note": "geranium", "percentage": 15, "represents": "green_floral"},
+            {"note": "mushroom", "percentage": 8, "represents": "earth"}
+          ],
+          "base_notes": [
+            {"note": "patchouli", "percentage": 15, "represents": "soil"},
+            {"note": "vetiver", "percentage": 10, "represents": "roots"}
+          ]
+        },
+        "character": "Green, damp, earthy, cushiony",
+        "tactile_translation": "Moss's sponginess becomes oakmoss, its dampness translates to violet leaf and galbanum"
+      }
+    },
+    {
+      "id": "tf_008",
+      "texture": {
+        "name": "Metal (Polished Steel)",
+        "category": "Material",
+        "properties": {
+          "smoothness": 10,
+          "softness": 0,
+          "temperature": "cold",
+          "weight": "heavy",
+          "elasticity": 1,
+          "porosity": 0
+        },
+        "tactile_descriptors": ["cold", "hard", "reflective", "industrial"],
+        "visual_appearance": "mirror-like, silver",
+        "sound_when_touched": "ringing, resonant"
+      },
+      "fragrance": {
+        "name": "Chrome",
+        "family": "Metallic Fresh",
+        "structure": {
+          "top_notes": [
+            {"note": "metallic_accord", "percentage": 20, "represents": "steel"},
+            {"note": "ozone", "percentage": 15, "represents": "industrial"}
+          ],
+          "heart_notes": [
+            {"note": "iris", "percentage": 20, "represents": "cold_powder"},
+            {"note": "white_pepper", "percentage": 10, "represents": "sharpness"},
+            {"note": "mineral_water", "percentage": 15, "represents": "clarity"}
+          ],
+          "base_notes": [
+            {"note": "ambergris", "percentage": 15, "represents": "mineral"},
+            {"note": "white_woods", "percentage": 5, "represents": "structure"}
+          ]
+        },
+        "character": "Cold, sharp, industrial, clean",
+        "tactile_translation": "Metal's coldness becomes metallic accord, its hardness translates to mineral notes"
+      }
+    },
+    {
+      "id": "tf_009",
+      "texture": {
+        "name": "Cashmere",
+        "category": "Fabric",
+        "properties": {
+          "smoothness": 9,
+          "softness": 10,
+          "temperature": "warm",
+          "weight": "light_medium",
+          "elasticity": 5,
+          "porosity": 6
+        },
+        "tactile_descriptors": ["ultra-soft", "warm", "lightweight", "luxurious"],
+        "visual_appearance": "matte, fine fibers",
+        "sound_when_touched": "silent"
+      },
+      "fragrance": {
+        "name": "Cashmere Cocoon",
+        "family": "Soft Oriental",
+        "structure": {
+          "top_notes": [
+            {"note": "bergamot", "percentage": 12, "represents": "lightness"},
+            {"note": "pink_pepper", "percentage": 8, "represents": "gentle_warmth"}
+          ],
+          "heart_notes": [
+            {"note": "cashmeran", "percentage": 25, "represents": "cashmere"},
+            {"note": "orris_butter", "percentage": 20, "represents": "creamy_soft"},
+            {"note": "white_chocolate", "percentage": 10, "represents": "comfort"}
+          ],
+          "base_notes": [
+            {"note": "vanilla", "percentage": 15, "represents": "warmth"},
+            {"note": "soft_musk", "percentage": 10, "represents": "skin"}
+          ]
+        },
+        "character": "Ultra-soft, warm, enveloping, luxurious",
+        "tactile_translation": "Cashmere's softness becomes cashmeran molecule, its warmth translates to vanilla"
+      }
+    },
+    {
+      "id": "tf_010",
+      "texture": {
+        "name": "Wet Clay",
+        "category": "Natural",
+        "properties": {
+          "smoothness": 6,
+          "softness": 7,
+          "temperature": "cool",
+          "weight": "heavy",
+          "elasticity": 8,
+          "porosity": 7
+        },
+        "tactile_descriptors": ["malleable", "cool", "earthy", "plastic"],
+        "visual_appearance": "gray-brown, matte",
+        "sound_when_touched": "squelching, quiet"
+      },
+      "fragrance": {
+        "name": "Potter's Earth",
+        "family": "Earthy Mineral",
+        "structure": {
+          "top_notes": [
+            {"note": "petrichor", "percentage": 20, "represents": "wet_earth"},
+            {"note": "cucumber", "percentage": 10, "represents": "coolness"}
+          ],
+          "heart_notes": [
+            {"note": "geosmin", "percentage": 20, "represents": "soil"},
+            {"note": "wet_stone", "percentage": 15, "represents": "mineral"},
+            {"note": "iris_concrete", "percentage": 15, "represents": "earthiness"}
+          ],
+          "base_notes": [
+            {"note": "vetiver", "percentage": 15, "represents": "roots"},
+            {"note": "mitti_attar", "percentage": 5, "represents": "baked_earth"}
+          ]
+        },
+        "character": "Earthy, mineral, cool, malleable",
+        "tactile_translation": "Clay's coolness becomes petrichor, its earthiness translates to geosmin and vetiver"
+      }
+    },
+    {
+      "id": "tf_011",
+      "texture": {
+        "name": "Feather",
+        "category": "Natural",
+        "properties": {
+          "smoothness": 8,
+          "softness": 9,
+          "temperature": "neutral",
+          "weight": "ultra_light",
+          "elasticity": 3,
+          "porosity": 4
+        },
+        "tactile_descriptors": ["light", "tickling", "delicate", "airy"],
+        "visual_appearance": "iridescent, structured",
+        "sound_when_touched": "rustling whisper"
+      },
+      "fragrance": {
+        "name": "Weightless",
+        "family": "Transparent Floral",
+        "structure": {
+          "top_notes": [
+            {"note": "aldehydes", "percentage": 15, "represents": "airiness"},
+            {"note": "lemon_verbena", "percentage": 12, "represents": "lightness"}
+          ],
+          "heart_notes": [
+            {"note": "cyclamen", "percentage": 20, "represents": "delicate"},
+            {"note": "freesia", "percentage": 18, "represents": "transparent"},
+            {"note": "lily_of_valley", "percentage": 10, "represents": "ethereal"}
+          ],
+          "base_notes": [
+            {"note": "white_musk", "percentage": 15, "represents": "weightless"},
+            {"note": "iso_e_super", "percentage": 10, "represents": "hovering"}
+          ]
+        },
+        "character": "Light, airy, delicate, barely there",
+        "tactile_translation": "Feather's lightness becomes aldehydes, its delicacy translates to transparent florals"
+      }
+    },
+    {
+      "id": "tf_012",
+      "texture": {
+        "name": "Rubber",
+        "category": "Material",
+        "properties": {
+          "smoothness": 7,
+          "softness": 4,
+          "temperature": "neutral",
+          "weight": "medium",
+          "elasticity": 10,
+          "porosity": 1
+        },
+        "tactile_descriptors": ["elastic", "grippy", "resilient", "synthetic"],
+        "visual_appearance": "matte black, uniform",
+        "sound_when_touched": "squeaking"
+      },
+      "fragrance": {
+        "name": "Elastic",
+        "family": "Industrial Aromatic",
+        "structure": {
+          "top_notes": [
+            {"note": "pink_grapefruit", "percentage": 15, "represents": "bounce"},
+            {"note": "black_pepper", "percentage": 10, "represents": "grip"}
+          ],
+          "heart_notes": [
+            {"note": "latex_accord", "percentage": 20, "represents": "rubber"},
+            {"note": "violet", "percentage": 15, "represents": "synthetic"},
+            {"note": "cumin", "percentage": 10, "represents": "industrial"}
+          ],
+          "base_notes": [
+            {"note": "guaiac_wood", "percentage": 20, "represents": "tar"},
+            {"note": "styrax", "percentage": 10, "represents": "resinous"}
+          ]
+        },
+        "character": "Elastic, synthetic, resilient, modern",
+        "tactile_translation": "Rubber's elasticity becomes bouncy citrus, its synthetic nature translates to industrial accords"
+      }
+    },
+    {
+      "id": "tf_013",
+      "texture": {
+        "name": "Marble",
+        "category": "Natural",
+        "properties": {
+          "smoothness": 10,
+          "softness": 0,
+          "temperature": "cold",
+          "weight": "very_heavy",
+          "elasticity": 0,
+          "porosity": 2
+        },
+        "tactile_descriptors": ["cold", "smooth", "solid", "luxurious"],
+        "visual_appearance": "veined, polished, elegant",
+        "sound_when_touched": "solid thud"
+      },
+      "fragrance": {
+        "name": "Palazzo",
+        "family": "Mineral Floral",
+        "structure": {
+          "top_notes": [
+            {"note": "bergamot", "percentage": 15, "represents": "brightness"},
+            {"note": "aldehydes", "percentage": 10, "represents": "sparkle"}
+          ],
+          "heart_notes": [
+            {"note": "iris_pallida", "percentage": 25, "represents": "luxury"},
+            {"note": "white_rose", "percentage": 15, "represents": "elegance"},
+            {"note": "mineral_accord", "percentage": 15, "represents": "stone"}
+          ],
+          "base_notes": [
+            {"note": "white_amber", "percentage": 15, "represents": "cold_luxury"},
+            {"note": "musk", "percentage": 5, "represents": "polish"}
+          ]
+        },
+        "character": "Cold, smooth, luxurious, mineral",
+        "tactile_translation": "Marble's coldness becomes mineral accords, its luxury translates to iris pallida"
+      }
+    }
+  ],
+  "metadata": {
+    "total_mappings": 13,
+    "texture_categories": ["Fabric", "Natural", "Material"],
+    "mapping_principles": {
+      "smoothness_to_notes": "Smoother textures map to softer, more blended notes",
+      "temperature_to_accords": "Cold textures use fresh/metallic notes, warm textures use gourmand/amber notes",
+      "weight_to_concentration": "Heavier textures translate to deeper base notes",
+      "porosity_to_diffusion": "More porous textures map to more diffusive fragrances",
+      "elasticity_to_evolution": "Elastic textures suggest fragrances that evolve over time"
+    },
+    "sensory_dimensions": {
+      "tactile": ["smoothness", "softness", "temperature", "weight", "elasticity", "porosity"],
+      "olfactory": ["volatility", "intensity", "diffusion", "longevity", "complexity"]
+    }
+  }
+}
