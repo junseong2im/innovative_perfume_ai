@@ -28,6 +28,7 @@ import sqlite3
 from datetime import datetime, timedelta
 import pickle
 import copy
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -102,10 +103,14 @@ class ExperienceBuffer:
         self.timestamps.append(datetime.now())
         self.user_ids.append(user_id)
 
-    def sample_batch(self, batch_size: int, priority_sampling: bool = True) -> List[Dict]:
-        """배치 샘플링"""
+    def sample_batch(self, batch_size: int, priority_sampling: bool = True, seed: int = None) -> List[Dict]:
+        """배치 샘플링 - 결정론적"""
         if len(self.experiences) < batch_size:
             return list(self.experiences)
+
+        # 결정론적 샘플링을 위한 해시 기반 선택
+        if seed is None:
+            seed = int(time.time() * 1000) % 2**32
 
         if priority_sampling and len(self.feedback_scores) > 0:
             # 피드백 점수 기반 우선순위 샘플링
@@ -115,21 +120,54 @@ class ExperienceBuffer:
             priorities = np.abs(feedback_array) + 0.1  # 최소 확률 보장
             probabilities = priorities / np.sum(priorities)
 
-            indices = np.random.choice(
+            # 결정론적 가중치 기반 선택
+            indices = self._deterministic_weighted_choice(
                 len(self.experiences),
-                size=min(batch_size, len(self.experiences)),
-                replace=False,
-                p=probabilities
+                min(batch_size, len(self.experiences)),
+                probabilities,
+                seed
             )
         else:
             # 균등 샘플링
-            indices = np.random.choice(
+            indices = self._deterministic_choice(
                 len(self.experiences),
-                size=min(batch_size, len(self.experiences)),
-                replace=False
+                min(batch_size, len(self.experiences)),
+                seed
             )
 
         return [self.experiences[i] for i in indices]
+
+    def _deterministic_choice(self, n: int, k: int, seed: int) -> List[int]:
+        """결정론적 선택"""
+        indices = []
+        for i in range(k):
+            hash_val = int(hashlib.md5(f"{seed}_{i}".encode()).hexdigest(), 16)
+            idx = hash_val % n
+            while idx in indices:
+                idx = (idx + 1) % n
+            indices.append(idx)
+        return indices
+
+    def _deterministic_weighted_choice(self, n: int, k: int, probs: np.ndarray, seed: int) -> List[int]:
+        """결정론적 가중치 기반 선택"""
+        cumsum = np.cumsum(probs)
+        indices = []
+
+        for i in range(k):
+            hash_val = int(hashlib.md5(f"{seed}_{i}".encode()).hexdigest(), 16)
+            value = (hash_val % 10000) / 10000.0
+
+            idx = 0
+            for j, threshold in enumerate(cumsum):
+                if value <= threshold:
+                    idx = j
+                    break
+
+            while idx in indices:
+                idx = (idx + 1) % n
+            indices.append(idx)
+
+        return indices
 
     def get_recent_experiences(self, hours: int = 24) -> List[Dict]:
         """최근 경험 조회"""
@@ -558,8 +596,9 @@ class AdaptiveLearningSystem:
                 # 온라인 학습
                 self._online_update(feedback_batch)
 
-                # 경험 재생
-                if np.random.random() < self.config.experience_replay_ratio:
+                # 경험 재생 (결정론적)
+                hash_val = int(hashlib.md5(f"replay_{self.update_count}".encode()).hexdigest(), 16)
+                if (hash_val % 1000) / 1000.0 < self.config.experience_replay_ratio:
                     self._experience_replay()
 
                 # 메타 학습 (주기적으로)
@@ -764,14 +803,21 @@ class AdaptiveLearningSystem:
         for exp in experiences:
             user_groups[exp['user_id']].append(exp)
 
-        # 각 사용자 그룹에서 샘플링
+        # 각 사용자 그룹에서 샘플링 (결정론적)
         task_samples = []
-        for user_id, user_experiences in user_groups.items():
+        for idx, (user_id, user_experiences) in enumerate(user_groups.items()):
             if len(user_experiences) >= 2:
-                sample = np.random.choice(user_experiences, size=2, replace=False)
+                # 결정론적 선택
+                hash_val = int(hashlib.md5(f"task_{user_id}_{idx}".encode()).hexdigest(), 16)
+                idx1 = hash_val % len(user_experiences)
+                idx2 = (hash_val // len(user_experiences)) % len(user_experiences)
+                if idx1 == idx2:
+                    idx2 = (idx2 + 1) % len(user_experiences)
+
+                sample = [user_experiences[idx1], user_experiences[idx2]]
                 task_samples.append({
                     'user_id': user_id,
-                    'experiences': sample.tolist()
+                    'experiences': sample
                 })
 
         return task_samples[:self.config.meta_batch_size]

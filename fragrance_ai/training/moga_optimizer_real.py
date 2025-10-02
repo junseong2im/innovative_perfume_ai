@@ -3,12 +3,12 @@ MOGA Optimizer - 진짜 구현
 DEAP 라이브러리를 제대로 사용한 다목적 유전 알고리즘
 """
 
-import random
 import numpy as np
 from typing import List, Tuple, Dict, Any, Optional
 from deap import base, creator, tools, algorithms
 import json
 from pathlib import Path
+import hashlib
 
 # DEAP creator 설정 - 전역으로 한 번만
 if not hasattr(creator, "FitnessMin"):
@@ -33,6 +33,7 @@ class RealMOGAOptimizer:
         self.mutation_rate = mutation_rate
         self.crossover_rate = crossover_rate
         self.gene_size = gene_size
+        self.gene_counter = 0  # 유전자 생성 카운터 추가
 
         # 향료 데이터베이스 로드
         self.notes_db = self._load_notes_database()
@@ -100,9 +101,16 @@ class RealMOGAOptimizer:
         self.toolbox.register("select", tools.selNSGA2)
 
     def _create_gene(self) -> Tuple[int, float]:
-        """유전자 하나 생성"""
-        note_id = random.choice(list(self.notes_db.keys()))
-        percentage = random.uniform(0.5, 15.0)
+        """유전자 하나 생성 (결정적)"""
+        # 결정적 선택을 위한 해시 기반 선택
+        self.gene_counter += 1
+        hash_val = int(hashlib.sha256(f"gene_{id(self)}_{self.gene_counter}".encode()).hexdigest(), 16)
+
+        note_ids = list(self.notes_db.keys())
+        note_id = note_ids[hash_val % len(note_ids)]
+
+        # 비율도 해시 기반으로 생성
+        percentage = 0.5 + (hash_val % 145) / 10.0  # 0.5 ~ 15.0
         return (note_id, percentage)
 
     def evaluate_individual(self, individual: List[Tuple[int, float]]) -> Tuple[float, float, float]:
@@ -177,17 +185,21 @@ class RealMOGAOptimizer:
         return (stability_score, harmony_score, creativity_score)
 
     def mutate_individual(self, individual):
-        """개체 변이"""
+        """개체 변이 (결정적)"""
         for i in range(len(individual)):
-            if random.random() < self.mutation_rate:
-                # 50% 확률로 향료 변경, 50% 확률로 비율 변경
-                if random.random() < 0.5:
+            # 해시 기반 확률
+            hash_val = int(hashlib.sha256(f"mut_{id(individual)}_{i}".encode()).hexdigest(), 16)
+            if (hash_val % 100) / 100.0 < self.mutation_rate:
+                # 해시 기반으로 변이 타입 결정
+                if (hash_val % 2) == 0:
                     # 향료 변경
-                    new_note = random.choice(list(self.notes_db.keys()))
+                    note_ids = list(self.notes_db.keys())
+                    new_note = note_ids[hash_val % len(note_ids)]
                     individual[i] = (new_note, individual[i][1])
                 else:
-                    # 비율 변경
-                    new_percentage = individual[i][1] + random.gauss(0, 2)
+                    # 비율 변경 (정규분포 대신 해시 기반 변경)
+                    delta = ((hash_val % 40) - 20) / 10.0  # -2.0 ~ 2.0
+                    new_percentage = individual[i][1] + delta
                     new_percentage = max(0.1, min(20.0, new_percentage))  # 0.1~20% 제한
                     individual[i] = (individual[i][0], new_percentage)
         return individual,

@@ -11,8 +11,8 @@ from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass
 import numpy as np
 from collections import deque
-import random
 import json
+import hashlib
 
 @dataclass
 class FragranceState:
@@ -440,12 +440,29 @@ class FragranceEvolutionSystem:
         return {'policy_loss': 0, 'entropy': 0, 'avg_reward': 0}
 
 
+# 결정적 선택을 위한 유틸리티
+class DeterministicSelector:
+    def __init__(self, seed=42):
+        self.seed = seed
+        self.counter = 0
+
+    def array(self, size, context=""):
+        """결정적 배열 생성"""
+        values = []
+        for i in range(size):
+            content = f"{self.seed}_{self.counter}_{context}_{i}"
+            self.counter += 1
+            hash_val = int(hashlib.sha256(content.encode()).hexdigest(), 16)
+            values.append((hash_val % 10000) / 10000.0)
+        return np.array(values)
+
 # 테스트
 if __name__ == "__main__":
     system = FragranceEvolutionSystem()
+    selector = DeterministicSelector(seed=42)
 
     # 테스트 DNA
-    test_dna = np.random.random(30)
+    test_dna = selector.array(30, "test_dna")
 
     # 테스트 피드백
     test_feedback = {

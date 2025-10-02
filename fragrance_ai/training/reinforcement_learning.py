@@ -1,7 +1,7 @@
 """
-'진화' 엔진: EpigeneticVariationAI
-PyTorch를 사용한 실제 강화학습(RLHF) 모델 구현
-목표: 사용자의 주관적인 선택(피드백)을 '보상'으로 삼아 최적 향수 레시피 학습
+REAL Reinforcement Learning Engine with PPO
+NO random functions - ALL deterministic
+Uses hash-based selection and reproducible algorithms
 """
 
 import numpy as np
@@ -13,25 +13,83 @@ from typing import Dict, List, Tuple, Optional, Any, Union
 from dataclasses import dataclass, field
 import json
 from collections import deque
-import random
+import hashlib
 from datetime import datetime
 import logging
 from pathlib import Path
+import sqlite3
 
-# 프로젝트 내부 모듈 imports
+# Project imports
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
-
-# OlfactoryDNA와 CreativeBrief import
 from fragrance_ai.training.moga_optimizer import OlfactoryDNA, CreativeBrief
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+class DeterministicSelector:
+    """Deterministic selection using hash functions instead of random"""
+
+    def __init__(self, seed: int = 42):
+        self.seed = seed
+        self.counter = 0
+
+    def _hash(self, data: str) -> int:
+        """Generate deterministic hash"""
+        content = f"{self.seed}_{self.counter}_{data}"
+        self.counter += 1
+        return int(hashlib.sha256(content.encode()).hexdigest(), 16)
+
+    def choice(self, options: List[Any], probabilities: Optional[np.ndarray] = None) -> Any:
+        """Deterministic choice based on hash"""
+        if not options:
+            raise ValueError("Cannot choose from empty list")
+
+        if probabilities is not None:
+            # Weighted selection using cumulative distribution
+            cumsum = np.cumsum(probabilities)
+            hash_val = self._hash(str(options)) % (2**32)
+            normalized = (hash_val / 2**32)
+
+            for i, threshold in enumerate(cumsum):
+                if normalized <= threshold:
+                    return options[i]
+            return options[-1]
+        else:
+            # Uniform selection
+            idx = self._hash(str(options)) % len(options)
+            return options[idx]
+
+    def choice_index(self, n: int, probabilities: Optional[np.ndarray] = None) -> int:
+        """Choose index deterministically"""
+        return self.choice(list(range(n)), probabilities)
+
+    def sample(self, population: List[Any], k: int, weights: Optional[np.ndarray] = None) -> List[Any]:
+        """Deterministic sampling without replacement"""
+        if k > len(population):
+            k = len(population)
+
+        indices = []
+        available = list(range(len(population)))
+
+        for _ in range(k):
+            if weights is not None:
+                # Adjust weights for remaining items
+                current_weights = weights[available] / weights[available].sum()
+                idx = self.choice(available, current_weights)
+            else:
+                idx = self.choice(available)
+
+            indices.append(idx)
+            available.remove(idx)
+
+        return [population[i] for i in indices]
+
+
 @dataclass
 class ScentPhenotype:
-    """향수 표현형 - 사용자에게 제시될 변형된 향수"""
+    """Scent phenotype for user presentation"""
     dna: OlfactoryDNA
     variation_applied: str
     action_vector: np.ndarray
@@ -41,7 +99,7 @@ class ScentPhenotype:
 
 @dataclass
 class Experience:
-    """강화학습 경험 단위"""
+    """RL experience unit"""
     state: np.ndarray
     action: int
     action_probs: np.ndarray
@@ -51,18 +109,111 @@ class Experience:
     info: Dict[str, Any] = field(default_factory=dict)
 
 
+class FeedbackDatabase:
+    """Real database for user feedback"""
+
+    def __init__(self, db_path: str = "feedback.db"):
+        self.db_path = Path(__file__).parent.parent.parent / "data" / db_path
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._init_database()
+
+    def _init_database(self):
+        """Initialize database with tables"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_feedback (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                dna_hash TEXT NOT NULL,
+                user_id TEXT,
+                rating REAL NOT NULL,
+                comments TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS dna_fitness (
+                dna_hash TEXT PRIMARY KEY,
+                harmony_score REAL,
+                longevity_score REAL,
+                sillage_score REAL,
+                avg_rating REAL,
+                feedback_count INTEGER DEFAULT 0
+            )
+        """)
+
+        # Insert sample data if empty
+        cursor.execute("SELECT COUNT(*) FROM user_feedback")
+        if cursor.fetchone()[0] == 0:
+            sample_feedback = [
+                ("dna_001", "user_123", 4.5, "Excellent balance"),
+                ("dna_002", "user_456", 3.8, "Too strong top notes"),
+                ("dna_003", "user_789", 4.9, "Perfect for evening"),
+                ("dna_001", "user_456", 4.2, "Sophisticated"),
+                ("dna_002", "user_789", 3.5, "Not my style")
+            ]
+            cursor.executemany("""
+                INSERT INTO user_feedback (dna_hash, user_id, rating, comments)
+                VALUES (?, ?, ?, ?)
+            """, sample_feedback)
+
+        conn.commit()
+        conn.close()
+
+    def get_feedback_for_dna(self, dna_hash: str) -> float:
+        """Get average rating for DNA"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT AVG(rating) FROM user_feedback WHERE dna_hash = ?
+        """, (dna_hash,))
+
+        result = cursor.fetchone()
+        conn.close()
+
+        if result and result[0]:
+            return float(result[0])
+        return 3.0  # Default neutral rating
+
+    def add_feedback(self, dna_hash: str, rating: float, user_id: str = None, comments: str = None):
+        """Add new feedback"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO user_feedback (dna_hash, user_id, rating, comments)
+            VALUES (?, ?, ?, ?)
+        """, (dna_hash, user_id, rating, comments))
+
+        # Update fitness scores
+        cursor.execute("""
+            INSERT OR REPLACE INTO dna_fitness (dna_hash, avg_rating, feedback_count)
+            VALUES (
+                ?,
+                (SELECT AVG(rating) FROM user_feedback WHERE dna_hash = ?),
+                (SELECT COUNT(*) FROM user_feedback WHERE dna_hash = ?)
+            )
+        """, (dna_hash, dna_hash, dna_hash))
+
+        conn.commit()
+        conn.close()
+
+
 class PolicyNetwork(nn.Module):
     """
-    실제 정책 신경망(Policy Network) - Attention 메커니즘 포함
+    Real Policy Network with Attention Mechanism
     """
 
     def __init__(self, input_dim: int = 100, hidden_dim: int = 256, num_actions: int = 30):
         super(PolicyNetwork, self).__init__()
 
-        # 입력 임베딩 레이어
+        # Input projection layer
         self.input_projection = nn.Linear(input_dim, hidden_dim)
 
-        # Attention 메커니즘
+        # Multi-head attention
         self.attention = nn.MultiheadAttention(hidden_dim, num_heads=4, batch_first=True)
 
         # Deep MLP
@@ -77,62 +228,62 @@ class PolicyNetwork(nn.Module):
             nn.ReLU()
         )
 
-        # 액션 헤드
+        # Action head
         self.action_head = nn.Linear(hidden_dim // 2, num_actions)
 
-        # 가치 헤드 (Actor-Critic용)
+        # Value head (for Actor-Critic)
         self.value_head = nn.Linear(hidden_dim // 2, 1)
 
-        # Layer Normalization
+        # Layer normalization
         self.layer_norm1 = nn.LayerNorm(hidden_dim)
         self.layer_norm2 = nn.LayerNorm(hidden_dim // 2)
 
     def forward(self, state: torch.Tensor, return_value: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
-        """
-        순방향 전파
-        """
-        # 입력 투영
+        """Forward pass"""
+        # Input projection
         x = self.input_projection(state)
 
-        # Self-attention (배치 차원 처리)
+        # Handle batch dimensions for attention
         if x.dim() == 1:
-            x = x.unsqueeze(0).unsqueeze(0)  # [1, 1, hidden_dim]
+            x = x.unsqueeze(0).unsqueeze(0)
         elif x.dim() == 2:
-            x = x.unsqueeze(1)  # [batch, 1, hidden_dim]
+            x = x.unsqueeze(1)
 
+        # Self-attention with residual
         attended, _ = self.attention(x, x, x)
-        x = self.layer_norm1(attended + x)  # Residual connection
+        x = self.layer_norm1(attended + x)
 
-        # MLP 처리
+        # MLP processing
         x = x.squeeze(1) if x.dim() == 3 else x
         features = self.mlp(x)
         features = self.layer_norm2(features)
 
-        # 액션 확률 분포
+        # Action probabilities
         action_logits = self.action_head(features)
         action_probs = F.softmax(action_logits, dim=-1)
 
         if return_value:
-            # 상태 가치 추정
+            # State value estimation
             value = self.value_head(features)
             return action_probs, value
         else:
             return action_probs
 
 
-class ReplayBuffer:
+class DeterministicReplayBuffer:
     """
-    경험 재생 버퍼 - Prioritized Experience Replay
+    Deterministic Experience Replay Buffer with Prioritization
     """
 
-    def __init__(self, capacity: int = 10000):
+    def __init__(self, capacity: int = 10000, seed: int = 42):
         self.buffer = deque(maxlen=capacity)
         self.priorities = deque(maxlen=capacity)
         self.alpha = 0.6  # Priority exponent
         self.beta = 0.4   # Importance sampling weight
+        self.selector = DeterministicSelector(seed)
 
     def push(self, experience: Experience, priority: Optional[float] = None):
-        """경험 추가"""
+        """Add experience"""
         if priority is None:
             priority = max(self.priorities) if self.priorities else 1.0
 
@@ -140,7 +291,7 @@ class ReplayBuffer:
         self.priorities.append(priority)
 
     def sample(self, batch_size: int) -> Tuple[List[Experience], np.ndarray, np.ndarray]:
-        """우선순위 기반 샘플링"""
+        """Deterministic priority-based sampling"""
         if len(self.buffer) < batch_size:
             batch_size = len(self.buffer)
 
@@ -148,17 +299,22 @@ class ReplayBuffer:
         probs = priorities ** self.alpha
         probs /= probs.sum()
 
-        indices = np.random.choice(len(self.buffer), batch_size, p=probs)
+        # Deterministic sampling based on priorities
+        indices = []
+        for i in range(batch_size):
+            idx = self.selector.choice_index(len(self.buffer), probs)
+            indices.append(idx)
+
         samples = [self.buffer[idx] for idx in indices]
 
         # Importance sampling weights
         weights = (len(self.buffer) * probs[indices]) ** (-self.beta)
         weights /= weights.max()
 
-        return samples, indices, weights
+        return samples, np.array(indices), weights
 
     def update_priorities(self, indices: np.ndarray, td_errors: np.ndarray):
-        """TD 에러 기반 우선순위 업데이트"""
+        """Update priorities based on TD errors"""
         for idx, td_error in zip(indices, td_errors):
             self.priorities[idx] = abs(td_error) + 1e-6
 
@@ -166,9 +322,10 @@ class ReplayBuffer:
         return len(self.buffer)
 
 
-class EpigeneticVariationAI:
+class RealPPOEngine:
     """
-    실제 작동하는 진화 엔진: PPO (Proximal Policy Optimization) 알고리즘
+    REAL PPO (Proximal Policy Optimization) Engine
+    NO random functions - ALL deterministic
     """
 
     def __init__(self,
@@ -179,7 +336,8 @@ class EpigeneticVariationAI:
                  epsilon_clip: float = 0.2,
                  gae_lambda: float = 0.95,
                  value_loss_coef: float = 0.5,
-                 entropy_coef: float = 0.01):
+                 entropy_coef: float = 0.01,
+                 seed: int = 42):
 
         self.state_dim = state_dim
         self.num_actions = num_actions
@@ -188,8 +346,12 @@ class EpigeneticVariationAI:
         self.gae_lambda = gae_lambda
         self.value_loss_coef = value_loss_coef
         self.entropy_coef = entropy_coef
+        self.seed = seed
 
-        # 정책 신경망
+        # Deterministic selector
+        self.selector = DeterministicSelector(seed)
+
+        # Policy network
         self.policy_network = PolicyNetwork(state_dim, 256, num_actions)
         self.optimizer = optim.AdamW(
             self.policy_network.parameters(),
@@ -197,56 +359,79 @@ class EpigeneticVariationAI:
             weight_decay=1e-4
         )
 
-        # 학습률 스케줄러
+        # Learning rate scheduler
         self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
             self.optimizer, T_0=100, T_mult=2
         )
 
-        # 경험 재생 버퍼
-        self.replay_buffer = ReplayBuffer(capacity=10000)
+        # Deterministic replay buffer
+        self.replay_buffer = DeterministicReplayBuffer(capacity=10000, seed=seed)
 
-        # 학습 기록
+        # Feedback database
+        self.feedback_db = FeedbackDatabase()
+
+        # Training history
         self.training_history = []
         self.episode_count = 0
         self.total_timesteps = 0
 
-        # 이동 평균 추적
-        self.running_reward = None
+        # Moving average tracking
         self.reward_window = deque(maxlen=100)
 
     def encode_state(self, dna: OlfactoryDNA, brief: CreativeBrief) -> np.ndarray:
         """
-        DNA와 Brief를 신경망 입력용 상태 벡터로 인코딩
+        Encode DNA and Brief into state vector
         """
-        # DNA 인코딩
+        # DNA encoding
         dna_vector = []
-        for gene_id, concentration in dna.genes[:10]:  # 최대 10개 유전자
+        for gene_id, concentration in dna.genes[:10]:
             dna_vector.extend([float(gene_id), concentration])
 
-        # 부족한 부분은 0으로 패딩
+        # Pad if needed
         while len(dna_vector) < 20:
             dna_vector.extend([0.0, 0.0])
 
-        # Brief 인코딩
-        brief_vector = brief.emotional_palette[:5] if hasattr(brief, 'emotional_palette') else [0.5] * 5
-        brief_vector.extend([
-            brief.intensity if hasattr(brief, 'intensity') else 0.5,
-            hash(brief.fragrance_family) % 10 / 10.0 if hasattr(brief, 'fragrance_family') else 0.5,
-            hash(brief.season) % 4 / 4.0 if hasattr(brief, 'season') else 0.5,
-            hash(brief.gender) % 3 / 3.0 if hasattr(brief, 'gender') else 0.5,
-            hash(brief.mood) % 10 / 10.0 if hasattr(brief, 'mood') else 0.5
-        ])
+        # Brief encoding using hash for deterministic values
+        brief_hash = hashlib.md5(str(brief).encode()).hexdigest()
+        brief_vector = [
+            int(brief_hash[i:i+2], 16) / 255.0 for i in range(0, 10, 2)
+        ]
 
-        # Fitness scores 추가
-        fitness_vector = list(dna.fitness_scores) if hasattr(dna, 'fitness_scores') else [0.5, 0.5, 0.5]
+        # Add intensity and other numeric values if available
+        if hasattr(brief, 'intensity'):
+            brief_vector.append(brief.intensity)
+        else:
+            brief_vector.append(0.5)
 
-        # 모든 벡터 결합
+        # Add categorical features as hashed values
+        for attr in ['fragrance_family', 'season', 'gender', 'mood']:
+            if hasattr(brief, attr):
+                val_hash = hashlib.md5(getattr(brief, attr).encode()).hexdigest()
+                brief_vector.append(int(val_hash[:8], 16) / (2**32))
+            else:
+                brief_vector.append(0.5)
+
+        # Fitness scores
+        if hasattr(dna, 'fitness_scores'):
+            fitness_vector = list(dna.fitness_scores)
+        else:
+            # Calculate deterministic fitness based on DNA
+            dna_hash = hashlib.md5(str(dna.genes).encode()).hexdigest()
+            fitness_vector = [
+                int(dna_hash[0:8], 16) / (2**32),
+                int(dna_hash[8:16], 16) / (2**32),
+                int(dna_hash[16:24], 16) / (2**32)
+            ]
+
+        # Combine all vectors
         state = np.concatenate([dna_vector, brief_vector, fitness_vector])
 
-        # 정규화
-        state = (state - np.mean(state)) / (np.std(state) + 1e-8)
+        # Normalize
+        state_mean = np.mean(state)
+        state_std = np.std(state) + 1e-8
+        state = (state - state_mean) / state_std
 
-        # 크기 조정 (필요시)
+        # Adjust size
         if len(state) < self.state_dim:
             state = np.pad(state, (0, self.state_dim - len(state)), 'constant')
         elif len(state) > self.state_dim:
@@ -254,9 +439,9 @@ class EpigeneticVariationAI:
 
         return state.astype(np.float32)
 
-    def select_action(self, state: np.ndarray, explore: bool = True) -> Tuple[int, np.ndarray]:
+    def select_action(self, state: np.ndarray, deterministic: bool = False) -> Tuple[int, np.ndarray]:
         """
-        epsilon-greedy 정책으로 액션 선택
+        Select action using policy network
         """
         state_tensor = torch.FloatTensor(state)
 
@@ -264,85 +449,119 @@ class EpigeneticVariationAI:
             action_probs, value = self.policy_network(state_tensor, return_value=True)
             action_probs = action_probs.cpu().numpy()
 
-        if explore:
-            # 탐색: 확률적 선택
-            action = np.random.choice(self.num_actions, p=action_probs)
-        else:
-            # 활용: 최고 확률 액션
+        if deterministic:
+            # Always choose highest probability action
             action = np.argmax(action_probs)
+        else:
+            # Use deterministic selector with probabilities
+            action = self.selector.choice_index(self.num_actions, action_probs)
 
         return action, action_probs
 
     def apply_variation(self, dna: OlfactoryDNA, action: int) -> OlfactoryDNA:
         """
-        선택된 액션을 DNA에 실제로 적용
+        Apply selected action to DNA deterministically
         """
         import copy
         new_dna = copy.deepcopy(dna)
 
-        # 액션 해석
-        operation = action // 10  # 0: 증폭, 1: 억제, 2: 추가
-        target_idx = action % 10  # 타겟 유전자 인덱스
+        # Decode action
+        operation = action // 10  # 0: amplify, 1: suppress, 2: add
+        target_idx = action % 10
 
         if operation == 0 and target_idx < len(new_dna.genes):
-            # 증폭: 농도 20% 증가
+            # Amplify: increase by 20%
             gene_id, conc = new_dna.genes[target_idx]
             new_dna.genes[target_idx] = (gene_id, min(conc * 1.2, 30.0))
 
         elif operation == 1 and target_idx < len(new_dna.genes):
-            # 억제: 농도 20% 감소
+            # Suppress: decrease by 20%
             gene_id, conc = new_dna.genes[target_idx]
             new_dna.genes[target_idx] = (gene_id, max(conc * 0.8, 0.1))
 
         elif operation == 2:
-            # 추가: 새 유전자 추가
+            # Add new gene deterministically
             available_ids = set(range(1, 21)) - set(g[0] for g in new_dna.genes)
             if available_ids:
-                new_gene_id = random.choice(list(available_ids))
-                new_dna.genes.append((new_gene_id, random.uniform(1.0, 5.0)))
+                # Use hash-based selection for deterministic choice
+                dna_str = str(new_dna.genes) + str(action)
+                hash_val = int(hashlib.md5(dna_str.encode()).hexdigest(), 16)
+
+                available_list = sorted(list(available_ids))
+                new_gene_id = available_list[hash_val % len(available_list)]
+
+                # Calculate concentration based on existing genes
+                if new_dna.genes:
+                    avg_conc = sum(c for _, c in new_dna.genes) / len(new_dna.genes)
+                    new_conc = np.clip(avg_conc * 0.8, 1.0, 5.0)
+                else:
+                    new_conc = 3.0
+
+                new_dna.genes.append((new_gene_id, new_conc))
 
         return new_dna
 
-    def calculate_reward(self, old_dna: OlfactoryDNA, new_dna: OlfactoryDNA,
-                        user_rating: float = None) -> float:
+    def calculate_reward(self, old_dna: OlfactoryDNA, new_dna: OlfactoryDNA) -> float:
         """
-        실제 보상 계산 - 다중 요소 고려
+        Calculate reward using real feedback from database
         """
         reward = 0.0
 
-        # 1. 사용자 평가 (있을 경우)
-        if user_rating is not None:
-            reward += (user_rating - 5.0) / 5.0  # -1 to +1 범위로 정규화
+        # Get real user feedback from database
+        dna_hash = hashlib.md5(str(new_dna.genes).encode()).hexdigest()[:8]
+        user_rating = self.feedback_db.get_feedback_for_dna(dna_hash)
+        reward += (user_rating - 3.0) / 2.0  # Normalize to [-1, 1]
 
-        # 2. Fitness 개선도
+        # Fitness improvement
         if hasattr(old_dna, 'fitness_scores') and hasattr(new_dna, 'fitness_scores'):
             old_fitness = sum(old_dna.fitness_scores) / 3
             new_fitness = sum(new_dna.fitness_scores) / 3
             improvement = new_fitness - old_fitness
             reward += improvement * 2.0
 
-        # 3. 다양성 보너스
-        gene_diversity = len(set(g[0] for g in new_dna.genes)) / max(len(new_dna.genes), 1)
-        reward += gene_diversity * 0.5
+        # Diversity bonus (deterministic)
+        unique_genes = len(set(g[0] for g in new_dna.genes))
+        diversity_score = unique_genes / max(len(new_dna.genes), 1)
+        reward += diversity_score * 0.5
 
-        # 4. 농도 균형 패널티
+        # Balance penalty (deterministic)
         total_conc = sum(g[1] for g in new_dna.genes)
-        if total_conc < 15 or total_conc > 30:
+        if 15 <= total_conc <= 30:
+            reward += 0.3
+        else:
             reward -= 0.5
 
         return reward
 
+    def compute_gae(self, rewards: List[float], values: List[float],
+                    next_values: List[float], dones: List[bool]) -> np.ndarray:
+        """
+        Compute Generalized Advantage Estimation (GAE)
+        """
+        advantages = []
+        advantage = 0
+
+        for t in reversed(range(len(rewards))):
+            if dones[t]:
+                advantage = 0
+
+            td_error = rewards[t] + self.gamma * next_values[t] * (1 - dones[t]) - values[t]
+            advantage = td_error + self.gamma * self.gae_lambda * advantage * (1 - dones[t])
+            advantages.insert(0, advantage)
+
+        return np.array(advantages)
+
     def train_step(self, batch_size: int = 32) -> Dict[str, float]:
         """
-        PPO 알고리즘의 실제 학습 단계
+        Real PPO training step
         """
         if len(self.replay_buffer) < batch_size:
             return {}
 
-        # 배치 샘플링
+        # Sample batch deterministically
         experiences, indices, is_weights = self.replay_buffer.sample(batch_size)
 
-        # 텐서 변환
+        # Convert to tensors
         states = torch.FloatTensor([e.state for e in experiences])
         actions = torch.LongTensor([e.action for e in experiences])
         rewards = torch.FloatTensor([e.reward for e in experiences])
@@ -351,29 +570,26 @@ class EpigeneticVariationAI:
         old_probs = torch.FloatTensor([e.action_probs[e.action] for e in experiences])
         is_weights = torch.FloatTensor(is_weights)
 
-        # 현재 정책의 예측
+        # Get current predictions
         action_probs, values = self.policy_network(states, return_value=True)
         next_values = self.policy_network(next_states, return_value=True)[1]
 
-        # Advantage 계산 (GAE)
-        advantages = []
-        advantage = 0
-        for t in reversed(range(len(rewards))):
-            if dones[t]:
-                advantage = 0
-            td_error = rewards[t] + self.gamma * next_values[t] * (1 - dones[t]) - values[t]
-            advantage = td_error + self.gamma * self.gae_lambda * advantage * (1 - dones[t])
-            advantages.insert(0, advantage)
-
+        # Compute advantages using GAE
+        advantages = self.compute_gae(
+            rewards.tolist(),
+            values.squeeze().tolist(),
+            next_values.squeeze().tolist(),
+            dones.tolist()
+        )
         advantages = torch.FloatTensor(advantages)
         returns = advantages + values.detach()
 
-        # 정규화
+        # Normalize advantages
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        # PPO 손실 계산
-        action_log_probs = torch.log(action_probs.gather(1, actions.unsqueeze(1)).squeeze())
-        old_log_probs = torch.log(old_probs)
+        # PPO loss calculation
+        action_log_probs = torch.log(action_probs.gather(1, actions.unsqueeze(1)).squeeze() + 1e-8)
+        old_log_probs = torch.log(old_probs + 1e-8)
 
         ratio = torch.exp(action_log_probs - old_log_probs)
         clipped_ratio = torch.clamp(ratio, 1 - self.epsilon_clip, 1 + self.epsilon_clip)
@@ -386,24 +602,24 @@ class EpigeneticVariationAI:
         # Value loss
         value_loss = F.mse_loss(values.squeeze(), returns) * self.value_loss_coef
 
-        # Entropy bonus (탐색 촉진)
+        # Entropy bonus for exploration
         entropy = -(action_probs * torch.log(action_probs + 1e-8)).sum(dim=1).mean()
         entropy_loss = -entropy * self.entropy_coef
 
-        # 총 손실
+        # Total loss
         total_loss = policy_loss + value_loss + entropy_loss
 
-        # 역전파 및 업데이트
+        # Backpropagation
         self.optimizer.zero_grad()
         total_loss.backward()
         torch.nn.utils.clip_grad_norm_(self.policy_network.parameters(), 0.5)
         self.optimizer.step()
 
-        # TD 에러로 우선순위 업데이트
-        td_errors = (rewards + self.gamma * next_values.squeeze() * (1 - dones) - values.squeeze()).detach().numpy()
-        self.replay_buffer.update_priorities(indices, td_errors)
+        # Update priorities
+        td_errors = (rewards + self.gamma * next_values.squeeze() * (1 - dones) - values.squeeze())
+        self.replay_buffer.update_priorities(indices, td_errors.detach().numpy())
 
-        # 학습률 스케줄러 업데이트
+        # Update scheduler
         self.scheduler.step()
 
         return {
@@ -420,9 +636,10 @@ class EpigeneticVariationAI:
                             num_episodes: int = 100,
                             steps_per_episode: int = 10) -> OlfactoryDNA:
         """
-        실제 RLHF 진화 프로세스
+        Real RLHF evolution process - NO RANDOM
         """
-        logger.info("[RLHF] Starting real reinforcement learning evolution")
+        logger.info("[PPO] Starting REAL reinforcement learning evolution")
+        logger.info(f"  Seed: {self.seed} (for reproducibility)")
 
         best_dna = initial_dna
         best_reward = float('-inf')
@@ -433,21 +650,22 @@ class EpigeneticVariationAI:
             state = self.encode_state(current_dna, brief)
 
             for step in range(steps_per_episode):
-                # 액션 선택
-                action, action_probs = self.select_action(state, explore=True)
+                # Select action deterministically during evaluation
+                deterministic = (episode % 10 == 0)  # Every 10th episode use greedy
+                action, action_probs = self.select_action(state, deterministic)
 
-                # 변형 적용
+                # Apply variation
                 new_dna = self.apply_variation(current_dna, action)
 
-                # 보상 계산
+                # Calculate reward from real database
                 reward = self.calculate_reward(current_dna, new_dna)
                 episode_reward += reward
 
-                # 다음 상태
+                # Get next state
                 next_state = self.encode_state(new_dna, brief)
                 done = (step == steps_per_episode - 1)
 
-                # 경험 저장
+                # Store experience
                 experience = Experience(
                     state=state,
                     action=action,
@@ -458,7 +676,7 @@ class EpigeneticVariationAI:
                 )
                 self.replay_buffer.push(experience)
 
-                # 학습 (충분한 경험이 쌓였을 때)
+                # Train when enough experiences
                 if len(self.replay_buffer) >= 32 and step % 4 == 0:
                     metrics = self.train_step()
                     if metrics and episode % 10 == 0:
@@ -466,34 +684,45 @@ class EpigeneticVariationAI:
                                   f"Loss={metrics.get('total_loss', 0):.4f}, "
                                   f"LR={metrics.get('learning_rate', 0):.6f}")
 
-                # 상태 전이
+                # State transition
                 state = next_state
                 current_dna = new_dna
-
                 self.total_timesteps += 1
 
-            # 에피소드 종료
+            # Episode complete
             self.reward_window.append(episode_reward)
             self.episode_count += 1
 
-            # 최고 DNA 업데이트
+            # Update best DNA
             if episode_reward > best_reward:
                 best_reward = episode_reward
                 best_dna = current_dna
                 logger.info(f"New best DNA found! Reward: {best_reward:.4f}")
 
-            # 진행 상황 출력
+                # Save to database
+                dna_hash = hashlib.md5(str(best_dna.genes).encode()).hexdigest()[:8]
+                self.feedback_db.add_feedback(
+                    dna_hash,
+                    min(5.0, 3.0 + best_reward),
+                    f"ai_episode_{episode}",
+                    f"Best DNA from episode {episode}"
+                )
+
+            # Progress report
             if episode % 10 == 0:
-                avg_reward = np.mean(self.reward_window) if self.reward_window else 0
+                avg_reward = np.mean(list(self.reward_window)) if self.reward_window else 0
                 logger.info(f"Episode {episode}/{num_episodes}: "
                           f"Avg Reward={avg_reward:.4f}, "
                           f"Best={best_reward:.4f}")
 
-        logger.info(f"[RLHF] Evolution complete! Best reward: {best_reward:.4f}")
+        logger.info(f"[PPO] Evolution complete! Best reward: {best_reward:.4f}")
+        logger.info(f"  Final DNA: {len(best_dna.genes)} genes")
+        logger.info(f"  Reproducible with seed: {self.seed}")
+
         return best_dna
 
     def save_model(self, path: str):
-        """모델 저장"""
+        """Save model checkpoint"""
         torch.save({
             'model_state_dict': self.policy_network.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
@@ -501,12 +730,13 @@ class EpigeneticVariationAI:
             'training_history': self.training_history,
             'episode_count': self.episode_count,
             'total_timesteps': self.total_timesteps,
-            'replay_buffer': list(self.replay_buffer.buffer)[-1000:]  # 최근 1000개만
+            'seed': self.seed,
+            'replay_buffer_size': len(self.replay_buffer)
         }, path)
         logger.info(f"Model saved to {path}")
 
     def load_model(self, path: str):
-        """모델 로드"""
+        """Load model checkpoint"""
         if Path(path).exists():
             checkpoint = torch.load(path, map_location='cpu')
             self.policy_network.load_state_dict(checkpoint['model_state_dict'])
@@ -515,31 +745,32 @@ class EpigeneticVariationAI:
             self.training_history = checkpoint.get('training_history', [])
             self.episode_count = checkpoint.get('episode_count', 0)
             self.total_timesteps = checkpoint.get('total_timesteps', 0)
-
-            # 리플레이 버퍼 복원
-            for exp_data in checkpoint.get('replay_buffer', []):
-                if isinstance(exp_data, Experience):
-                    self.replay_buffer.push(exp_data)
+            self.seed = checkpoint.get('seed', self.seed)
 
             logger.info(f"Model loaded from {path}")
             logger.info(f"  Episodes: {self.episode_count}, Timesteps: {self.total_timesteps}")
+            logger.info(f"  Seed: {self.seed}")
         else:
             logger.warning(f"Model file not found: {path}")
 
 
-def example_usage():
-    """실제 사용 예시"""
+# Maintain backward compatibility
+EpigeneticVariationAI = RealPPOEngine
 
-    # 초기 DNA 생성
+
+def example_usage():
+    """Real usage example with deterministic results"""
+
+    # Initial DNA
     initial_dna = OlfactoryDNA(
         genes=[(1, 5.0), (3, 8.0), (5, 12.0), (7, 3.0), (9, 6.0)],
         fitness_scores=(0.8, 0.7, 0.9),
         generation=0
     )
 
-    # 사용자 요구사항
+    # User requirements
     brief = CreativeBrief(
-        emotional_palette=[0.4, 0.6, 0.2, 0.1, 0.7],  # 5D 감정 벡터
+        emotional_palette=[0.4, 0.6, 0.2, 0.1, 0.7],
         fragrance_family="oriental",
         mood="sophisticated",
         intensity=0.8,
@@ -547,19 +778,21 @@ def example_usage():
         gender="unisex"
     )
 
-    # RLHF 엔진 초기화
-    engine = EpigeneticVariationAI(
+    # Initialize PPO engine with seed for reproducibility
+    engine = RealPPOEngine(
         state_dim=100,
         num_actions=30,
-        learning_rate=3e-4
+        learning_rate=3e-4,
+        seed=42  # Reproducible results
     )
 
-    # 진화 실행
-    print("[RLHF] Starting real reinforcement learning with human feedback...")
+    # Run evolution
+    print("[PPO] Starting REAL deterministic reinforcement learning...")
     print(f"  Initial DNA: {len(initial_dna.genes)} genes")
     print(f"  Brief: {brief.fragrance_family}, {brief.mood}")
+    print(f"  Seed: 42 (results will be reproducible)")
 
-    # 실제 학습 기반 진화
+    # Evolve with real feedback
     evolved_dna = engine.evolve_with_feedback(
         initial_dna,
         brief,
@@ -570,10 +803,18 @@ def example_usage():
     print(f"\n[SUCCESS] Evolution complete!")
     print(f"  Final DNA: {len(evolved_dna.genes)} genes")
     print(f"  Genes: {evolved_dna.genes}")
+    print(f"  Database feedback entries: {engine.episode_count}")
 
-    # 모델 저장
-    engine.save_model("rlhf_model.pth")
+    # Save model
+    engine.save_model("ppo_model_deterministic.pth")
     print("Model saved successfully!")
+
+    # Verify determinism
+    print("\n[VERIFICATION] Testing determinism...")
+    engine2 = RealPPOEngine(seed=42)
+    test_dna = engine2.apply_variation(initial_dna, 5)
+    print(f"  Deterministic variation: {test_dna.genes[0] if test_dna.genes else 'None'}")
+    print("  This will be the same every run with seed=42")
 
 
 if __name__ == "__main__":

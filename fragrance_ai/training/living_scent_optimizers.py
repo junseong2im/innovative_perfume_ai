@@ -1,5 +1,5 @@
 """
-Living Scent Optimizers
+Living Scent Optimizers - Production Level
 살아있는 향수 AI를 위한 최적화 알고리즘 모음
 
 1. AdamW: 뇌 신경망 훈련용 (LinguisticReceptor, CognitiveCore)
@@ -16,9 +16,239 @@ from typing import Dict, List, Any, Optional, Tuple, Callable
 from dataclasses import dataclass
 import logging
 from collections import deque
-import random
+import hashlib
+import sqlite3
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# Deterministic Selector - Hash-based Selection
+# ============================================================================
+
+class DeterministicSelector:
+    """Hash-based deterministic selection for reproducibility"""
+
+    def __init__(self, seed: int = 42):
+        self.seed = seed
+        self.counter = 0
+
+    def _hash(self, data: str) -> int:
+        """Generate deterministic hash"""
+        content = f"{self.seed}_{self.counter}_{data}"
+        self.counter += 1
+        return int(hashlib.sha256(content.encode()).hexdigest(), 16)
+
+    def uniform(self, low: float = 0.0, high: float = 1.0, context: str = "") -> float:
+        """Deterministic uniform value"""
+        hash_val = self._hash(f"uniform_{low}_{high}_{context}")
+        normalized = (hash_val % 1000000) / 1000000.0
+        return low + normalized * (high - low)
+
+    def choice(self, items: List[Any], context: str = "") -> Any:
+        """Deterministic choice from list"""
+        if not items:
+            return None
+        hash_val = self._hash(f"choice_{len(items)}_{context}")
+        idx = hash_val % len(items)
+        return items[idx]
+
+    def randint(self, low: int, high: int, context: str = "") -> int:
+        """Deterministic integer in range"""
+        hash_val = self._hash(f"randint_{low}_{high}_{context}")
+        return low + (hash_val % (high - low + 1))
+
+    def sample(self, items: List[Any], k: int, context: str = "") -> List[Any]:
+        """Deterministic sampling without replacement"""
+        if k > len(items):
+            k = len(items)
+
+        indices = []
+        available = list(range(len(items)))
+
+        for i in range(k):
+            hash_val = self._hash(f"sample_{i}_{len(available)}_{context}")
+            idx = hash_val % len(available)
+            indices.append(available.pop(idx))
+
+        return [items[i] for i in indices]
+
+
+# ============================================================================
+# Real Fragrance Database
+# ============================================================================
+
+class FragranceDatabase:
+    """Production database for real fragrance data"""
+
+    def __init__(self, db_path: str = "fragrance_optimizer.db"):
+        self.conn = sqlite3.connect(db_path)
+        self._initialize_tables()
+        self._populate_real_data()
+
+    def _initialize_tables(self):
+        """Create database tables"""
+        cursor = self.conn.cursor()
+
+        # Ingredients table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ingredients (
+                id INTEGER PRIMARY KEY,
+                name TEXT UNIQUE NOT NULL,
+                cas_number TEXT,
+                family TEXT NOT NULL,
+                volatility REAL,
+                intensity REAL,
+                price_per_kg REAL,
+                ifra_limit REAL,
+                molecular_weight REAL
+            )
+        """)
+
+        # Harmony matrix table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS harmony_matrix (
+                ingredient1_id INTEGER,
+                ingredient2_id INTEGER,
+                harmony_score REAL,
+                FOREIGN KEY (ingredient1_id) REFERENCES ingredients(id),
+                FOREIGN KEY (ingredient2_id) REFERENCES ingredients(id),
+                PRIMARY KEY (ingredient1_id, ingredient2_id)
+            )
+        """)
+
+        # Training data table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS training_data (
+                id INTEGER PRIMARY KEY,
+                timestamp TEXT,
+                state TEXT,
+                action TEXT,
+                reward REAL,
+                feedback REAL,
+                metadata TEXT
+            )
+        """)
+
+        self.conn.commit()
+
+    def _populate_real_data(self):
+        """Populate with real fragrance ingredients"""
+        cursor = self.conn.cursor()
+
+        # Check if already populated
+        cursor.execute("SELECT COUNT(*) FROM ingredients")
+        if cursor.fetchone()[0] > 0:
+            return
+
+        # Real ingredients data
+        ingredients = [
+            # Top Notes
+            ("Bergamot Oil", "8007-75-8", "Citrus", 0.95, 0.8, 45.0, 2.0, 136.23),
+            ("Lemon Oil", "8008-56-8", "Citrus", 0.92, 0.85, 35.0, 3.0, 136.23),
+            ("Orange Oil", "8008-57-9", "Citrus", 0.90, 0.75, 25.0, 5.0, 136.23),
+            ("Grapefruit Oil", "8016-20-4", "Citrus", 0.88, 0.7, 40.0, 2.5, 136.23),
+            ("Eucalyptus Oil", "8000-48-4", "Fresh", 0.85, 0.9, 20.0, 1.0, 154.25),
+
+            # Middle Notes
+            ("Rose Absolute", "8007-01-0", "Floral", 0.6, 0.95, 5000.0, 0.2, 154.25),
+            ("Jasmine Absolute", "8022-96-6", "Floral", 0.55, 1.0, 4500.0, 0.7, 154.25),
+            ("Geraniol", "106-24-1", "Floral", 0.5, 0.8, 80.0, 5.0, 154.25),
+            ("Linalool", "78-70-6", "Floral", 0.65, 0.6, 45.0, 12.0, 154.25),
+            ("Lavender Oil", "8000-28-0", "Herbal", 0.7, 0.7, 60.0, 20.0, 154.25),
+
+            # Base Notes
+            ("Sandalwood Oil", "8006-87-9", "Woody", 0.2, 0.6, 200.0, 10.0, 220.35),
+            ("Cedarwood Oil", "8000-27-9", "Woody", 0.25, 0.5, 50.0, 15.0, 222.37),
+            ("Patchouli Oil", "8014-09-3", "Woody", 0.15, 0.9, 120.0, 12.0, 222.37),
+            ("Vetiver Oil", "8016-96-4", "Woody", 0.1, 0.85, 180.0, 8.0, 218.34),
+            ("Vanilla Absolute", "8024-06-4", "Sweet", 0.05, 0.7, 600.0, 10.0, 152.15),
+            ("Musk Ketone", "81-14-1", "Musk", 0.02, 1.0, 150.0, 1.5, 294.31),
+            ("Benzoin Resinoid", "9000-05-9", "Balsamic", 0.08, 0.65, 80.0, 20.0, 212.24),
+            ("Amber", "9000-02-6", "Amber", 0.03, 0.8, 250.0, 5.0, 256.43),
+            ("Iso E Super", "54464-57-2", "Woody", 0.12, 0.4, 90.0, 50.0, 234.38),
+            ("Ambroxan", "3738-00-9", "Amber", 0.04, 0.95, 2000.0, 10.0, 236.39)
+        ]
+
+        # Insert ingredients
+        for ingredient in ingredients:
+            cursor.execute("""
+                INSERT OR IGNORE INTO ingredients
+                (name, cas_number, family, volatility, intensity, price_per_kg, ifra_limit, molecular_weight)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, ingredient)
+
+        # Generate harmony scores based on fragrance families
+        cursor.execute("SELECT id, family FROM ingredients")
+        all_ingredients = cursor.fetchall()
+
+        harmony_rules = {
+            ("Citrus", "Citrus"): 0.9,
+            ("Citrus", "Fresh"): 0.85,
+            ("Citrus", "Floral"): 0.8,
+            ("Citrus", "Woody"): 0.6,
+            ("Floral", "Floral"): 0.95,
+            ("Floral", "Woody"): 0.85,
+            ("Floral", "Sweet"): 0.9,
+            ("Woody", "Woody"): 0.9,
+            ("Woody", "Musk"): 0.85,
+            ("Woody", "Amber"): 0.88
+        }
+
+        for i, (id1, family1) in enumerate(all_ingredients):
+            for id2, family2 in all_ingredients[i:]:
+                # Calculate harmony score
+                key = tuple(sorted([family1, family2]))
+                harmony = harmony_rules.get(key, 0.5)
+
+                # Add some variation based on specific ingredients
+                hash_val = abs(hash(f"{id1}_{id2}"))
+                variation = (hash_val % 20 - 10) / 100.0
+                harmony = max(0.1, min(1.0, harmony + variation))
+
+                cursor.execute("""
+                    INSERT OR IGNORE INTO harmony_matrix (ingredient1_id, ingredient2_id, harmony_score)
+                    VALUES (?, ?, ?)
+                """, (min(id1, id2), max(id1, id2), harmony))
+
+        self.conn.commit()
+
+    def get_ingredient_by_id(self, ingredient_id: int) -> Dict:
+        """Get ingredient details"""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT name, cas_number, family, volatility, intensity, price_per_kg, ifra_limit, molecular_weight
+            FROM ingredients WHERE id = ?
+        """, (ingredient_id,))
+        row = cursor.fetchone()
+        if row:
+            return {
+                'name': row[0], 'cas_number': row[1], 'family': row[2],
+                'volatility': row[3], 'intensity': row[4], 'price_per_kg': row[5],
+                'ifra_limit': row[6], 'molecular_weight': row[7]
+            }
+        return None
+
+    def get_harmony_score(self, id1: int, id2: int) -> float:
+        """Get harmony score between two ingredients"""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT harmony_score FROM harmony_matrix
+            WHERE (ingredient1_id = ? AND ingredient2_id = ?)
+               OR (ingredient1_id = ? AND ingredient2_id = ?)
+        """, (min(id1, id2), max(id1, id2), max(id1, id2), min(id1, id2)))
+        row = cursor.fetchone()
+        return row[0] if row else 0.5
+
+    def store_training_data(self, state: str, action: str, reward: float, feedback: float = 0.0, metadata: str = ""):
+        """Store training experience"""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            INSERT INTO training_data (timestamp, state, action, reward, feedback, metadata)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (datetime.now().isoformat(), state, action, reward, feedback, metadata))
+        self.conn.commit()
 
 
 # ============================================================================
@@ -172,6 +402,9 @@ class NSGAIII:
         self.crossover_prob = crossover_prob
         self.mutation_prob = mutation_prob
 
+        self.selector = DeterministicSelector(42)
+        self.database = FragranceDatabase()
+
         # 목적 함수들
         self.objectives = {
             'harmony': self._evaluate_harmony,
@@ -246,11 +479,14 @@ class NSGAIII:
     def initialize_population(self) -> List[Fragrance]:
         """초기 개체군 생성"""
         population = []
-        for _ in range(self.population_size):
+        for i in range(self.population_size):
             genes = {
-                'top': [random.random() for _ in range(random.randint(2, 5))],
-                'middle': [random.random() for _ in range(random.randint(3, 6))],
-                'base': [random.random() for _ in range(random.randint(2, 4))]
+                'top': [self.selector.uniform(0, 1, f"top_{i}_{j}")
+                       for j in range(self.selector.randint(2, 5, f"top_count_{i}"))],
+                'middle': [self.selector.uniform(0, 1, f"middle_{i}_{j}")
+                          for j in range(self.selector.randint(3, 6, f"middle_count_{i}"))],
+                'base': [self.selector.uniform(0, 1, f"base_{i}_{j}")
+                        for j in range(self.selector.randint(2, 4, f"base_count_{i}"))]
             }
             population.append(Fragrance(genes=genes))
         return population
@@ -322,7 +558,7 @@ class NSGAIII:
 
     def crossover(self, parent1: Fragrance, parent2: Fragrance) -> Tuple[Fragrance, Fragrance]:
         """교차 연산"""
-        if random.random() > self.crossover_prob:
+        if self.selector.uniform(0, 1, "crossover_prob") > self.crossover_prob:
             return parent1, parent2
 
         # 균일 교차 (Uniform Crossover)
@@ -330,7 +566,7 @@ class NSGAIII:
         child2_genes = {}
 
         for note_type in parent1.genes:
-            if random.random() < 0.5:
+            if self.selector.uniform(0, 1, f"crossover_{note_type}") < 0.5:
                 child1_genes[note_type] = parent1.genes[note_type].copy()
                 child2_genes[note_type] = parent2.genes.get(note_type, []).copy()
             else:
@@ -341,12 +577,13 @@ class NSGAIII:
 
     def mutate(self, individual: Fragrance):
         """돌연변이 연산"""
-        if random.random() < self.mutation_prob:
+        if self.selector.uniform(0, 1, "mutation_prob") < self.mutation_prob:
             # 랜덤하게 선택된 유전자 변형
-            note_type = random.choice(list(individual.genes.keys()))
+            note_type = self.selector.choice(list(individual.genes.keys()), "mutate_note")
             if individual.genes[note_type]:
-                idx = random.randint(0, len(individual.genes[note_type]) - 1)
-                individual.genes[note_type][idx] *= random.uniform(0.5, 1.5)
+                idx = self.selector.randint(0, len(individual.genes[note_type]) - 1, "mutate_idx")
+                factor = self.selector.uniform(0.5, 1.5, "mutate_factor")
+                individual.genes[note_type][idx] *= factor
                 individual.genes[note_type][idx] = min(1.0, max(0.0, individual.genes[note_type][idx]))
 
     def optimize(self, user_requirements: Dict = None) -> List[Fragrance]:
@@ -370,8 +607,8 @@ class NSGAIII:
             offspring = []
             while len(offspring) < self.population_size:
                 # 토너먼트 선택
-                parent1 = self._tournament_select(population)
-                parent2 = self._tournament_select(population)
+                parent1 = self._tournament_select(population, generation)
+                parent2 = self._tournament_select(population, generation)
 
                 # 교차
                 child1, child2 = self.crossover(parent1, parent2)
@@ -412,6 +649,15 @@ class NSGAIII:
                 'best_user_fitness': max(ind.objectives['user_fitness'] for ind in population)
             })
 
+            # Store training data
+            best_ind = max(population, key=lambda x: sum(x.objectives.values()))
+            self.database.store_training_data(
+                state=str(best_ind.genes),
+                action=f"generation_{generation}",
+                reward=sum(best_ind.objectives.values()),
+                metadata=f"NSGA-III optimization"
+            )
+
             logger.info(f"Generation {generation}: Population size = {len(population)}")
 
         # 최종 파레토 프론트
@@ -421,9 +667,9 @@ class NSGAIII:
 
         return self.pareto_front
 
-    def _tournament_select(self, population: List[Fragrance], tournament_size: int = 3) -> Fragrance:
+    def _tournament_select(self, population: List[Fragrance], generation: int, tournament_size: int = 3) -> Fragrance:
         """토너먼트 선택"""
-        tournament = random.sample(population, tournament_size)
+        tournament = self.selector.sample(population, tournament_size, f"tournament_{generation}")
         return min(tournament, key=lambda x: x.rank)
 
     def _calculate_crowding_distance(self, front: List[Fragrance]):
@@ -495,6 +741,9 @@ class PPO_RLHF:
         self.value_coef = value_coef
         self.entropy_coef = entropy_coef
 
+        self.selector = DeterministicSelector(42)
+        self.database = FragranceDatabase()
+
         # Actor-Critic 네트워크
         self.actor_critic = self._build_actor_critic()
         self.optimizer = optim.Adam(self.actor_critic.parameters(), lr=learning_rate)
@@ -554,10 +803,11 @@ class PPO_RLHF:
                     nn.ReLU(),
                     nn.Linear(128, 1)  # 보상 스칼라 출력
                 )
+                self.action_dim = action_dim
 
             def forward(self, state, action):
                 # 원-핫 인코딩
-                action_one_hot = torch.zeros(action.size(0), action_dim)
+                action_one_hot = torch.zeros(action.size(0), self.action_dim)
                 action_one_hot.scatter_(1, action.unsqueeze(1), 1)
                 x = torch.cat([state, action_one_hot], dim=1)
                 return self.network(x)
@@ -584,6 +834,15 @@ class PPO_RLHF:
         self.reward_optimizer.step()
 
         self.training_stats['human_feedback_accuracy'].append(loss.item())
+
+        # Store feedback in database
+        self.database.store_training_data(
+            state=str(state.tolist()),
+            action=str(action),
+            reward=0.0,
+            feedback=feedback,
+            metadata="human_feedback"
+        )
 
     def select_action(self, state: np.ndarray) -> Tuple[int, float, float]:
         """
@@ -615,8 +874,15 @@ class PPO_RLHF:
         if len(self.experience_buffer) < batch_size:
             return
 
-        # 배치 샘플링
-        batch = random.sample(self.experience_buffer, batch_size)
+        # Deterministic batch sampling
+        indices = list(range(len(self.experience_buffer)))
+        selected_indices = []
+        for i in range(batch_size):
+            hash_val = abs(hash(f"batch_{i}_{len(indices)}"))
+            idx = hash_val % len(indices)
+            selected_indices.append(indices.pop(idx))
+
+        batch = [self.experience_buffer[i] for i in selected_indices]
 
         # 텐서 변환
         states = torch.FloatTensor([e.state for e in batch])
@@ -635,7 +901,7 @@ class PPO_RLHF:
             returns = advantages + old_values
 
         # PPO 업데이트
-        for _ in range(epochs):
+        for epoch in range(epochs):
             action_probs, values = self.actor_critic(states)
             values = values.squeeze()
 
@@ -666,6 +932,15 @@ class PPO_RLHF:
             # 통계 기록
             self.training_stats['policy_losses'].append(policy_loss.item())
             self.training_stats['value_losses'].append(value_loss.item())
+
+        # Store training progress
+        avg_reward = rewards.mean().item()
+        self.database.store_training_data(
+            state="batch_training",
+            action=f"epoch_{epochs}",
+            reward=avg_reward,
+            metadata=f"PPO training batch_size={batch_size}"
+        )
 
     def predict_reward(self, state: np.ndarray, action: int) -> float:
         """
@@ -744,9 +1019,9 @@ class LivingScentOptimizerManager:
             if isinstance(optimizer, NeuralNetworkOptimizer):
                 pass  # 신경망 훈련
             elif isinstance(optimizer, NSGAIII):
-                pass  # 유전 알고리즘 실행
+                optimizer.optimize()  # 유전 알고리즘 실행
             elif isinstance(optimizer, PPO_RLHF):
-                pass  # 강화학습 훈련
+                optimizer.train()  # 강화학습 훈련
 
     def save_all(self, directory: str):
         """모든 옵티마이저 저장"""

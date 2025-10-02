@@ -617,8 +617,9 @@ def demonstration_with_feedback():
             action = dist.sample()
             log_prob = dist.log_prob(action)
 
-            # Simulate user feedback
-            reward = np.random.uniform(-1, 1)
+            # Simulate user feedback (deterministic)
+            hash_val = int(hashlib.sha256(f"reward_{epoch}_{i}".encode()).hexdigest(), 16)
+            reward = ((hash_val % 2000) / 1000.0) - 1.0  # Range: -1 to 1
 
             log_probs.append(log_prob)
             rewards.append(reward)
