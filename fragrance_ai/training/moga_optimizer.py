@@ -550,16 +550,16 @@ class OlfactoryRecombinatorAI:
         return (stability_score, unfitness_score, uncreativity_score)
 
     def _evaluate_stability_real(self, individual: List[Tuple[int, float]]) -> float:
-        """실제 안정성 평가"""
-        violations = 0.0
+        """실제 화학적 안정성 평가 - Raoult's Law, Hansen Parameters, DLVO Theory"""
 
-        # 총 농도 검증
-        total_concentration = sum(conc for _, conc in individual)
-        if not (15 <= total_concentration <= 30):
-            violations += abs(22.5 - total_concentration) / 7.5
+        if not individual:
+            return 1000.0
 
-        # IFRA 규제 준수
-        for ing_id, concentration in individual:
+        stability_score = 0.0
+
+        # 1. Raoult's Law로 증기압 계산
+        total_vapor_pressure = 0.0
+        for ing_id, conc in individual:
             if ing_id in self.all_ingredients:
                 ingredient = self.all_ingredients[ing_id]
                 if concentration > ingredient.ifra_limit:
