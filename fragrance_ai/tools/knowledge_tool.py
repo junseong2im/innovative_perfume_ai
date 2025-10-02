@@ -1,19 +1,23 @@
 """
-향수 지식 베이스 도구
-- 향수 역사, 노트 정보, 제조 기법 등 도메인 지식 제공
-- RAG (Retrieval-Augmented Generation) 지원
+지식베이스 도구 - PostgreSQL 기반 실제 지식 검색
+향수 관련 역사, 기술, 문화 정보 제공
 """
 
 from typing import List, Dict, Any, Optional
+import numpy as np
+from sqlalchemy import and_, or_, func
+from sqlalchemy.orm import Session
+from sentence_transformers import SentenceTransformer
+from dataclasses import dataclass
 from pydantic import BaseModel, Field
 import logging
-import json
-import os
-from pathlib import Path
+
+from fragrance_ai.database.schema import KnowledgeBase, AccordTemplate
+from fragrance_ai.database.connection import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
-# Pydantic 스키마
+# Pydantic 스키마 (기존 인터페이스 유지)
 class KnowledgeQuery(BaseModel):
     """지식 쿼리"""
     category: str = Field(..., description="지식 카테고리: history, technique, note, accord, perfumer")
@@ -29,11 +33,30 @@ class KnowledgeResponse(BaseModel):
     sources: List[str] = Field(default_factory=list, description="정보 출처")
     related_topics: List[str] = Field(default_factory=list, description="관련 주제")
 
+@dataclass
+class KnowledgeResult:
+    """지식 검색 결과"""
+    id: int
+    category: str
+    title: str
+    content: str
+    confidence: float
+    relevance: float
+    source: Optional[str]
+    tags: List[str]
+
 class PerfumeKnowledgeBase:
-    """향수 도메인 지식 베이스"""
+    """PostgreSQL 기반 지식 베이스"""
 
     def __init__(self):
         """지식 베이스 초기화"""
+        self.db_manager = DatabaseManager()
+
+        # 임베딩 모델
+        print("지식베이스 임베딩 모델 로드 중...")
+        self.encoder = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+
+        # 폴백용 하드코딩 데이터 (DB 연결 실패 시)
         self.knowledge_data = self._load_knowledge_base()
         self.note_database = self._load_note_database()
         self.accord_formulas = self._load_accord_formulas()
@@ -260,8 +283,31 @@ class PerfumeKnowledgeBase:
         return styles
 
     def query(self, query: KnowledgeQuery) -> KnowledgeResponse:
-        """지식 쿼리 처리"""
+        """데이터베이스 우선 지식 쿼리 처리"""
         try:
+            # 먼저 데이터베이스에서 검색
+            db_results = self._query_database(query.query, query.category)
+
+            if db_results:
+                # DB 결과를 답변으로 변환
+                best_result = db_results[0]
+                answer = best_result.content
+                confidence = best_result.confidence * best_result.relevance
+                sources = [best_result.source] if best_result.source else ["Database"]
+
+                # 관련 주제는 태그에서 추출
+                related = best_result.tags[:3] if best_result.tags else []
+
+                return KnowledgeResponse(
+                    category=query.category,
+                    query=query.query,
+                    answer=answer,
+                    confidence=confidence,
+                    sources=sources,
+                    related_topics=related
+                )
+
+            # DB에 없으면 폴백 데이터 사용
             answer = ""
             sources = []
             related = []
@@ -269,28 +315,28 @@ class PerfumeKnowledgeBase:
 
             if query.category == "history":
                 answer = self._query_history(query.query)
-                sources = ["Perfume History Database"]
-                confidence = 0.9
+                sources = ["Local Knowledge Base"]
+                confidence = 0.7
 
             elif query.category == "technique":
                 answer = self._query_technique(query.query)
-                sources = ["Technical Manual", "Industry Standards"]
-                confidence = 0.95
+                sources = ["Local Technical Manual"]
+                confidence = 0.75
 
             elif query.category == "note":
                 answer = self._query_notes(query.query)
-                sources = ["Note Database", "Raw Material Catalog"]
-                confidence = 0.9
+                sources = ["Local Note Database"]
+                confidence = 0.7
 
             elif query.category == "accord":
                 answer = self._query_accords(query.query)
-                sources = ["Classic Accord Formulas"]
-                confidence = 0.85
+                sources = ["Local Accord Formulas"]
+                confidence = 0.65
 
             elif query.category == "perfumer":
                 answer = self._query_perfumers(query.query)
-                sources = ["Perfumer Profiles", "Industry Analysis"]
-                confidence = 0.8
+                sources = ["Local Perfumer Profiles"]
+                confidence = 0.6
 
             else:
                 answer = "카테고리를 찾을 수 없습니다."
@@ -318,6 +364,51 @@ class PerfumeKnowledgeBase:
                 sources=[],
                 related_topics=[]
             )
+
+    def _query_database(
+        self,
+        query: str,
+        category: Optional[str] = None,
+        top_k: int = 5
+    ) -> List[KnowledgeResult]:
+        """데이터베이스에서 지식 검색"""
+        try:
+            # 쿼리 임베딩
+            query_embedding = self.encoder.encode(query)
+
+            results = []
+
+            with self.db_manager.get_session() as session:
+                db_query = session.query(
+                    KnowledgeBase,
+                    (1 - KnowledgeBase.embedding.cosine_distance(query_embedding)).label("relevance")
+                )
+
+                if category:
+                    db_query = db_query.filter(KnowledgeBase.category == category)
+
+                db_query = db_query.filter(KnowledgeBase.confidence >= 0.5)
+                db_query = db_query.order_by(
+                    func.text("relevance DESC")
+                ).limit(top_k)
+
+                for entry, relevance in db_query:
+                    results.append(KnowledgeResult(
+                        id=entry.id,
+                        category=entry.category,
+                        title=entry.title,
+                        content=entry.content,
+                        confidence=entry.confidence,
+                        relevance=float(relevance),
+                        source=entry.source,
+                        tags=entry.tags or []
+                    ))
+
+            return results
+
+        except Exception as e:
+            logger.warning(f"Database query failed: {e}")
+            return []
 
     def _query_history(self, query: str) -> str:
         """역사 관련 쿼리"""

@@ -1,22 +1,24 @@
 """
-과학적 향수 검증 도구
-- 딥러닝 모델을 사용한 조합 검증
-- 조화도, 안정성, 지속성 평가
+검증 도구 - PostgreSQL 데이터베이스 기반 실제 검증
+블렌딩 규칙과 과학적 제약 조건 검증
 """
 
-import torch
-import joblib
+from typing import List, Dict, Tuple, Optional, Any
 import numpy as np
-import json
-import os
-from typing import List, Dict, Any, Optional
+from sqlalchemy import and_, or_
+from sqlalchemy.orm import Session
+from dataclasses import dataclass
 from pydantic import BaseModel, Field
 import logging
-from pathlib import Path
+
+from fragrance_ai.database.schema import (
+    Note, BlendingRule, AccordTemplate, FragranceComposition
+)
+from fragrance_ai.database.connection import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
-# Pydantic 스키마
+# Pydantic 스키마 (기존 인터페이스 유지)
 class NotesComposition(BaseModel):
     """향수 조합 구성"""
     top_notes: List[Dict[str, float]] = Field(..., description="탑노트 {name: percentage}")
@@ -37,163 +39,140 @@ class ValidationResult(BaseModel):
     suggestions: List[str] = Field(default_factory=list, description="개선 제안사항")
     scientific_notes: str = Field(default="", description="과학적 분석 노트")
 
+@dataclass
+class DBValidationResult:
+    """데이터베이스 기반 검증 결과"""
+    is_valid: bool
+    stability_score: float  # 0-1
+    harmony_score: float    # 0-1
+    feasibility_score: float  # 0-1
+    issues: List[str]
+    suggestions: List[str]
+    details: Dict[str, Any]
+
+
 class ScientificValidator:
-    """딥러닝 기반 과학적 검증기"""
+    """데이터베이스 기반 과학적 검증기"""
 
     def __init__(self, config_path: str = "configs/local.json"):
         """검증기 초기화"""
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = None
-        self.scaler = None
-        self.preprocessor = None
-        self.config = self._load_config(config_path)
-        self._initialize_model()
+        self.db_manager = DatabaseManager()
+        self._notes_cache = {}
+        self._blending_rules_cache = {}
+        self._load_db_cache()
 
-    def _load_config(self, config_path: str) -> dict:
-        """설정 파일 로드"""
+    def _load_db_cache(self):
+        """데이터베이스에서 규칙 캐싱"""
         try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-            return config.get('deep_learning_validator', {})
+            with self.db_manager.get_session() as session:
+                # 노트 정보 캐싱
+                notes = session.query(Note).all()
+                self._notes_cache = {
+                    note.name.lower(): {
+                        "id": note.id,
+                        "type": note.type,
+                        "pyramid_level": note.pyramid_level,
+                        "volatility": note.volatility,
+                        "strength": note.strength,
+                        "longevity": note.longevity,
+                        "is_natural": note.is_natural
+                    }
+                    for note in notes
+                }
+
+                # ID로도 캐싱
+                self._notes_by_id = {
+                    note.id: {
+                        "name": note.name,
+                        "type": note.type,
+                        "pyramid_level": note.pyramid_level,
+                        "volatility": note.volatility,
+                        "strength": note.strength,
+                        "longevity": note.longevity,
+                        "is_natural": note.is_natural
+                    }
+                    for note in notes
+                }
+
+                # 블렌딩 규칙 캐싱
+                rules = session.query(BlendingRule).filter(
+                    BlendingRule.is_verified == True
+                ).all()
+
+                self._blending_rules_cache = {}
+                for rule in rules:
+                    key = tuple(sorted([rule.note1_id, rule.note2_id]))
+                    self._blending_rules_cache[key] = {
+                        "compatibility": rule.compatibility,
+                        "rule_type": rule.rule_type,
+                        "description": rule.description
+                    }
+
+            logger.info(f"DB cache loaded: {len(self._notes_cache)} notes, {len(self._blending_rules_cache)} rules")
         except Exception as e:
-            logger.warning(f"Config load failed: {e}. Using defaults.")
-            return {
-                "trained_model_path": "assets/models/blending_validator.pth",
-                "scaler_path": "assets/scalers/validator_scaler.pkl"
-            }
+            logger.warning(f"Failed to load DB cache: {e}. Using empty cache.")
 
-    def _initialize_model(self):
-        """모델 및 전처리기 초기화"""
-        try:
-            # 모델 아키텍처 임포트
-            from ..models.advanced_blending_ai import NeuralBlendingPredictor, AdvancedBlendingAI
+    def _composition_to_note_list(self, composition: NotesComposition) -> List[Tuple[int, float]]:
+        """NotesComposition을 (note_id, percentage) 리스트로 변환"""
+        note_list = []
 
-            # 전처리기 초기화
-            self.preprocessor = AdvancedBlendingAI()
-
-            # 스케일러 로드
-            scaler_path = self.config.get('scaler_path')
-            if os.path.exists(scaler_path):
-                self.scaler = joblib.load(scaler_path)
-                input_dim = self.scaler.n_features_in_
-            else:
-                logger.warning(f"Scaler not found at {scaler_path}. Using default dimensions.")
-                input_dim = 768  # 기본 임베딩 차원
-
-            # 모델 초기화 및 가중치 로드
-            self.model = NeuralBlendingPredictor(input_dim)
-
-            model_path = self.config.get('trained_model_path')
-            if os.path.exists(model_path):
-                state_dict = torch.load(model_path, map_location=self.device)
-                self.model.load_state_dict(state_dict)
-                logger.info(f"Model loaded from {model_path}")
-            else:
-                logger.warning(f"Model weights not found at {model_path}. Using untrained model.")
-
-            self.model.to(self.device)
-            self.model.eval()
-
-        except ImportError as e:
-            logger.error(f"Failed to import model architecture: {e}")
-            # 폴백: 간단한 규칙 기반 모델 사용
-            self.model = None
-            self.preprocessor = None
-
-    def _composition_to_features(self, composition: NotesComposition) -> np.ndarray:
-        """조합을 특징 벡터로 변환"""
-        if self.preprocessor is None:
-            # 폴백: 기본 특징 추출
-            return self._basic_feature_extraction(composition)
-
-        try:
-            # 재료 리스트 생성
-            ingredients = []
-            for notes in [composition.top_notes, composition.heart_notes, composition.base_notes]:
-                for note_dict in notes:
-                    for name, percentage in note_dict.items():
-                        ingredients.append({
-                            "name": name,
-                            "percentage": percentage,
-                            "category": "top" if notes == composition.top_notes else
-                                      "heart" if notes == composition.heart_notes else "base"
-                        })
-
-            # 전처리기로 특징 추출
-            features = self.preprocessor._encode_ingredient_combination(ingredients)
-            return features
-
-        except Exception as e:
-            logger.error(f"Feature extraction failed: {e}")
-            return self._basic_feature_extraction(composition)
-
-    def _basic_feature_extraction(self, composition: NotesComposition) -> np.ndarray:
-        """기본 특징 추출 (폴백)"""
-        features = []
-
-        # 노트별 개수 및 총 퍼센트
+        all_notes = []
+        # 모든 노트 수집
         for notes in [composition.top_notes, composition.heart_notes, composition.base_notes]:
-            count = len(notes)
-            total_pct = sum(sum(note.values()) for note in notes)
-            features.extend([count, total_pct])
+            for note_dict in notes:
+                for name, percentage in note_dict.items():
+                    all_notes.append((name.lower(), percentage))
 
-        # 전체 재료 수
-        total_count = sum(len(notes) for notes in
-                         [composition.top_notes, composition.heart_notes, composition.base_notes])
-        features.append(total_count)
+        # 이름을 ID로 변환
+        for name, percentage in all_notes:
+            if name in self._notes_cache:
+                note_id = self._notes_cache[name]["id"]
+                note_list.append((note_id, percentage))
+            else:
+                logger.warning(f"Note '{name}' not found in database")
 
-        # 패딩 (최소 10개 특징)
-        while len(features) < 10:
-            features.append(0.0)
-
-        return np.array(features, dtype=np.float32)
+        return note_list
 
     def validate(self, composition: NotesComposition) -> ValidationResult:
-        """조합 검증 수행"""
+        """조합 검증 수행 - 데이터베이스 기반"""
         try:
-            # 특징 추출
-            features = self._composition_to_features(composition)
+            # NotesComposition을 note_id 리스트로 변환
+            note_list = self._composition_to_note_list(composition)
 
-            if self.model is None:
-                # 폴백: 규칙 기반 검증
-                return self._rule_based_validation(composition, features)
+            if not note_list:
+                return self._fallback_validation(composition)
 
-            # 특징 스케일링
-            if self.scaler is not None:
-                features = self.scaler.transform(features.reshape(1, -1))[0]
+            # 데이터베이스 기반 검증 수행
+            db_result = self.validate_composition(note_list)
 
-            # 텐서 변환
-            features_tensor = torch.FloatTensor(features).unsqueeze(0).to(self.device)
+            # DB 검증 결과를 ValidationResult로 변환
+            harmony = db_result.harmony_score * 10
+            stability = db_result.stability_score * 10
+            feasibility = db_result.feasibility_score * 10
 
-            # 모델 예측
-            with torch.no_grad():
-                predictions = self.model(features_tensor)
+            # 지속성과 확산성은 데이터베이스 정보에서 추정
+            longevity = self._estimate_longevity(note_list)
+            sillage = self._estimate_sillage(note_list)
 
-            # 결과 추출
-            harmony = float(predictions['harmony'].cpu().item()) * 10
-            stability = float(predictions['stability'].cpu().item()) * 10
-            longevity = float(predictions['longevity'].cpu().item()) * 10
-            sillage = float(predictions['sillage'].cpu().item()) * 10
-            overall = (harmony + stability + longevity + sillage) / 4
+            overall = (harmony + stability + feasibility + longevity + sillage) / 5
 
-            # 위험 요소 및 제안사항 생성
-            risks, suggestions = self._analyze_scores(
-                harmony, stability, longevity, sillage, composition
-            )
+            # 위험 요소 및 제안사항
+            risks = db_result.issues[:3] if db_result.issues else []
+            suggestions = db_result.suggestions[:3] if db_result.suggestions else []
 
             # 과학적 노트 생성
-            scientific_notes = self._generate_scientific_notes(
-                harmony, stability, longevity, sillage, composition
+            scientific_notes = self._generate_db_scientific_notes(
+                db_result, note_list
             )
 
             return ValidationResult(
-                is_valid=overall >= 6.0,
+                is_valid=db_result.is_valid,
                 harmony_score=round(harmony, 2),
                 stability_score=round(stability, 2),
                 longevity_score=round(longevity, 2),
                 sillage_score=round(sillage, 2),
                 overall_score=round(overall, 2),
-                confidence=0.85,  # 모델 신뢰도
+                confidence=0.75,  # DB 기반 신뢰도
                 key_risks=risks,
                 suggestions=suggestions,
                 scientific_notes=scientific_notes
@@ -202,6 +181,250 @@ class ScientificValidator:
         except Exception as e:
             logger.error(f"Validation failed: {e}")
             return self._fallback_validation(composition)
+
+    def validate_composition(self, composition: List[Tuple[int, float]]) -> DBValidationResult:
+        """데이터베이스 기반 조합 검증"""
+        issues = []
+        suggestions = []
+        details = {}
+
+        # 1. 기본 제약 확인
+        basic_valid, basic_issues = self._validate_basic_constraints(composition)
+        issues.extend(basic_issues)
+
+        # 2. 안정성 검증
+        stability_score, stability_details = self._validate_stability(composition)
+        details["stability"] = stability_details
+
+        # 3. 조화도 검증
+        harmony_score, harmony_details = self._validate_harmony(composition)
+        details["harmony"] = harmony_details
+
+        # 4. 실현 가능성 검증
+        feasibility_score, feasibility_details = self._validate_feasibility(composition)
+        details["feasibility"] = feasibility_details
+
+        # 5. 개선 제안
+        if stability_score < 0.7:
+            suggestions.append("피라미드 균형 조정 필요")
+        if harmony_score < 0.7:
+            suggestions.append("충돌 노트 교체 필요")
+        if feasibility_score < 0.7:
+            suggestions.append("비율 조정 필요")
+
+        is_valid = (
+            basic_valid and
+            stability_score >= 0.5 and
+            harmony_score >= 0.5 and
+            feasibility_score >= 0.5
+        )
+
+        return DBValidationResult(
+            is_valid=is_valid,
+            stability_score=stability_score,
+            harmony_score=harmony_score,
+            feasibility_score=feasibility_score,
+            issues=issues,
+            suggestions=suggestions,
+            details=details
+        )
+
+    def _validate_basic_constraints(self, composition: List[Tuple[int, float]]) -> Tuple[bool, List[str]]:
+        """기본 제약 검증"""
+        issues = []
+
+        total_percentage = sum(pct for _, pct in composition)
+        if abs(total_percentage - 100.0) > 5.0:
+            issues.append(f"총 비율 오류: {total_percentage:.1f}%")
+
+        for note_id, percentage in composition:
+            if percentage < 0.1:
+                issues.append(f"비율 너무 낮음: {percentage}%")
+            elif percentage > 40.0:
+                issues.append(f"비율 너무 높음: {percentage}%")
+
+        if len(composition) < 3:
+            issues.append("최소 3개 노트 필요")
+        elif len(composition) > 30:
+            issues.append("노트 수 과다")
+
+        return len(issues) == 0, issues
+
+    def _validate_stability(self, composition: List[Tuple[int, float]]) -> Tuple[float, Dict]:
+        """안정성 검증"""
+        details = {"top_pct": 0, "middle_pct": 0, "base_pct": 0}
+
+        volatilities = []
+        pyramid_pct = {"top": 0, "middle": 0, "base": 0}
+
+        for note_id, percentage in composition:
+            if note_id in self._notes_by_id:
+                note = self._notes_by_id[note_id]
+                if note["volatility"]:
+                    volatilities.append(note["volatility"])
+                if note["pyramid_level"] in pyramid_pct:
+                    pyramid_pct[note["pyramid_level"]] += percentage
+
+        # 피라미드 균형 점수
+        top_score = 1.0 - abs(pyramid_pct["top"] - 25) / 25
+        middle_score = 1.0 - abs(pyramid_pct["middle"] - 40) / 40
+        base_score = 1.0 - abs(pyramid_pct["base"] - 35) / 35
+
+        pyramid_score = max(0, min(1, (top_score + middle_score + base_score) / 3))
+
+        # 휘발도 분산
+        variance_score = 0.7
+        if volatilities:
+            variance = np.var(volatilities)
+            variance_score = max(0, min(1, 1.0 - abs(variance - 0.25) * 2))
+
+        stability = pyramid_score * 0.7 + variance_score * 0.3
+
+        details.update(pyramid_pct)
+        details["pyramid_score"] = pyramid_score
+        details["variance_score"] = variance_score
+
+        return stability, details
+
+    def _validate_harmony(self, composition: List[Tuple[int, float]]) -> Tuple[float, Dict]:
+        """조화도 검증"""
+        details = {"conflicts": [], "harmonies": []}
+
+        total_score = 0
+        pair_count = 0
+
+        # 모든 쌍 검사
+        for i, (note1_id, pct1) in enumerate(composition):
+            for note2_id, pct2 in composition[i+1:]:
+                pair_key = tuple(sorted([note1_id, note2_id]))
+
+                if pair_key in self._blending_rules_cache:
+                    rule = self._blending_rules_cache[pair_key]
+                    compatibility = rule["compatibility"]
+
+                    weight = (pct1 + pct2) / 200.0
+                    total_score += compatibility * weight
+                    pair_count += weight
+
+                    if compatibility < -0.3:
+                        n1 = self._notes_by_id.get(note1_id, {}).get("name", f"ID{note1_id}")
+                        n2 = self._notes_by_id.get(note2_id, {}).get("name", f"ID{note2_id}")
+                        details["conflicts"].append(f"{n1}-{n2}")
+                    elif compatibility > 0.7:
+                        n1 = self._notes_by_id.get(note1_id, {}).get("name", f"ID{note1_id}")
+                        n2 = self._notes_by_id.get(note2_id, {}).get("name", f"ID{note2_id}")
+                        details["harmonies"].append(f"{n1}-{n2}")
+
+        if pair_count > 0:
+            harmony = (total_score / pair_count + 1) / 2
+        else:
+            harmony = 0.7
+
+        # 타입 다양성 보너스
+        types = set()
+        for note_id, _ in composition:
+            if note_id in self._notes_by_id:
+                types.add(self._notes_by_id[note_id]["type"])
+
+        diversity_bonus = min(0.2, len(types) * 0.05)
+        harmony = min(1.0, harmony + diversity_bonus)
+
+        details["type_diversity"] = len(types)
+
+        return harmony, details
+
+    def _validate_feasibility(self, composition: List[Tuple[int, float]]) -> Tuple[float, Dict]:
+        """실현 가능성 검증"""
+        details = {"natural_pct": 0, "synthetic_pct": 0}
+
+        natural_pct = 0
+        synthetic_pct = 0
+        high_strength = 0
+
+        for note_id, percentage in composition:
+            if note_id in self._notes_by_id:
+                note = self._notes_by_id[note_id]
+                if note["is_natural"]:
+                    natural_pct += percentage
+                else:
+                    synthetic_pct += percentage
+
+                if note["strength"] and note["strength"] > 0.8 and percentage > 10:
+                    high_strength += 1
+
+        details["natural_pct"] = natural_pct
+        details["synthetic_pct"] = synthetic_pct
+
+        # 균형 점수
+        balance_score = 1.0 - abs(natural_pct - synthetic_pct) / 100
+
+        # 복잡도 점수
+        if len(composition) < 5:
+            complexity_score = 0.5
+        elif len(composition) <= 20:
+            complexity_score = 1.0
+        else:
+            complexity_score = max(0.3, 1.0 - (len(composition) - 20) * 0.05)
+
+        # 강도 점수
+        strength_score = max(0.3, 1.0 - high_strength * 0.15)
+
+        feasibility = (balance_score * 0.3 + complexity_score * 0.4 + strength_score * 0.3)
+
+        return feasibility, details
+
+    def _estimate_longevity(self, composition: List[Tuple[int, float]]) -> float:
+        """지속성 추정"""
+        weighted_longevity = 0
+        total_weight = 0
+
+        for note_id, percentage in composition:
+            if note_id in self._notes_by_id:
+                note = self._notes_by_id[note_id]
+                if note["longevity"]:
+                    weighted_longevity += note["longevity"] * percentage
+                    total_weight += percentage
+
+        if total_weight > 0:
+            return (weighted_longevity / total_weight) * 10
+        return 5.0
+
+    def _estimate_sillage(self, composition: List[Tuple[int, float]]) -> float:
+        """확산성 추정"""
+        weighted_strength = 0
+        total_weight = 0
+
+        for note_id, percentage in composition:
+            if note_id in self._notes_by_id:
+                note = self._notes_by_id[note_id]
+                if note["strength"]:
+                    weighted_strength += note["strength"] * percentage
+                    total_weight += percentage
+
+        if total_weight > 0:
+            return (weighted_strength / total_weight) * 10
+        return 5.0
+
+    def _generate_db_scientific_notes(self, db_result: DBValidationResult, composition: List[Tuple[int, float]]) -> str:
+        """데이터베이스 기반 과학적 노트"""
+        notes = []
+
+        notes.append(f"안정성: {db_result.stability_score:.1%}")
+        notes.append(f"조화도: {db_result.harmony_score:.1%}")
+        notes.append(f"실현가능성: {db_result.feasibility_score:.1%}")
+
+        if db_result.details.get("stability"):
+            s = db_result.details["stability"]
+            notes.append(f"피라미드: T{s.get('top', 0):.0f}% M{s.get('middle', 0):.0f}% B{s.get('base', 0):.0f}%")
+
+        if db_result.details.get("harmony"):
+            h = db_result.details["harmony"]
+            if h.get("conflicts"):
+                notes.append(f"충돌: {', '.join(h['conflicts'][:2])}")
+            if h.get("harmonies"):
+                notes.append(f"조화: {', '.join(h['harmonies'][:2])}")
+
+        return " | ".join(notes)
 
     def _rule_based_validation(self, composition: NotesComposition, features: np.ndarray) -> ValidationResult:
         """규칙 기반 검증 (폴백)"""
