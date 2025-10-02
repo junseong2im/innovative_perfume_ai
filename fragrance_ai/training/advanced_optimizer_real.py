@@ -537,6 +537,33 @@ class RealRLHF:
         """타겟 네트워크 업데이트"""
         self.target_network.load_state_dict(self.q_network.state_dict())
 
+    def _get_feedback_from_database(self, state, action):
+        """실제 데이터베이스에서 피드백 조회"""
+        import sqlite3
+        from pathlib import Path
+
+        db_path = Path(__file__).parent.parent.parent / "data" / "rl_feedback.db"
+
+        if not db_path.exists():
+            return None
+
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # 상태를 해시로 변환
+        state_hash = hash(state.tobytes() if hasattr(state, 'tobytes') else str(state))
+
+        cursor.execute("""
+            SELECT rating FROM feedback
+            WHERE state_hash = ? AND action = ?
+            ORDER BY timestamp DESC LIMIT 1
+        """, (state_hash, action))
+
+        result = cursor.fetchone()
+        conn.close()
+
+        return result[0] if result else None
+
     def incorporate_human_feedback(self, state, action, human_rating):
         """
         인간 피드백을 보상으로 변환하여 학습
@@ -577,10 +604,9 @@ class RealRLHF:
                 action = self.act(state)
                 next_state, reward, done, info = env.step(action)
 
-                # 여기서 실제로는 인간 피드백을 받아야 함
-                # 시뮬레이션: 랜덤 피드백
-                if random.random() < 0.1:  # 10% 확률로 피드백
-                    human_rating = random.randint(1, 5)
+                # 실제 인간 피드백 데이터베이스 조회
+                human_rating = self._get_feedback_from_database(state, action)
+                if human_rating is not None:
                     self.incorporate_human_feedback(state, action, human_rating)
                     reward = (human_rating - 3) / 2
 
