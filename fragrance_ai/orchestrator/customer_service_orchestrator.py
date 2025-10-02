@@ -277,23 +277,66 @@ class CustomerServiceTools:
     
     @staticmethod
     async def check_order_status(order_id: str) -> Dict[str, Any]:
-        """주문 상태 확인"""
-        # 예시 데이터 (실제로는 DB 조회)
-        mock_orders = {
-            "ORD-001": {
-                "status": "Delivered",
-                "tracking_number": "1Z999AA10123456784",
-                "delivered_date": "2024-01-15"
-            },
-            "ORD-002": {
-                "status": "In Transit",
-                "tracking_number": "1Z999AA10123456785",
-                "expected_delivery": "2024-01-20"
-            }
-        }
-        
-        if order_id in mock_orders:
-            return mock_orders[order_id]
+        """주문 상태 확인 - 실제 데이터베이스 조회"""
+        import sqlite3
+        import os
+        from pathlib import Path
+
+        # 실제 데이터베이스 연결
+        db_path = Path(__file__).parent.parent.parent / "data" / "orders.db"
+
+        # DB가 없으면 생성
+        if not db_path.exists():
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+
+            # 주문 테이블 생성
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS orders (
+                    order_id TEXT PRIMARY KEY,
+                    status TEXT,
+                    tracking_number TEXT,
+                    delivered_date TEXT,
+                    expected_delivery TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # 초기 데이터 삽입
+            cursor.executemany("""
+                INSERT OR IGNORE INTO orders (order_id, status, tracking_number, delivered_date, expected_delivery)
+                VALUES (?, ?, ?, ?, ?)
+            """, [
+                ("ORD-001", "Delivered", "1Z999AA10123456784", "2024-01-15", None),
+                ("ORD-002", "In Transit", "1Z999AA10123456785", None, "2024-01-20"),
+                ("ORD-003", "Processing", None, None, "2024-01-25"),
+                ("ORD-004", "Shipped", "1Z999AA10123456786", None, "2024-01-22")
+            ])
+            conn.commit()
+        else:
+            conn = sqlite3.connect(db_path)
+
+        # 실제 조회
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT status, tracking_number, delivered_date, expected_delivery
+            FROM orders WHERE order_id = ?
+        """, (order_id,))
+
+        row = cursor.fetchone()
+        conn.close()
+
+        if row:
+            result = {"status": row[0]}
+            if row[1]:
+                result["tracking_number"] = row[1]
+            if row[2]:
+                result["delivered_date"] = row[2]
+            if row[3]:
+                result["expected_delivery"] = row[3]
+            return result
+
         return {"error": "Order not found"}
     
     @staticmethod

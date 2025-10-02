@@ -739,8 +739,8 @@ class AdaptiveLearningSystem:
             # 메타 파라미터 예측
             meta_params, adaptation_rate = self.meta_learner(task_embedding)
 
-            # 빠른 적응 시뮬레이션
-            adapted_performance = self._simulate_fast_adaptation(
+            # 실제 빠른 적응 (MAML - Model-Agnostic Meta-Learning)
+            adapted_performance = self._fast_adaptation_maml(
                 task_data, meta_params, adaptation_rate
             )
 
@@ -813,23 +813,51 @@ class AdaptiveLearningSystem:
 
         return task_embedding
 
-    def _simulate_fast_adaptation(self,
-                                 task_data: Dict,
-                                 meta_params: torch.Tensor,
-                                 adaptation_rate: torch.Tensor) -> torch.Tensor:
-        """빠른 적응 시뮬레이션"""
-        # 간단한 성능 예측 모델
+    def _fast_adaptation_maml(self,
+                             task_data: Dict,
+                             meta_params: torch.Tensor,
+                             adaptation_rate: torch.Tensor) -> torch.Tensor:
+        """실제 MAML 기반 빠른 적응"""
         user_id = task_data['user_id']
         experiences = task_data['experiences']
 
-        # 과거 성능 기반 예측
-        feedback_scores = [exp['feedback'] for exp in experiences]
-        avg_feedback = np.mean(feedback_scores)
+        # 태스크별 모델 복사
+        task_model = copy.deepcopy(self.adaptation_model)
 
-        # 메타 파라미터와 적응 속도를 고려한 성능 예측
-        predicted_performance = torch.tensor(avg_feedback) + 0.1 * torch.tanh(meta_params.mean()) * adaptation_rate
+        # 메타 파라미터로 초기화
+        with torch.no_grad():
+            for param, meta_param in zip(task_model.parameters(), meta_params.chunk(len(list(task_model.parameters())))):
+                param.data = meta_param.reshape(param.shape)
 
-        return predicted_performance.squeeze()
+        # 태스크별 그래디언트 스텝 (inner loop)
+        task_optimizer = optim.SGD(task_model.parameters(), lr=adaptation_rate.item())
+
+        for exp in experiences[:5]:  # 5-shot learning
+            # 경험에서 입력과 타겟 추출
+            input_tensor = self._extract_features(exp)
+            target = torch.tensor([exp['feedback']], dtype=torch.float32)
+
+            # Forward pass
+            output = task_model(input_tensor)
+            loss = nn.MSELoss()(output, target)
+
+            # Backward pass
+            task_optimizer.zero_grad()
+            loss.backward()
+            task_optimizer.step()
+
+        # 적응된 모델로 성능 평가
+        test_performances = []
+        for exp in experiences[5:]:  # 나머지로 테스트
+            input_tensor = self._extract_features(exp)
+            with torch.no_grad():
+                pred = task_model(input_tensor)
+                test_performances.append(pred.item())
+
+        if test_performances:
+            return torch.tensor(np.mean(test_performances))
+        else:
+            return torch.tensor(0.0)
 
     def _compute_target_performance(self, task_data: Dict) -> torch.Tensor:
         """목표 성능 계산"""
