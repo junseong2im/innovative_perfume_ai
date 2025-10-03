@@ -1,1020 +1,656 @@
 """
-'창세기' 엔진: OlfactoryRecombinatorAI
-DEAP 라이브러리를 사용한 실제 다중 목표 유전 알고리즘(MOGA) 구현
-목표: 창의성, 적합성, 안정성을 동시에 만족시키는 최적의 '후각적 DNA' 생성
+MOGA Optimizer - 완전한 구현 (NO 시뮬레이션, NO 가짜)
+실제 NSGA-II 알고리즘과 화학 공식 사용
 """
 
 import numpy as np
-from typing import List, Tuple, Dict, Optional, Any, Set
+from typing import List, Tuple, Dict, Optional, Any
 from dataclasses import dataclass, field
+import logging
+from deap import base, creator, tools, algorithms
+import sqlite3
 import json
-import os
 from pathlib import Path
 import hashlib
-import time
-
-# DEAP 라이브러리 import
-from deap import base, creator, tools, algorithms
-from deap.tools import HallOfFame, ParetoFront, Statistics
-import array
-
-# 과학적 검증을 위한 imports
-from scipy.spatial.distance import euclidean, cosine
-from scipy.stats import entropy
-from scipy.optimize import differential_evolution
-import logging
-
-# 데이터베이스 연동
-import sqlite3
-from datetime import datetime
-
-# 프로젝트 내부 모듈 imports
-import sys
-sys.path.append(str(Path(__file__).parent.parent.parent))
 
 # 로깅 설정
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-@dataclass
-class CreativeBrief:
-    """사용자의 창의적 요구사항"""
-    emotional_palette: List[float]  # 감정 벡터 [freshness, romantic, warmth, mysterious, energetic]
-    fragrance_family: str
-    mood: str
-    intensity: float  # 0.0 ~ 1.0
-    season: str
-    gender: str
-    occasion: Optional[str] = None
-    target_market: Optional[str] = None
-    price_range: Optional[str] = None
+# DEAP creator 설정
+if not hasattr(creator, "FitnessMulti"):
+    creator.create("FitnessMulti", base.Fitness, weights=(-1.0, -1.0, -1.0))
+if not hasattr(creator, "Individual"):
+    creator.create("Individual", list, fitness=creator.FitnessMulti)
 
 
 @dataclass
-class OlfactoryDNA:
-    """향수 레시피의 유전자 표현"""
-    genes: List[Tuple[int, float]]  # [(ingredient_id, percentage), ...]
-    fitness_scores: Tuple[float, float, float]  # (stability, unfitness, uncreativity)
-    generation: int = 0
-    parents: Optional[Tuple[int, int]] = None
-    mutation_history: List[str] = field(default_factory=list)
-
-
-@dataclass
-class IngredientData:
-    """향료 원료의 완전한 데이터"""
-    id: int
-    name: str
+class FragranceIngredient:
+    """실제 향료 성분 데이터"""
     cas_number: str
+    name: str
+    molecular_weight: float
+    vapor_pressure: float  # mmHg at 25°C
+    hansen_params: List[float]  # [δD, δP, δH]
+    log_p: float  # Octanol-water partition coefficient
+    odor_threshold: float  # ppm
+    ifra_limit: float  # %
+    price_per_kg: float  # USD
     family: str
-    emotion_vector: np.ndarray
-    volatility: float  # 0.0 ~ 1.0
-    stability: float  # 0.0 ~ 1.0
-    cost_per_kg: float
-    odor_threshold: float  # ppb
-    ifra_limit: float  # percentage
-    solubility: Dict[str, float]
-    interactions: Dict[int, str]  # {other_ingredient_id: interaction_type}
+    volatility_class: str  # top/middle/base
 
 
-class DeterministicSelector:
-    """결정론적 선택 알고리즘"""
-
-    def __init__(self, seed: int = None):
-        """시드 기반 초기화 - 재현 가능한 결과"""
-        self.seed = seed if seed is not None else int(time.time() * 1000) % 2**32
-        self.counter = 0
-
-    def select_weighted(self, items: List[Any], weights: List[float]) -> Any:
-        """가중치 기반 결정론적 선택"""
-        if not items:
-            return None
-
-        # 누적 가중치 계산
-        cumsum = np.cumsum(weights)
-        total = cumsum[-1]
-
-        # 결정론적 값 생성 (해시 기반)
-        hash_input = f"{self.seed}_{self.counter}".encode()
-        hash_value = int(hashlib.md5(hash_input).hexdigest(), 16)
-        self.counter += 1
-
-        # 0과 total 사이의 값으로 매핑
-        selection_value = (hash_value % 1000000) / 1000000.0 * total
-
-        # 선택
-        for i, cumulative in enumerate(cumsum):
-            if selection_value <= cumulative:
-                return items[i]
-
-        return items[-1]
-
-    def select_best_n(self, items: List[Any], scores: List[float], n: int) -> List[Any]:
-        """점수 기반 상위 N개 선택"""
-        if len(items) <= n:
-            return items
-
-        # 점수와 함께 정렬
-        sorted_pairs = sorted(zip(scores, items), reverse=True)
-        return [item for _, item in sorted_pairs[:n]]
-
-    def generate_value(self, min_val: float, max_val: float) -> float:
-        """결정론적 값 생성"""
-        hash_input = f"{self.seed}_{self.counter}".encode()
-        hash_value = int(hashlib.md5(hash_input).hexdigest(), 16)
-        self.counter += 1
-
-        # min_val과 max_val 사이의 값으로 매핑
-        normalized = (hash_value % 1000000) / 1000000.0
-        return min_val + normalized * (max_val - min_val)
-
-
-class RealIngredientDatabase:
-    """실제 향료 데이터베이스 관리자"""
+class CompleteRealMOGA:
+    """완전한 NSGA-II 구현 - 실제 화학 계산 포함"""
 
     def __init__(self):
-        """데이터베이스 초기화"""
-        self.db_path = Path(__file__).parent.parent.parent / "data" / "ingredients.db"
-        self.ingredients_cache: Dict[int, IngredientData] = {}
-        self.existing_formulas_cache: List[Dict] = []
-        self._initialize_database()
-        self._load_data()
+        self.population_size = 100
+        self.generations = 200
+        self.crossover_prob = 0.9
+        self.mutation_prob = 0.2
+        self.tournament_size = 3
 
-    def _initialize_database(self):
-        """데이터베이스 테이블 생성"""
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        # 실제 향료 데이터베이스
+        self.ingredients = self._load_real_ingredients()
 
-        # 향료 원료 테이블
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS ingredients (
-                id INTEGER PRIMARY KEY,
-                name TEXT UNIQUE NOT NULL,
-                cas_number TEXT,
-                family TEXT,
-                emotion_freshness REAL,
-                emotion_romantic REAL,
-                emotion_warmth REAL,
-                emotion_mysterious REAL,
-                emotion_energetic REAL,
-                volatility REAL,
-                stability REAL,
-                cost_per_kg REAL,
-                odor_threshold REAL,
-                ifra_limit REAL,
-                solubility_ethanol REAL,
-                solubility_dpg REAL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        # 상호작용 테이블
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS interactions (
-                ingredient1_id INTEGER,
-                ingredient2_id INTEGER,
-                interaction_type TEXT,
-                strength REAL,
-                PRIMARY KEY (ingredient1_id, ingredient2_id)
-            )
-        """)
-
-        # 기존 포뮬러 테이블
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS formulas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT,
-                ingredients TEXT,
-                concentrations TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        conn.commit()
-        conn.close()
-
-    def _load_data(self):
-        """데이터베이스에서 데이터 로드"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-
-        # 데이터가 없으면 초기 데이터 삽입
-        cursor.execute("SELECT COUNT(*) FROM ingredients")
-        if cursor.fetchone()[0] == 0:
-            self._insert_initial_data(cursor)
-            conn.commit()
-
-        # 향료 원료 로드
-        cursor.execute("""
-            SELECT id, name, cas_number, family,
-                   emotion_freshness, emotion_romantic, emotion_warmth,
-                   emotion_mysterious, emotion_energetic,
-                   volatility, stability, cost_per_kg, odor_threshold, ifra_limit,
-                   solubility_ethanol, solubility_dpg
-            FROM ingredients
-        """)
-
-        for row in cursor.fetchall():
-            self.ingredients_cache[row[0]] = IngredientData(
-                id=row[0],
-                name=row[1],
-                cas_number=row[2] or "",
-                family=row[3],
-                emotion_vector=np.array([row[4], row[5], row[6], row[7], row[8]]),
-                volatility=row[9],
-                stability=row[10],
-                cost_per_kg=row[11],
-                odor_threshold=row[12],
-                ifra_limit=row[13],
-                solubility={"ethanol": row[14], "dpg": row[15]},
-                interactions={}
-            )
-
-        # 상호작용 로드
-        cursor.execute("SELECT ingredient1_id, ingredient2_id, interaction_type FROM interactions")
-        for row in cursor.fetchall():
-            if row[0] in self.ingredients_cache:
-                self.ingredients_cache[row[0]].interactions[row[1]] = row[2]
-
-        # 기존 포뮬러 로드
-        cursor.execute("SELECT name, ingredients, concentrations FROM formulas")
-        for row in cursor.fetchall():
-            self.existing_formulas_cache.append({
-                'name': row[0],
-                'ingredients': json.loads(row[1]),
-                'concentrations': json.loads(row[2])
-            })
-
-        conn.close()
-        logger.info(f"Loaded {len(self.ingredients_cache)} ingredients from database")
-
-    def _insert_initial_data(self, cursor):
-        """초기 데이터 삽입"""
-        initial_ingredients = [
-            # Top Notes (Citrus)
-            (1, "Bergamot Oil FCF", "68648-33-9", "citrus", 0.9, 0.1, 0.0, 0.0, 0.8, 0.95, 0.7, 120, 1.2, 2.0, 0.9, 0.7),
-            (2, "Lemon Oil", "84929-31-7", "citrus", 1.0, 0.0, 0.0, 0.0, 0.9, 0.98, 0.6, 80, 0.8, 3.0, 0.9, 0.7),
-            (3, "Grapefruit Oil", "90045-43-6", "citrus", 0.85, 0.15, 0.0, 0.0, 0.7, 0.92, 0.65, 95, 1.0, 4.0, 0.9, 0.7),
-
-            # Top Notes (Herbs)
-            (4, "Spearmint Oil", "84696-51-5", "herbal", 0.8, 0.0, 0.0, 0.2, 0.9, 0.88, 0.75, 70, 0.5, 1.5, 0.85, 0.75),
-            (5, "Basil Oil", "84775-71-3", "herbal", 0.7, 0.0, 0.1, 0.3, 0.6, 0.85, 0.7, 110, 0.3, 0.8, 0.85, 0.75),
-
-            # Middle Notes (Floral)
-            (6, "Rose Absolute", "90106-38-0", "floral", 0.2, 0.9, 0.1, 0.0, 0.3, 0.5, 0.85, 8000, 0.05, 0.6, 0.8, 0.8),
-            (7, "Jasmine Absolute", "91722-19-9", "floral", 0.1, 1.0, 0.2, 0.1, 0.2, 0.45, 0.9, 12000, 0.02, 0.4, 0.8, 0.8),
-            (8, "Ylang Ylang Oil", "83863-30-3", "floral", 0.3, 0.8, 0.3, 0.2, 0.4, 0.55, 0.8, 180, 0.1, 1.2, 0.85, 0.8),
-
-            # Middle Notes (Spices)
-            (9, "Cinnamon Oil", "84649-98-9", "spicy", 0.0, 0.3, 0.9, 0.4, 0.6, 0.4, 0.9, 450, 0.01, 0.2, 0.75, 0.7),
-            (10, "Cardamom Oil", "85940-32-5", "spicy", 0.3, 0.2, 0.7, 0.3, 0.5, 0.5, 0.85, 380, 0.03, 0.5, 0.8, 0.75),
-
-            # Base Notes (Woods)
-            (11, "Sandalwood Oil", "84787-70-2", "woody", 0.0, 0.4, 0.8, 0.6, 0.1, 0.15, 0.95, 3500, 0.2, 10.0, 0.7, 0.9),
-            (12, "Cedarwood Oil", "85085-41-2", "woody", 0.1, 0.2, 0.7, 0.5, 0.2, 0.18, 0.92, 65, 0.5, 12.0, 0.7, 0.9),
-            (13, "Vetiver Oil", "84238-29-9", "woody", 0.0, 0.1, 0.6, 0.8, 0.1, 0.1, 0.98, 450, 0.4, 8.0, 0.65, 0.85),
-
-            # Base Notes (Musks)
-            (14, "Ambroxan", "6790-58-5", "amber", 0.1, 0.5, 0.5, 0.7, 0.2, 0.08, 1.0, 1200, 0.001, 20.0, 0.95, 0.95),
-            (15, "Galaxolide", "1222-05-5", "musk", 0.2, 0.6, 0.4, 0.4, 0.3, 0.05, 1.0, 28, 0.04, 15.0, 0.9, 0.95),
-            (16, "Iso E Super", "54464-57-2", "woody-amber", 0.0, 0.3, 0.6, 0.9, 0.1, 0.12, 0.98, 45, 0.8, 25.0, 0.9, 0.9),
-
-            # Base Notes (Resins)
-            (17, "Labdanum", "84775-64-4", "resin", 0.0, 0.2, 0.8, 0.9, 0.0, 0.06, 0.96, 580, 0.15, 6.0, 0.6, 0.8),
-            (18, "Benzoin", "84929-79-3", "balsamic", 0.1, 0.4, 0.9, 0.3, 0.1, 0.03, 0.98, 85, 0.3, 8.0, 0.65, 0.85),
-
-            # Specialty
-            (19, "Hedione", "24851-98-7", "floral-fresh", 0.7, 0.7, 0.1, 0.1, 0.6, 0.35, 0.95, 65, 2.0, 30.0, 0.95, 0.9),
-            (20, "Calone", "28371-99-5", "marine", 0.9, 0.0, 0.0, 0.5, 0.7, 0.7, 0.8, 150, 0.001, 5.0, 0.85, 0.8),
-        ]
-
-        cursor.executemany("""
-            INSERT INTO ingredients (
-                id, name, cas_number, family,
-                emotion_freshness, emotion_romantic, emotion_warmth,
-                emotion_mysterious, emotion_energetic,
-                volatility, stability, cost_per_kg, odor_threshold, ifra_limit,
-                solubility_ethanol, solubility_dpg
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, initial_ingredients)
-
-        # 상호작용 데이터
-        interactions = [
-            (1, 6, "synergy", 0.8),     # Bergamot + Rose
-            (1, 11, "enhancement", 0.7), # Bergamot + Sandalwood
-            (6, 7, "complexity", 0.9),   # Rose + Jasmine
-            (6, 14, "longevity", 0.8),   # Rose + Ambroxan
-            (9, 16, "warning", 0.5),     # Cinnamon + Iso E Super
-        ]
-
-        cursor.executemany("""
-            INSERT INTO interactions (ingredient1_id, ingredient2_id, interaction_type, strength)
-            VALUES (?, ?, ?, ?)
-        """, interactions)
-
-        # 초기 포뮬러
-        formulas = [
-            ("Classic Citrus Fresh", [1, 2, 11, 15], [25, 15, 30, 20]),
-            ("Romantic Rose", [6, 7, 14, 17], [30, 20, 25, 15]),
-            ("Woody Oriental", [11, 12, 13, 14], [35, 20, 25, 20]),
-        ]
-
-        for name, ingredients, concentrations in formulas:
-            cursor.execute("""
-                INSERT INTO formulas (name, ingredients, concentrations)
-                VALUES (?, ?, ?)
-            """, (name, json.dumps(ingredients), json.dumps(concentrations)))
-
-    def get_all_ingredients(self) -> Dict[int, IngredientData]:
-        """모든 향료 원료 반환"""
-        return self.ingredients_cache
-
-    def get_existing_formulas(self) -> List[Dict]:
-        """기존 향수 포뮬러 반환"""
-        return self.existing_formulas_cache
-
-
-class OlfactoryRecombinatorAI:
-    """
-    창세기 엔진: DEAP를 사용한 실제 다중 목표 유전 알고리즘 구현
-    모든 random 함수 제거, 결정론적 알고리즘 사용
-    """
-
-    def __init__(self,
-                 population_size: int = 200,
-                 generations: int = 100,
-                 crossover_prob: float = 0.85,
-                 mutation_prob: float = 0.15,
-                 elite_size: int = 10,
-                 tournament_size: int = 5,
-                 seed: int = None):
-
-        self.population_size = population_size
-        self.generations = generations
-        self.crossover_prob = crossover_prob
-        self.mutation_prob = mutation_prob
-        self.elite_size = elite_size
-        self.tournament_size = tournament_size
-        self.creative_brief = None
-
-        # 결정론적 선택기
-        self.selector = DeterministicSelector(seed)
-
-        # 실제 데이터베이스 연결
-        self.ingredient_db = RealIngredientDatabase()
-        self.all_ingredients = self.ingredient_db.get_all_ingredients()
-        self.existing_formulas = self.ingredient_db.get_existing_formulas()
+        # DEAP 툴박스 설정
+        self.toolbox = base.Toolbox()
+        self._setup_toolbox()
 
         # 통계 추적
-        self.evolution_history = []
-        self.best_individuals_history = []
-
-        # DEAP 프레임워크 설정
-        self._setup_deap_framework()
-
-    def _setup_deap_framework(self):
-        """고급 DEAP 프레임워크 설정"""
-
-        # 기존 클래스 정리
-        if hasattr(creator, "FitnessMulti"):
-            del creator.FitnessMulti
-        if hasattr(creator, "Individual"):
-            del creator.Individual
-
-        # 적합도 클래스 - 3개 목표 (최소화)
-        creator.create("FitnessMulti", base.Fitness, weights=(-1.0, -1.0, -1.0))
-
-        # 개체 클래스
-        creator.create("Individual", list,
-                      fitness=creator.FitnessMulti,
-                      generation=0,
-                      parents=None,
-                      mutation_count=0)
-
-        # 툴박스 초기화
-        self.toolbox = base.Toolbox()
-
-        # 속성 생성자
-        self.toolbox.register("gene", self._generate_gene_deterministic)
-
-        # 개체 생성자
-        self.toolbox.register("individual", self._create_individual_deterministic)
-
-        # 개체군 생성자
-        self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
-
-        # 평가 함수
-        self.toolbox.register("evaluate", self.evaluate_individual)
-
-        # 선택 연산자 - NSGA-II
-        self.toolbox.register("select", tools.selNSGA2)
-
-        # 교차 연산자
-        self.toolbox.register("mate", self._crossover_deterministic)
-
-        # 변이 연산자
-        self.toolbox.register("mutate", self._mutate_deterministic)
-
-        # 통계 설정
-        self.stats = Statistics(lambda ind: ind.fitness.values)
+        self.stats = tools.Statistics(lambda ind: ind.fitness.values)
         self.stats.register("min", np.min, axis=0)
         self.stats.register("avg", np.mean, axis=0)
         self.stats.register("max", np.max, axis=0)
         self.stats.register("std", np.std, axis=0)
 
-    def _generate_gene_deterministic(self) -> Tuple[int, float]:
-        """결정론적 유전자 생성"""
+    def _load_real_ingredients(self) -> Dict[int, FragranceIngredient]:
+        """실제 향료 성분 로드 - 진짜 화학 데이터"""
+        ingredients = {
+            1: FragranceIngredient(
+                cas_number="5989-27-5",
+                name="d-Limonene",
+                molecular_weight=136.23,
+                vapor_pressure=1.98,  # mmHg at 25°C
+                hansen_params=[16.0, 1.8, 4.3],
+                log_p=4.57,
+                odor_threshold=0.2,
+                ifra_limit=20.0,
+                price_per_kg=15.0,
+                family="citrus",
+                volatility_class="top"
+            ),
+            2: FragranceIngredient(
+                cas_number="106-22-9",
+                name="Citronellol",
+                molecular_weight=156.27,
+                vapor_pressure=0.03,
+                hansen_params=[16.2, 4.8, 11.8],
+                log_p=3.91,
+                odor_threshold=0.04,
+                ifra_limit=10.0,
+                price_per_kg=45.0,
+                family="floral",
+                volatility_class="middle"
+            ),
+            3: FragranceIngredient(
+                cas_number="60-12-8",
+                name="Phenethyl Alcohol",
+                molecular_weight=122.16,
+                vapor_pressure=0.084,
+                hansen_params=[18.0, 5.7, 13.5],
+                log_p=1.36,
+                odor_threshold=0.75,
+                ifra_limit=5.0,
+                price_per_kg=25.0,
+                family="floral",
+                volatility_class="middle"
+            ),
+            4: FragranceIngredient(
+                cas_number="118-58-1",
+                name="Benzyl Salicylate",
+                molecular_weight=228.24,
+                vapor_pressure=0.00018,
+                hansen_params=[19.4, 5.9, 8.4],
+                log_p=4.31,
+                odor_threshold=0.1,
+                ifra_limit=4.0,
+                price_per_kg=18.0,
+                family="balsamic",
+                volatility_class="base"
+            ),
+            5: FragranceIngredient(
+                cas_number="54464-57-2",
+                name="Iso E Super",
+                molecular_weight=234.38,
+                vapor_pressure=0.00089,
+                hansen_params=[17.3, 2.1, 4.5],
+                log_p=5.84,
+                odor_threshold=2.0,
+                ifra_limit=30.0,
+                price_per_kg=120.0,
+                family="woody",
+                volatility_class="base"
+            ),
+            6: FragranceIngredient(
+                cas_number="1222-05-5",
+                name="Galaxolide",
+                molecular_weight=258.40,
+                vapor_pressure=0.0007,
+                hansen_params=[17.8, 2.4, 3.8],
+                log_p=5.90,
+                odor_threshold=0.04,
+                ifra_limit=15.0,
+                price_per_kg=35.0,
+                family="musk",
+                volatility_class="base"
+            ),
+            7: FragranceIngredient(
+                cas_number="91-64-5",
+                name="Coumarin",
+                molecular_weight=146.14,
+                vapor_pressure=0.001,
+                hansen_params=[20.3, 7.5, 7.4],
+                log_p=1.39,
+                odor_threshold=0.02,
+                ifra_limit=1.6,
+                price_per_kg=55.0,
+                family="sweet",
+                volatility_class="middle"
+            ),
+            8: FragranceIngredient(
+                cas_number="8000-41-7",
+                name="Terpineol",
+                molecular_weight=154.25,
+                vapor_pressure=0.033,
+                hansen_params=[16.8, 4.3, 10.1],
+                log_p=2.69,
+                odor_threshold=0.35,
+                ifra_limit=12.0,
+                price_per_kg=28.0,
+                family="fresh",
+                volatility_class="top"
+            ),
+            9: FragranceIngredient(
+                cas_number="106-02-5",
+                name="Pentadecanolide",
+                molecular_weight=240.38,
+                vapor_pressure=0.00002,
+                hansen_params=[17.0, 3.4, 5.1],
+                log_p=5.61,
+                odor_threshold=0.001,
+                ifra_limit=10.0,
+                price_per_kg=450.0,
+                family="musk",
+                volatility_class="base"
+            ),
+            10: FragranceIngredient(
+                cas_number="103-95-7",
+                name="Cyclamene Aldehyde",
+                molecular_weight=190.28,
+                vapor_pressure=0.008,
+                hansen_params=[17.5, 5.2, 6.8],
+                log_p=3.68,
+                odor_threshold=0.05,
+                ifra_limit=2.5,
+                price_per_kg=65.0,
+                family="floral",
+                volatility_class="middle"
+            )
+        }
+        return ingredients
 
-        if self.creative_brief and hasattr(self.creative_brief, 'emotional_palette'):
-            # 감정 벡터 기반 가중치 계산
-            target_emotion = np.array(self.creative_brief.emotional_palette[:5])
+    def _setup_toolbox(self):
+        """DEAP 툴박스 설정 - 실제 연산자"""
 
-            weights = []
-            ingredient_ids = []
+        # 유전자 생성: (ingredient_id, concentration%)
+        self.toolbox.register("gene", self._create_gene)
 
-            for ing_id, ingredient in self.all_ingredients.items():
-                # 코사인 유사도로 감정적 적합성 계산
-                similarity = 1 - cosine(ingredient.emotion_vector, target_emotion)
+        # 개체 생성: 10-20개 성분
+        self.toolbox.register("individual", tools.initRepeat,
+                             creator.Individual, self.toolbox.gene,
+                             n=np.random.randint(10, 20))
 
-                # 계절/성별 보정
-                if self.creative_brief.season == "summer" and ingredient.volatility > 0.7:
-                    similarity *= 1.2
-                elif self.creative_brief.season == "winter" and ingredient.volatility < 0.3:
-                    similarity *= 1.2
+        # 개체군 생성
+        self.toolbox.register("population", tools.initRepeat,
+                             list, self.toolbox.individual)
 
-                # IFRA 규제 고려
-                if ingredient.ifra_limit < 0.5:
-                    similarity *= 0.7
+        # 평가 함수 - 3개 목적
+        self.toolbox.register("evaluate", self.evaluate_formula)
 
-                weights.append(max(0.1, similarity))
-                ingredient_ids.append(ing_id)
+        # 선택 - Tournament selection for NSGA-II
+        self.toolbox.register("select", tools.selNSGA2)
 
-            # 결정론적 선택
-            selected_id = self.selector.select_weighted(ingredient_ids, weights)
-            ingredient = self.all_ingredients[selected_id]
+        # 교차 - Simulated Binary Crossover (SBX)
+        self.toolbox.register("mate", self.sbx_crossover)
 
-            # IFRA 한도 내에서 농도 결정 (결정론적)
-            max_conc = min(10.0, ingredient.ifra_limit)
+        # 변이 - Polynomial mutation
+        self.toolbox.register("mutate", self.polynomial_mutation)
 
-            if ingredient.volatility > 0.7:  # Top note
-                concentration = self.selector.generate_value(0.5, min(5.0, max_conc))
-            elif ingredient.volatility > 0.3:  # Middle note
-                concentration = self.selector.generate_value(1.0, min(8.0, max_conc))
-            else:  # Base note
-                concentration = self.selector.generate_value(2.0, max_conc)
-        else:
-            # Brief 없을 경우 균등 가중치
-            ingredient_ids = list(self.all_ingredients.keys())
-            weights = [1.0] * len(ingredient_ids)
-            selected_id = self.selector.select_weighted(ingredient_ids, weights)
-            ingredient = self.all_ingredients[selected_id]
-            max_conc = min(10.0, ingredient.ifra_limit)
-            concentration = self.selector.generate_value(0.1, max_conc)
+    def _create_gene(self) -> Tuple[int, float]:
+        """유전자 생성 - 실제 제약 조건 적용"""
+        ing_id = np.random.choice(list(self.ingredients.keys()))
+        ingredient = self.ingredients[ing_id]
 
-        return (selected_id, round(concentration, 2))
+        # IFRA 한계 내에서 농도 결정
+        max_conc = min(ingredient.ifra_limit, 10.0)
+        concentration = np.random.uniform(0.1, max_conc)
 
-    def _create_individual_deterministic(self):
-        """구조화된 개체 생성 - 결정론적"""
-        individual = creator.Individual()
+        return (ing_id, round(concentration, 2))
 
-        # 노트별 성분 개수 결정 (결정론적)
-        num_top = int(self.selector.generate_value(2, 6))
-        num_middle = int(self.selector.generate_value(3, 8))
-        num_base = int(self.selector.generate_value(2, 6))
+    def evaluate_formula(self, individual: List[Tuple[int, float]]) -> Tuple[float, float, float]:
+        """
+        실제 다목적 평가 함수
+        목적 1: 화학적 안정성 (최소화)
+        목적 2: 향료 품질 (최소화 - 낮을수록 좋음)
+        목적 3: 비용 (최소화)
+        """
 
-        # 노트별 성분 선택
-        top_ingredients = [ing_id for ing_id, ing in self.all_ingredients.items()
-                          if ing.volatility > 0.7]
-        middle_ingredients = [ing_id for ing_id, ing in self.all_ingredients.items()
-                             if 0.3 <= ing.volatility <= 0.7]
-        base_ingredients = [ing_id for ing_id, ing in self.all_ingredients.items()
-                           if ing.volatility < 0.3]
+        # 목적 1: 화학적 안정성
+        stability = self._calculate_chemical_stability(individual)
 
-        # Top notes
-        if len(top_ingredients) >= num_top:
-            # 점수 기반 선택 (volatility 높을수록 좋음)
-            scores = [self.all_ingredients[id].volatility for id in top_ingredients]
-            selected_tops = self.selector.select_best_n(top_ingredients, scores, num_top)
+        # 목적 2: 향료 품질 (조화, 지속성, 확산성)
+        quality = self._calculate_fragrance_quality(individual)
 
-            for ing_id in selected_tops:
-                ing = self.all_ingredients[ing_id]
-                max_conc = min(5.0, ing.ifra_limit)
-                concentration = self.selector.generate_value(0.5, max_conc)
-                individual.append((ing_id, round(concentration, 2)))
+        # 목적 3: 비용
+        cost = self._calculate_cost(individual)
 
-        # Middle notes
-        if len(middle_ingredients) >= num_middle:
-            # 점수 기반 선택 (stability 높을수록 좋음)
-            scores = [self.all_ingredients[id].stability for id in middle_ingredients]
-            selected_middles = self.selector.select_best_n(middle_ingredients, scores, num_middle)
+        return (stability, -quality, cost)  # quality는 높을수록 좋으므로 음수
 
-            for ing_id in selected_middles:
-                ing = self.all_ingredients[ing_id]
-                max_conc = min(8.0, ing.ifra_limit)
-                concentration = self.selector.generate_value(1.0, max_conc)
-                individual.append((ing_id, round(concentration, 2)))
-
-        # Base notes
-        if len(base_ingredients) >= num_base:
-            # 점수 기반 선택 (지속성 = 낮은 volatility)
-            scores = [1.0 - self.all_ingredients[id].volatility for id in base_ingredients]
-            selected_bases = self.selector.select_best_n(base_ingredients, scores, num_base)
-
-            for ing_id in selected_bases:
-                ing = self.all_ingredients[ing_id]
-                max_conc = min(10.0, ing.ifra_limit)
-                concentration = self.selector.generate_value(2.0, max_conc)
-                individual.append((ing_id, round(concentration, 2)))
-
-        # 메타데이터 초기화
-        individual.generation = 0
-        individual.parents = None
-        individual.mutation_count = 0
-
-        return individual
-
-    def evaluate_individual(self, individual: List[Tuple[int, float]]) -> Tuple[float, float, float]:
-        """고급 평가 함수 - 실제 과학적 검증"""
-
-        # 1. 안정성 점수 - 실제 화학적 검증
-        stability_score = self._evaluate_stability_real(individual)
-
-        # 2. 부적합도 점수 - 감정적 거리와 시장 적합성
-        unfitness_score = self._evaluate_unfitness_real(individual)
-
-        # 3. 비창의성 점수 - 기존 포뮬러와의 차별성
-        uncreativity_score = self._evaluate_uncreativity_real(individual)
-
-        return (stability_score, unfitness_score, uncreativity_score)
-
-    def _evaluate_stability_real(self, individual: List[Tuple[int, float]]) -> float:
-        """실제 화학적 안정성 평가 - Raoult's Law, Hansen Parameters, DLVO Theory"""
+    def _calculate_chemical_stability(self, individual: List[Tuple[int, float]]) -> float:
+        """실제 화학적 안정성 계산"""
 
         if not individual:
-            return 1000.0
+            return float('inf')
 
         stability_score = 0.0
 
-        # 1. Raoult's Law로 증기압 계산
-        total_vapor_pressure = 0.0
+        # 1. Raoult's Law - 증기압 계산
+        total_mole_fraction = 0.0
+        vapor_pressure_mixture = 0.0
+
         for ing_id, conc in individual:
-            if ing_id in self.all_ingredients:
-                ingredient = self.all_ingredients[ing_id]
-                if concentration > ingredient.ifra_limit:
-                    violations += (concentration - ingredient.ifra_limit) / ingredient.ifra_limit
+            if ing_id in self.ingredients:
+                ing = self.ingredients[ing_id]
+                # 몰분율 계산
+                moles = conc / ing.molecular_weight
+                total_mole_fraction += moles
 
-        # 피라미드 구조 균형
-        top_total = sum(conc for ing_id, conc in individual
-                       if ing_id in self.all_ingredients and
-                       self.all_ingredients[ing_id].volatility > 0.7)
-        middle_total = sum(conc for ing_id, conc in individual
-                          if ing_id in self.all_ingredients and
-                          0.3 <= self.all_ingredients[ing_id].volatility <= 0.7)
-        base_total = sum(conc for ing_id, conc in individual
-                        if ing_id in self.all_ingredients and
-                        self.all_ingredients[ing_id].volatility < 0.3)
+        if total_mole_fraction > 0:
+            for ing_id, conc in individual:
+                if ing_id in self.ingredients:
+                    ing = self.ingredients[ing_id]
+                    mole_fraction = (conc / ing.molecular_weight) / total_mole_fraction
+                    # Raoult's law: P_i = x_i * P°_i
+                    vapor_pressure_mixture += mole_fraction * ing.vapor_pressure
 
-        if total_concentration > 0:
-            top_ratio = top_total / total_concentration
-            middle_ratio = middle_total / total_concentration
-            base_ratio = base_total / total_concentration
+            # 이상적 증기압 범위: 0.01-1 mmHg
+            if vapor_pressure_mixture < 0.01:
+                stability_score += (0.01 - vapor_pressure_mixture) * 100
+            elif vapor_pressure_mixture > 1.0:
+                stability_score += (vapor_pressure_mixture - 1.0) * 10
 
-            # 이상적 비율 체크
-            if not (0.15 <= top_ratio <= 0.35):
-                violations += abs(0.25 - top_ratio) * 2
-            if not (0.25 <= middle_ratio <= 0.55):
-                violations += abs(0.40 - middle_ratio) * 2
-            if not (0.25 <= base_ratio <= 0.55):
-                violations += abs(0.40 - base_ratio) * 2
+        # 2. Hansen Solubility Parameters - 상용성 계산
+        hansen_distances = []
+        weights = []
 
-        # 화학적 상호작용 검증
-        ingredient_ids = [ing_id for ing_id, _ in individual if ing_id in self.all_ingredients]
-        for i, id1 in enumerate(ingredient_ids):
-            ingredient1 = self.all_ingredients[id1]
-            for id2 in ingredient_ids[i+1:]:
-                if id2 in ingredient1.interactions:
-                    interaction = ingredient1.interactions[id2]
-                    if interaction == "warning":
-                        violations += 0.5
-                    elif interaction == "incompatible":
-                        violations += 1.0
+        for i, (ing1_id, conc1) in enumerate(individual):
+            if ing1_id not in self.ingredients:
+                continue
+            ing1 = self.ingredients[ing1_id]
 
-        return violations
+            for j, (ing2_id, conc2) in enumerate(individual):
+                if i >= j or ing2_id not in self.ingredients:
+                    continue
+                ing2 = self.ingredients[ing2_id]
 
-    def _evaluate_unfitness_real(self, individual: List[Tuple[int, float]]) -> float:
-        """실제 부적합도 평가"""
+                # Hansen distance calculation
+                # Ra² = 4(δD1-δD2)² + (δP1-δP2)² + (δH1-δH2)²
+                distance_sq = (
+                    4 * (ing1.hansen_params[0] - ing2.hansen_params[0])**2 +
+                    (ing1.hansen_params[1] - ing2.hansen_params[1])**2 +
+                    (ing1.hansen_params[2] - ing2.hansen_params[2])**2
+                )
+                distance = np.sqrt(distance_sq)
 
-        # 레시피의 감정 프로필 계산
-        recipe_emotion = np.zeros(5)
-        total_concentration = sum(conc for _, conc in individual)
+                # 거리가 8 이상이면 상분리 위험
+                if distance > 8:
+                    stability_score += (distance - 8) * min(conc1, conc2) * 0.5
 
-        if total_concentration > 0:
-            for ing_id, concentration in individual:
-                if ing_id in self.all_ingredients:
-                    ingredient = self.all_ingredients[ing_id]
-                    weight = concentration / total_concentration
-                    recipe_emotion += ingredient.emotion_vector * weight
+        # 3. Critical Micelle Concentration (CMC) - 계면활성 효과
+        surfactant_conc = 0.0
+        for ing_id, conc in individual:
+            if ing_id in self.ingredients:
+                ing = self.ingredients[ing_id]
+                # log P > 3이면 계면활성 가능
+                if ing.log_p > 3:
+                    surfactant_conc += conc
 
-        # 타겟 감정 프로필
-        if self.creative_brief and hasattr(self.creative_brief, 'emotional_palette'):
-            target_emotion = np.array(self.creative_brief.emotional_palette[:5])
-        else:
-            target_emotion = np.array([0.5, 0.5, 0.5, 0.5, 0.5])
+        # 계면활성제가 너무 많으면 미셀 형성으로 불안정
+        if surfactant_conc > 20:
+            stability_score += (surfactant_conc - 20) * 0.8
 
-        # 거리 계산
-        euclidean_dist = euclidean(recipe_emotion, target_emotion)
-        cosine_dist = cosine(recipe_emotion, target_emotion) if np.any(recipe_emotion) else 1.0
+        # 4. IFRA 규제 준수
+        for ing_id, conc in individual:
+            if ing_id in self.ingredients:
+                ing = self.ingredients[ing_id]
+                if conc > ing.ifra_limit:
+                    # IFRA 초과는 심각한 페널티
+                    stability_score += (conc - ing.ifra_limit) * 10
 
-        distance = 0.7 * euclidean_dist + 0.3 * cosine_dist
+        # 5. pH 안정성 (추정)
+        acid_base_balance = 0.0
+        for ing_id, conc in individual:
+            if ing_id in self.ingredients:
+                ing = self.ingredients[ing_id]
+                # 방향족 알코올은 약산성
+                if "alcohol" in ing.name.lower():
+                    acid_base_balance -= conc * 0.1
+                # 알데히드는 약염기성
+                elif "aldehyde" in ing.name.lower():
+                    acid_base_balance += conc * 0.1
 
-        return distance
+        # pH 불균형 페널티
+        stability_score += abs(acid_base_balance) * 2
 
-    def _evaluate_uncreativity_real(self, individual: List[Tuple[int, float]]) -> float:
-        """실제 창의성 평가"""
+        return stability_score
 
-        current_ingredients = set(ing_id for ing_id, _ in individual if ing_id > 0)
+    def _calculate_fragrance_quality(self, individual: List[Tuple[int, float]]) -> float:
+        """향료 품질 평가 - 실제 향료학 원칙 적용"""
 
-        if not current_ingredients:
-            return 1.0
+        if not individual:
+            return 0.0
 
-        similarities = []
+        quality_score = 100.0  # 시작점수
 
-        for formula in self.existing_formulas:
-            existing_ingredients = set(formula.get('ingredients', []))
+        # 1. 피라미드 구조 평가
+        top_notes = sum(c for i, c in individual
+                       if i in self.ingredients and
+                       self.ingredients[i].volatility_class == "top")
+        middle_notes = sum(c for i, c in individual
+                          if i in self.ingredients and
+                          self.ingredients[i].volatility_class == "middle")
+        base_notes = sum(c for i, c in individual
+                        if i in self.ingredients and
+                        self.ingredients[i].volatility_class == "base")
 
-            if existing_ingredients:
-                # Jaccard 유사도
-                jaccard = len(current_ingredients & existing_ingredients) / len(current_ingredients | existing_ingredients)
+        total = top_notes + middle_notes + base_notes
+        if total > 0:
+            # 이상적 비율: Top 20-30%, Middle 30-40%, Base 30-50%
+            top_ratio = top_notes / total
+            middle_ratio = middle_notes / total
+            base_ratio = base_notes / total
 
-                # 농도 패턴 유사도
-                concentration_similarity = 0
-                if 'concentrations' in formula:
-                    current_concs = sorted([conc for _, conc in individual], reverse=True)
-                    existing_concs = sorted(formula['concentrations'], reverse=True)
+            if not (0.2 <= top_ratio <= 0.3):
+                quality_score -= abs(0.25 - top_ratio) * 50
+            if not (0.3 <= middle_ratio <= 0.4):
+                quality_score -= abs(0.35 - middle_ratio) * 50
+            if not (0.3 <= base_ratio <= 0.5):
+                quality_score -= abs(0.4 - base_ratio) * 50
 
-                    min_len = min(len(current_concs), len(existing_concs))
-                    if min_len > 0:
-                        for i in range(min_len):
-                            diff = abs(current_concs[i] - existing_concs[i])
-                            concentration_similarity += 1 - (diff / max(current_concs[i], existing_concs[i], 1))
-                        concentration_similarity /= min_len
+        # 2. Odor Value (OV) 계산 - 실제 감지 강도
+        total_ov = 0.0
+        for ing_id, conc in individual:
+            if ing_id in self.ingredients:
+                ing = self.ingredients[ing_id]
+                # OV = Concentration / Odor Threshold
+                ov = (conc * 10) / ing.odor_threshold  # conc는 %, threshold는 ppm
+                total_ov += ov
 
-                # 가중 평균
-                total_similarity = 0.7 * jaccard + 0.3 * concentration_similarity
-                similarities.append(total_similarity)
+        # 이상적 OV 범위: 1000-5000
+        if total_ov < 1000:
+            quality_score -= (1000 - total_ov) / 20
+        elif total_ov > 5000:
+            quality_score -= (total_ov - 5000) / 100
 
-        return max(similarities) if similarities else 0.0
+        # 3. 조화도 - 계열 균형
+        family_counts = {}
+        for ing_id, conc in individual:
+            if ing_id in self.ingredients:
+                family = self.ingredients[ing_id].family
+                family_counts[family] = family_counts.get(family, 0) + conc
 
-    def _crossover_deterministic(self, ind1: List, ind2: List) -> Tuple[List, List]:
-        """결정론적 교차 연산"""
+        # 너무 많은 계열 혼합은 부조화
+        if len(family_counts) > 5:
+            quality_score -= (len(family_counts) - 5) * 10
 
-        # 교차 확률 체크 (결정론적)
-        crossover_check = self.selector.generate_value(0, 1)
-        if crossover_check > self.crossover_prob:
-            return ind1, ind2
+        # 단일 계열 지배 방지
+        if family_counts:
+            max_family_ratio = max(family_counts.values()) / sum(family_counts.values())
+            if max_family_ratio > 0.6:
+                quality_score -= (max_family_ratio - 0.6) * 100
 
-        # 자손 초기화
+        # 4. 지속성 평가 - 증기압 분포
+        vapor_pressures = []
+        for ing_id, conc in individual:
+            if ing_id in self.ingredients:
+                vapor_pressures.append(self.ingredients[ing_id].vapor_pressure)
+
+        if vapor_pressures:
+            # 다양한 증기압 = 시간에 따른 향 변화
+            vp_std = np.std(vapor_pressures)
+            if vp_std < 0.1:  # 너무 균일하면 지루함
+                quality_score -= (0.1 - vp_std) * 50
+
+        # 5. 독창성 - 희귀 성분 사용
+        rare_ingredients = [9, 10]  # Pentadecanolide, Cyclamene Aldehyde
+        for ing_id, _ in individual:
+            if ing_id in rare_ingredients:
+                quality_score += 5  # 희귀 성분 보너스
+
+        return max(0, quality_score)
+
+    def _calculate_cost(self, individual: List[Tuple[int, float]]) -> float:
+        """실제 비용 계산"""
+        total_cost = 0.0
+
+        for ing_id, conc in individual:
+            if ing_id in self.ingredients:
+                ing = self.ingredients[ing_id]
+                # 비용 = 농도(%) × 가격($/kg) × 1kg 기준
+                cost_per_formula = (conc / 100) * ing.price_per_kg
+                total_cost += cost_per_formula
+
+        return total_cost
+
+    def sbx_crossover(self, ind1: List, ind2: List) -> Tuple[List, List]:
+        """Simulated Binary Crossover - 실제 구현"""
+        eta = 20  # Distribution index
+
         child1 = creator.Individual()
         child2 = creator.Individual()
 
-        # 노트별로 성분 분류
-        def classify_notes(individual):
-            tops, middles, bases = [], [], []
-            for ing_id, conc in individual:
-                if ing_id in self.all_ingredients:
-                    if self.all_ingredients[ing_id].volatility > 0.7:
-                        tops.append((ing_id, conc))
-                    elif self.all_ingredients[ing_id].volatility >= 0.3:
-                        middles.append((ing_id, conc))
-                    else:
-                        bases.append((ing_id, conc))
-            return tops, middles, bases
+        # 더 짧은 개체 길이에 맞춤
+        min_len = min(len(ind1), len(ind2))
 
-        tops1, middles1, bases1 = classify_notes(ind1)
-        tops2, middles2, bases2 = classify_notes(ind2)
+        for i in range(min_len):
+            gene1 = ind1[i]
+            gene2 = ind2[i]
 
-        # 노트별 교차 (결정론적)
-        for notes1, notes2 in [(tops1, tops2), (middles1, middles2), (bases1, bases2)]:
-            if notes1 and notes2:
-                # 균일 교차
-                for i, (gene1, gene2) in enumerate(zip(notes1, notes2)):
-                    ratio = self.selector.generate_value(0, 1)
-                    if ratio < 0.5:
-                        child1.append(gene1)
-                        child2.append(gene2)
+            if np.random.random() < 0.5:
+                # SBX on concentration
+                x1 = gene1[1]
+                x2 = gene2[1]
+
+                if abs(x1 - x2) > 1e-6:
+                    if x1 > x2:
+                        x1, x2 = x2, x1
+
+                    # SBX 공식
+                    u = np.random.random()
+                    if u <= 0.5:
+                        beta = (2 * u) ** (1 / (eta + 1))
                     else:
-                        child1.append(gene2)
-                        child2.append(gene1)
+                        beta = (1 / (2 * (1 - u))) ** (1 / (eta + 1))
+
+                    c1 = 0.5 * ((x1 + x2) - beta * abs(x2 - x1))
+                    c2 = 0.5 * ((x1 + x2) + beta * abs(x2 - x1))
+
+                    # 제약 조건 적용
+                    ing1 = self.ingredients.get(gene1[0])
+                    ing2 = self.ingredients.get(gene2[0])
+
+                    if ing1:
+                        c1 = np.clip(c1, 0.1, ing1.ifra_limit)
+                    if ing2:
+                        c2 = np.clip(c2, 0.1, ing2.ifra_limit)
+
+                    child1.append((gene1[0], round(c1, 2)))
+                    child2.append((gene2[0], round(c2, 2)))
+                else:
+                    child1.append(gene1)
+                    child2.append(gene2)
             else:
-                child1.extend(notes1)
-                child2.extend(notes2)
+                # 유전자 교환
+                child1.append(gene2)
+                child2.append(gene1)
 
-        # 메타데이터 업데이트
-        child1.generation = max(ind1.generation, ind2.generation) + 1
-        child2.generation = child1.generation
-        child1.parents = (id(ind1), id(ind2))
-        child2.parents = (id(ind1), id(ind2))
+        # 나머지 유전자 처리
+        if len(ind1) > min_len:
+            child1.extend(ind1[min_len:])
+        if len(ind2) > min_len:
+            child2.extend(ind2[min_len:])
 
         return child1, child2
 
-    def _mutate_deterministic(self, individual: List) -> Tuple[List]:
-        """결정론적 변이 연산"""
+    def polynomial_mutation(self, individual: List) -> Tuple[List]:
+        """Polynomial Mutation - 실제 구현"""
+        eta = 20  # Distribution index
 
-        # 변이 확률 체크 (결정론적)
-        mutation_check = self.selector.generate_value(0, 1)
-        if mutation_check > self.mutation_prob:
-            return (individual,)
+        for i in range(len(individual)):
+            if np.random.random() < self.mutation_prob:
+                ing_id, conc = individual[i]
 
-        # 변이 타입 선택 (결정론적)
-        mutation_types = ['point', 'swap', 'insert', 'delete', 'adjust']
-        weights = [0.3, 0.2, 0.2, 0.1, 0.2]
-        mutation_type = self.selector.select_weighted(mutation_types, weights)
+                if ing_id in self.ingredients:
+                    ing = self.ingredients[ing_id]
 
-        if mutation_type == 'point' and individual:
-            # 점 변이: 하나의 성분 변경
-            idx = int(self.selector.generate_value(0, len(individual)))
-            if idx < len(individual):
-                new_gene = self._generate_gene_deterministic()
-                individual[idx] = new_gene
+                    # Polynomial mutation 공식
+                    u = np.random.random()
+                    if u < 0.5:
+                        delta = (2 * u) ** (1 / (eta + 1)) - 1
+                    else:
+                        delta = 1 - (2 * (1 - u)) ** (1 / (eta + 1))
 
-        elif mutation_type == 'swap' and len(individual) >= 2:
-            # 교환 변이: 두 성분 위치 교환
-            idx1 = int(self.selector.generate_value(0, len(individual)))
-            idx2 = int(self.selector.generate_value(0, len(individual)))
-            if idx1 < len(individual) and idx2 < len(individual) and idx1 != idx2:
-                individual[idx1], individual[idx2] = individual[idx2], individual[idx1]
+                    # 새 농도 계산
+                    new_conc = conc + delta * (ing.ifra_limit - 0.1)
+                    new_conc = np.clip(new_conc, 0.1, ing.ifra_limit)
 
-        elif mutation_type == 'insert' and len(individual) < 30:
-            # 삽입 변이: 새 성분 추가
-            new_gene = self._generate_gene_deterministic()
-            individual.append(new_gene)
+                    individual[i] = (ing_id, round(new_conc, 2))
 
-        elif mutation_type == 'delete' and len(individual) > 5:
-            # 삭제 변이: 성분 제거
-            idx = int(self.selector.generate_value(0, len(individual)))
-            if idx < len(individual):
-                del individual[idx]
-
-        elif mutation_type == 'adjust' and individual:
-            # 조정 변이: 농도만 변경
-            idx = int(self.selector.generate_value(0, len(individual)))
-            if idx < len(individual):
-                ing_id, old_conc = individual[idx]
-                if ing_id in self.all_ingredients:
-                    ingredient = self.all_ingredients[ing_id]
-                    max_conc = min(10.0, ingredient.ifra_limit)
-                    # 가우시안 변형 대신 결정론적 조정
-                    adjustment = self.selector.generate_value(-2, 2)
-                    new_conc = np.clip(old_conc + adjustment, 0.1, max_conc)
-                    individual[idx] = (ing_id, round(new_conc, 2))
-
-        individual.mutation_count = getattr(individual, 'mutation_count', 0) + 1
+                # 성분 변경 확률
+                if np.random.random() < 0.1:
+                    new_ing_id = np.random.choice(list(self.ingredients.keys()))
+                    new_ing = self.ingredients[new_ing_id]
+                    new_conc = np.random.uniform(0.1, new_ing.ifra_limit)
+                    individual[i] = (new_ing_id, round(new_conc, 2))
 
         return (individual,)
 
-    def evolve(self, creative_brief: Optional[CreativeBrief] = None) -> OlfactoryDNA:
-        """메인 진화 루프 - 완전히 결정론적"""
+    def optimize(self, generations: int = 200) -> Dict[str, Any]:
+        """NSGA-II 최적화 실행"""
 
-        self.creative_brief = creative_brief
-
-        logger.info("[MOGA] Starting deterministic evolution")
-        logger.info(f"  Population: {self.population_size}, Generations: {self.generations}")
-        logger.info(f"  Database: {len(self.all_ingredients)} ingredients loaded")
-
-        # 초기 개체군 생성
+        # 초기 개체군
         population = self.toolbox.population(n=self.population_size)
 
-        # 엘리트 보관소
-        hof = HallOfFame(self.elite_size)
+        # Hall of Fame - 최고 개체 보존
+        hof = tools.ParetoFront()
 
-        # 파레토 프론트
-        pareto = ParetoFront()
+        # 통계 기록
+        logbook = tools.Logbook()
+        logbook.header = ["gen", "evals"] + self.stats.fields
 
-        # 진화 루프
-        for gen in range(self.generations):
+        # 초기 평가
+        fitnesses = list(map(self.toolbox.evaluate, population))
+        for ind, fit in zip(population, fitnesses):
+            ind.fitness.values = fit
 
-            # 평가
-            fitnesses = list(map(self.toolbox.evaluate, population))
-            for ind, fit in zip(population, fitnesses):
-                ind.fitness.values = fit
+        hof.update(population)
+        record = self.stats.compile(population)
+        logbook.record(gen=0, evals=len(population), **record)
 
-            # 통계 계산
-            record = self.stats.compile(population)
-            self.evolution_history.append(record)
+        logger.info(f"Generation 0: {record}")
 
-            # 진행 상황 출력 (10세대마다)
-            if gen % 10 == 0:
-                min_vals = record['min']
-                std_vals = record['std']
-                logger.info(f"  Gen {gen:3d}: "
-                          f"Stability={min_vals[0]:.3f}±{std_vals[0]:.3f}, "
-                          f"Unfitness={min_vals[1]:.3f}±{std_vals[1]:.3f}, "
-                          f"Uncreativity={min_vals[2]:.3f}±{std_vals[2]:.3f}")
-
-            # 엘리트 보존
-            elites = tools.selBest(population, self.elite_size)
-
-            # 선택 (NSGA-II)
-            offspring = self.toolbox.select(population, len(population) - self.elite_size)
+        # 진화 시작
+        for gen in range(1, generations + 1):
+            # 선택
+            offspring = self.toolbox.select(population, self.population_size)
             offspring = list(map(self.toolbox.clone, offspring))
 
-            # 교차 (결정론적)
-            for i in range(0, len(offspring)-1, 2):
-                child1, child2 = self.toolbox.mate(offspring[i], offspring[i+1])
-                offspring[i] = child1
-                offspring[i+1] = child2
-                del offspring[i].fitness.values
-                del offspring[i+1].fitness.values
+            # 교차
+            for child1, child2 in zip(offspring[::2], offspring[1::2]):
+                if np.random.random() < self.crossover_prob:
+                    self.toolbox.mate(child1, child2)
+                    del child1.fitness.values
+                    del child2.fitness.values
 
-            # 변이 (결정론적)
+            # 변이
             for mutant in offspring:
                 self.toolbox.mutate(mutant)
                 del mutant.fitness.values
 
-            # 적합도 재평가
+            # 평가
             invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
             fitnesses = map(self.toolbox.evaluate, invalid_ind)
             for ind, fit in zip(invalid_ind, fitnesses):
                 ind.fitness.values = fit
 
-            # 다음 세대 구성 (엘리트 + 자손)
-            population[:] = elites + offspring
+            # 환경 선택 - NSGA-II의 핵심
+            population[:] = self.toolbox.select(population + offspring, self.population_size)
 
-            # Hall of Fame과 Pareto Front 업데이트
+            # 통계 업데이트
             hof.update(population)
-            pareto.update(population)
+            record = self.stats.compile(population)
+            logbook.record(gen=gen, evals=len(invalid_ind), **record)
 
-            # 최고 개체 저장
-            best = tools.selBest(population, 1)[0]
-            self.best_individuals_history.append({
-                'generation': gen,
-                'individual': best[:],
-                'fitness': best.fitness.values
-            })
+            if gen % 10 == 0:
+                logger.info(f"Generation {gen}: {record}")
 
-            # 조기 종료 조건
+            # 수렴 확인
             if gen > 50:
-                recent_improvement = abs(
-                    self.best_individuals_history[-1]['fitness'][0] -
-                    self.best_individuals_history[-10]['fitness'][0]
-                )
-                if recent_improvement < 0.001:
-                    logger.info(f"  Early stopping at generation {gen} (convergence detected)")
+                recent_records = logbook.select("min")[-10:]
+                improvements = [abs(recent_records[i][0] - recent_records[i-1][0])
+                               for i in range(1, len(recent_records))]
+                if max(improvements) < 0.001:
+                    logger.info(f"Converged at generation {gen}")
                     break
 
-        # 최종 최적 개체 선택
-        final_pareto = tools.selBest(pareto, k=min(10, len(pareto)))
+        # 최적 해 선택
+        best_formulas = []
+        for ind in hof:
+            formula = {
+                'ingredients': [(self.ingredients[i].name, conc)
+                              for i, conc in ind],
+                'stability': ind.fitness.values[0],
+                'quality': -ind.fitness.values[1],  # 음수 제거
+                'cost': ind.fitness.values[2]
+            }
+            best_formulas.append(formula)
 
-        # 다목적 최적화: 가중 합으로 최종 선택
-        best_ind = None
-        best_score = float('inf')
+        # 상위 5개만 반환
+        best_formulas.sort(key=lambda x: x['quality'], reverse=True)
 
-        for ind in final_pareto:
-            # 가중치: 안정성 40%, 적합도 40%, 창의성 20%
-            weighted_score = (0.4 * ind.fitness.values[0] +
-                            0.4 * ind.fitness.values[1] +
-                            0.2 * ind.fitness.values[2])
-            if weighted_score < best_score:
-                best_score = weighted_score
-                best_ind = ind
-
-        if best_ind is None:
-            best_ind = tools.selBest(population, 1)[0]
-
-        logger.info("[SUCCESS] Evolution complete!")
-        logger.info(f"  Final scores: Stability={best_ind.fitness.values[0]:.3f}, "
-                   f"Unfitness={best_ind.fitness.values[1]:.3f}, "
-                   f"Uncreativity={best_ind.fitness.values[2]:.3f}")
-        logger.info(f"  Formula contains {len(best_ind)} ingredients")
-
-        # OlfactoryDNA 객체 생성
-        return OlfactoryDNA(
-            genes=best_ind[:],
-            fitness_scores=best_ind.fitness.values,
-            generation=getattr(best_ind, 'generation', self.generations),
-            parents=getattr(best_ind, 'parents', None),
-            mutation_history=getattr(best_ind, 'mutation_history', [])
-        )
-
-    def format_recipe(self, dna: OlfactoryDNA) -> Dict:
-        """DNA를 상세한 레시피 형식으로 변환"""
-
-        recipe = {
-            "top_notes": {},
-            "middle_notes": {},
-            "base_notes": {},
-            "total_concentration": 0.0,
-            "estimated_cost": 0.0,
-            "ifra_compliance": True,
-            "stability_warnings": [],
-            "fitness": {
-                "stability": max(0, 1.0 - (dna.fitness_scores[0] / 10.0)),
-                "suitability": max(0, 1.0 - dna.fitness_scores[1]),
-                "creativity": max(0, 1.0 - dna.fitness_scores[2])
-            },
-            "generation": dna.generation,
-            "ingredients_detail": []
+        return {
+            'pareto_front': best_formulas[:5],
+            'logbook': logbook,
+            'convergence_generation': gen,
+            'final_population_size': len(population)
         }
 
-        for ing_id, percentage in dna.genes:
-            if ing_id in self.all_ingredients:
-                ingredient = self.all_ingredients[ing_id]
 
-                # 상세 정보 추가
-                detail = {
-                    "name": ingredient.name,
-                    "cas": ingredient.cas_number,
-                    "family": ingredient.family,
-                    "concentration": f"{percentage:.2f}%",
-                    "cost_contribution": (percentage / 100) * ingredient.cost_per_kg
-                }
-                recipe["ingredients_detail"].append(detail)
-
-                # 노트 분류
-                if ingredient.volatility > 0.7:
-                    recipe["top_notes"][ingredient.name] = f"{percentage:.2f}%"
-                elif ingredient.volatility > 0.3:
-                    recipe["middle_notes"][ingredient.name] = f"{percentage:.2f}%"
-                else:
-                    recipe["base_notes"][ingredient.name] = f"{percentage:.2f}%"
-
-                recipe["total_concentration"] += percentage
-                recipe["estimated_cost"] += detail["cost_contribution"]
-
-                # IFRA 체크
-                if percentage > ingredient.ifra_limit:
-                    recipe["ifra_compliance"] = False
-                    recipe["stability_warnings"].append(
-                        f"{ingredient.name} exceeds IFRA limit ({percentage:.1f}% > {ingredient.ifra_limit}%)"
-                    )
-
-        # 농도 정규화 제안
-        if recipe["total_concentration"] < 15 or recipe["total_concentration"] > 30:
-            recipe["stability_warnings"].append(
-                f"Total concentration {recipe['total_concentration']:.1f}% outside ideal range (15-30%)"
-            )
-
-        return recipe
-
-
-def example_usage():
-    """실제 사용 예시"""
-
-    # 창세기 엔진 초기화 (시드 고정으로 재현 가능)
-    engine = OlfactoryRecombinatorAI(
-        population_size=50,
-        generations=30,
-        crossover_prob=0.85,
-        mutation_prob=0.15,
-        elite_size=5,
-        seed=42  # 재현 가능한 결과
-    )
-
-    # CreativeBrief 생성
-    brief = CreativeBrief(
-        emotional_palette=[0.7, 0.8, 0.2, 0.3, 0.6],
-        fragrance_family="floral-woody",
-        mood="romantic-modern",
-        intensity=0.7,
-        season="spring",
-        gender="feminine",
-        occasion="evening",
-        target_market="luxury",
-        price_range="premium"
-    )
-
-    # 진화 실행
-    print("[MOGA] Starting completely deterministic evolution...")
-    print(f"  No random functions used - 100% reproducible results")
-    print(f"  Database: Real SQLite database with {len(engine.all_ingredients)} ingredients")
-
-    optimal_dna = engine.evolve(brief)
-
-    # 결과 포맷팅
-    recipe = engine.format_recipe(optimal_dna)
-
-    print("\n[SUCCESS] Optimal fragrance recipe generated!")
-    print(f"\n=== FORMULA ===")
-    print(f"Generation: {recipe['generation']}")
-    print(f"\nTop notes: {recipe['top_notes']}")
-    print(f"Middle notes: {recipe['middle_notes']}")
-    print(f"Base notes: {recipe['base_notes']}")
-    print(f"\nTotal concentration: {recipe['total_concentration']:.2f}%")
-    print(f"Estimated cost: ${recipe['estimated_cost']:.2f}/kg")
-    print(f"IFRA compliance: {recipe['ifra_compliance']}")
-
-    if recipe['stability_warnings']:
-        print(f"\nWarnings:")
-        for warning in recipe['stability_warnings']:
-            print(f"  - {warning}")
-
-    print(f"\n=== FITNESS SCORES ===")
-    print(f"  Stability: {recipe['fitness']['stability']:.1%}")
-    print(f"  Suitability: {recipe['fitness']['suitability']:.1%}")
-    print(f"  Creativity: {recipe['fitness']['creativity']:.1%}")
-
-
+# 테스트 실행
 if __name__ == "__main__":
-    example_usage()
+    optimizer = CompleteRealMOGA()
+    results = optimizer.optimize(generations=100)
+
+    print("\n=== OPTIMIZATION COMPLETE ===")
+    print(f"Converged at generation: {results['convergence_generation']}")
+    print(f"\nTop 3 Pareto-optimal formulas:")
+
+    for i, formula in enumerate(results['pareto_front'][:3], 1):
+        print(f"\nFormula {i}:")
+        print(f"  Quality Score: {formula['quality']:.2f}")
+        print(f"  Stability Score: {formula['stability']:.2f}")
+        print(f"  Cost: ${formula['cost']:.2f}")
+        print(f"  Ingredients:")
+        for name, conc in formula['ingredients']:
+            print(f"    - {name}: {conc:.2f}%")

@@ -15,8 +15,8 @@ from sqlalchemy.orm import Session
 import torch
 
 # 실제 AI 알고리즘 임포트 (시뮬레이션 아님)
-from fragrance_ai.training.real_moga_complete import CompleteRealMOGA
-from fragrance_ai.training.real_ppo_complete import PPOTrainer, FragranceEnvironment
+from fragrance_ai.training.moga_optimizer import CompleteRealMOGA
+from fragrance_ai.training.ppo_engine import PPOTrainer, FragranceEnvironment
 
 # Living Scent AI 에이전트들
 from fragrance_ai.models.living_scent.linguistic_receptor import (

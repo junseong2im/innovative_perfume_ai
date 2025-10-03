@@ -26,8 +26,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, classification_report
 
 # 프로젝트 모델 임포트
-from fragrance_ai.training.real_ppo_complete import PPOTrainer, FragranceEnvironment
-from fragrance_ai.training.real_moga_complete import CompleteRealMOGA
+from fragrance_ai.training.ppo_engine import PPOTrainer, FragranceEnvironment
+from fragrance_ai.training.moga_optimizer import CompleteRealMOGA
 
 logger = logging.getLogger(__name__)
 
