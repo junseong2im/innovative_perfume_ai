@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { showToast } from './ui/toast';
 
 interface Message {
   role: 'user' | 'assistant' | 'error';
@@ -137,11 +138,47 @@ export default function AIFragranceChat() {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+
+      // 성공 토스트
+      showToast('향수가 성공적으로 생성되었습니다!', 'success');
+
     } catch (error: any) {
-      // 에러 발생 시 사용자에게 명확한 피드백
+      // 에러 발생 시 Toast 알림 표시
+      let toastMessage = 'AI 조향사와의 연결이 원활하지 않습니다.';
+      let toastDescription = '잠시 후 다시 시도해주세요.';
+
+      switch (error.errorType) {
+        case 'CONNECTION':
+          toastMessage = '네트워크 연결 문제';
+          toastDescription = '인터넷 연결을 확인하고 다시 시도해주세요.';
+          break;
+        case 'SERVER_ERROR':
+          toastMessage = 'AI 서버 일시적 문제';
+          toastDescription = '서버가 복구될 때까지 잠시만 기다려주세요.';
+          break;
+        case 'TIMEOUT':
+          toastMessage = '응답 시간 초과';
+          toastDescription = '요청이 너무 복잡할 수 있습니다. 다시 시도해주세요.';
+          break;
+        case 'INVALID_RESPONSE':
+          toastMessage = '응답 처리 실패';
+          toastDescription = 'AI 응답을 이해할 수 없습니다. 다른 표현으로 시도해보세요.';
+          break;
+      }
+
+      // Toast 알림 표시
+      showToast(toastMessage, 'error', {
+        duration: 7000,
+        action: error.retryable !== false ? {
+          label: '다시 시도',
+          onClick: () => handleSubmit()
+        } : undefined
+      });
+
+      // 에러 메시지를 채팅에도 표시 (간단하게)
       const errorMessage: Message = {
         role: 'error',
-        content: error.message || 'AI 서버와 연결하는 중 문제가 발생했습니다.',
+        content: `${toastMessage}. ${toastDescription}`,
         errorType: error.errorType || 'UNKNOWN',
         retryable: error.retryable !== false
       };
