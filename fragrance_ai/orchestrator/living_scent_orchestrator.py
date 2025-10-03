@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 import torch
 
 # 실제 AI 알고리즘 임포트 (시뮬레이션 아님)
-from fragrance_ai.training.moga_optimizer import CompleteRealMOGA
+from fragrance_ai.training.moga_optimizer import UnifiedProductionMOGA
 from fragrance_ai.training.ppo_engine import PPOTrainer, FragranceEnvironment
 
 # Living Scent AI 에이전트들
@@ -52,7 +52,7 @@ class LivingScentOrchestrator:
         self.epigenetic_variation = get_epigenetic_variation()
 
         # 실제 AI 알고리즘 초기화 (시뮬레이션 아님)
-        self.moga_optimizer = CompleteRealMOGA()  # 실제 NSGA-II 구현
+        self.moga_optimizer = UnifiedProductionMOGA()  # 통합된 Production NSGA-II + DB
         self.fragrance_env = FragranceEnvironment()  # 실제 강화학습 환경
         self.ppo_trainer = PPOTrainer(
             state_dim=self.fragrance_env.observation_space.shape[0],

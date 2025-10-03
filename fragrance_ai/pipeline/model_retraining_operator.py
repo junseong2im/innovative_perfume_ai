@@ -27,7 +27,7 @@ from sklearn.metrics import mean_squared_error, classification_report
 
 # 프로젝트 모델 임포트
 from fragrance_ai.training.ppo_engine import PPOTrainer, FragranceEnvironment
-from fragrance_ai.training.moga_optimizer import CompleteRealMOGA
+from fragrance_ai.training.moga_optimizer import UnifiedProductionMOGA
 
 logger = logging.getLogger(__name__)
 
@@ -268,7 +268,7 @@ class ModelRetrainingOperator:
                 return {'status': 'skipped', 'reason': 'insufficient_data'}
 
             # MOGA 초기화
-            moga = CompleteRealMOGA()
+            moga = UnifiedProductionMOGA()
 
             # 새로운 데이터로 성분 데이터베이스 업데이트
             self._update_moga_database(moga, fragrances)
