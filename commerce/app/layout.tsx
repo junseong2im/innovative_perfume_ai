@@ -2,6 +2,7 @@ import { CartProvider } from 'components/cart/cart-context';
 // import { Navbar } from 'components/layout/navbar';
 import GlobalNav from 'components/layout/global-nav';
 import { WelcomeToast } from 'components/welcome-toast';
+import { ToastContainer } from 'components/ui/toast';
 import { GeistSans } from 'geist/font/sans';
 import { getCart } from 'lib/shopify';
 import { ReactNode } from 'react';
@@ -41,6 +42,7 @@ export default async function RootLayout({
             {children}
             <Toaster closeButton />
             <WelcomeToast />
+            <ToastContainer />
           </main>
         </CartProvider>
       </body>

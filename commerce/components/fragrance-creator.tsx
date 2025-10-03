@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { showToast } from './ui/toast';
 
 export default function FragranceCreator() {
   const [description, setDescription] = useState('');
@@ -47,19 +48,31 @@ export default function FragranceCreator() {
         },
         price: data.price || '185,000 KRW'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating fragrance:', error);
-      // Use basic fallback on error
-      setResult({
-        name: '맞춤형 향수',
-        description: `"${description}"에서 영감을 받은 향수`,
-        notes: {
-          top: ['Citrus'],
-          middle: ['Floral'],
-          base: ['Woody']
-        },
-        price: '185,000 KRW'
+
+      // 에러 타입에 따른 적절한 메시지 표시
+      let errorMessage = 'AI 조향사와의 연결이 원활하지 않습니다. 잠시 후 다시 시도해주세요.';
+
+      if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        errorMessage = '네트워크 연결을 확인해주세요.';
+      } else if (error.message?.includes('500') || error.message?.includes('502') || error.message?.includes('503')) {
+        errorMessage = 'AI 서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = '응답 시간이 초과되었습니다. 다시 시도해주세요.';
+      }
+
+      // Toast 알림 표시
+      showToast(errorMessage, 'error', {
+        duration: 6000,
+        action: {
+          label: '다시 시도',
+          onClick: () => handleSubmit(new Event('submit') as any)
+        }
       });
+
+      // 결과 초기화 (가짜 데이터 생성하지 않음)
+      setResult(null);
     } finally {
       setIsLoading(false);
     }
