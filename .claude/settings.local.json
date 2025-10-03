@@ -84,7 +84,8 @@
       "Bash(git config:*)",
       "Bash(ping:*)",
       "Bash(alembic current:*)",
-      "Bash(alembic:*)"
+      "Bash(alembic:*)",
+      "Bash(git mv:*)"
     ],
     "deny": [],
     "ask": []
