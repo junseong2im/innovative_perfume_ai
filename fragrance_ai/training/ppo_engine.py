@@ -448,6 +448,12 @@ class FragranceEnvironment:
         self.n_ingredients = n_ingredients
         self.state_dim = n_ingredients * 2  # 성분 ID + 농도
         self.action_dim = n_ingredients * 3  # 추가/제거/조정
+
+        # Gym-like interface for compatibility
+        from types import SimpleNamespace
+        self.observation_space = SimpleNamespace(shape=(self.state_dim,))
+        self.action_space = SimpleNamespace(n=self.action_dim)
+
         self.current_formula = None
         self.reset()
 

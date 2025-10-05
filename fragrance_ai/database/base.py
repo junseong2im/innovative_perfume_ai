@@ -21,5 +21,13 @@ metadata = MetaData(naming_convention=convention)
 # Single Base instance for all models
 Base = declarative_base(metadata=metadata)
 
+# Database session getter
+def get_db():
+    """Get database session (placeholder for compatibility)"""
+    from sqlalchemy.orm import Session
+    # This is a placeholder function for compatibility
+    # In production, use DatabaseConnectionManager
+    return None
+
 # Export
-__all__ = ['Base', 'metadata']
+__all__ = ['Base', 'metadata', 'get_db']
