@@ -4,13 +4,13 @@ pgvector를 사용한 벡터 검색 지원
 """
 
 from sqlalchemy import Column, Integer, String, Float, Text, JSON, DateTime, ForeignKey, Index, Boolean
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
 from datetime import datetime
 
-Base = declarative_base()
+# Use centralized Base
+from fragrance_ai.database.base import Base
 
 
 class Fragrance(Base):
@@ -29,7 +29,7 @@ class Fragrance(Base):
     embedding = Column(Vector(768))
 
     # 메타데이터
-    metadata = Column(JSON)
+    meta_data = Column(JSON)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
@@ -73,7 +73,7 @@ class Note(Base):
     embedding = Column(Vector(768))
 
     # 메타데이터
-    metadata = Column(JSON)
+    meta_data = Column(JSON)
     created_at = Column(DateTime, default=func.now())
 
     # 관계

@@ -1,360 +1,169 @@
 version: '3.8'
 
-# Production Docker Compose Configuration
-# Enhanced security, performance, and monitoring
-
 services:
-  # PostgreSQL Database - Production hardened
+  # PostgreSQL with pgvector
   postgres:
-    image: postgres:15-alpine
-    container_name: fragrance_ai_postgres_prod
+    image: pgvector/pgvector:pg16
+    container_name: fragrance-postgres
+    restart: always
     environment:
       POSTGRES_DB: fragrance_ai
-      POSTGRES_USER: fragrance_ai
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_INITDB_ARGS: "--auth-local=peer --auth-host=scram-sha-256"
-      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
-      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER: ${DB_USER:-fragrance}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password}
+      POSTGRES_EXTENSIONS: vector
     volumes:
-      - postgres_data:/var/lib/postgresql/data:Z
-      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
-      - ./configs/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fragrance_ai -d fragrance_ai"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      test: ["CMD-SHELL", "pg_isready -U fragrance"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
-      - fragrance_ai_internal
-    restart: always
-    security_opt:
-      - no-new-privileges:true
-      - seccomp:unconfined
-    read_only: true
-    tmpfs:
-      - /tmp:size=100M,mode=1777
-      - /var/run/postgresql:size=50M,mode=0755
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '1.0'
-        reservations:
-          memory: 512M
-          cpus: '0.5'
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - fragrance-network
 
-  # Redis Cache - Production optimized
+  # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: fragrance_ai_redis_prod
-    command: >
-      redis-server
-      --appendonly yes
-      --requirepass ${REDIS_PASSWORD}
-      --maxmemory 1024mb
-      --maxmemory-policy allkeys-lru
-      --save 900 1
-      --save 300 10
-      --save 60 10000
-      --tcp-keepalive 60
-      --timeout 300
-      --tcp-keepalive 60
-      --maxclients 10000
+    container_name: fragrance-redis
+    restart: always
+    ports:
+      - "6379:6379"
     volumes:
-      - redis_data:/data:Z
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
-      - fragrance_ai_internal
-    restart: always
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp:size=50M,mode=1777
-    deploy:
-      resources:
-        limits:
-          memory: 1.5G
-          cpus: '1.0'
-        reservations:
-          memory: 1G
-          cpus: '0.5'
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - fragrance-network
 
-  # ChromaDB Vector Database
-  chroma:
-    image: chromadb/chroma:0.4.18
-    container_name: fragrance_ai_chroma_prod
-    environment:
-      - CHROMA_SERVER_HOST=0.0.0.0
-      - CHROMA_SERVER_HTTP_PORT=8001
-      - PERSIST_DIRECTORY=/chroma/chroma
-      - ANONYMIZED_TELEMETRY=False
+  # Ollama for LLM
+  ollama:
+    image: ollama/ollama:latest
+    container_name: fragrance-ollama
+    restart: always
+    ports:
+      - "11434:11434"
     volumes:
-      - chroma_data:/chroma/chroma:Z
-    networks:
-      - fragrance_ai_internal
-    restart: always
-    security_opt:
-      - no-new-privileges:true
+      - ollama_data:/root/.ollama
+    environment:
+      OLLAMA_KEEP_ALIVE: "5m"
+      OLLAMA_HOST: "0.0.0.0"
     deploy:
       resources:
-        limits:
-          memory: 2G
-          cpus: '1.0'
         reservations:
-          memory: 1G
-          cpus: '0.5'
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - fragrance-network
 
-  # Main Application - Production optimized
-  fragrance_ai:
+  # Main API Service
+  api:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: production
-    image: fragrance_ai:production
-    container_name: fragrance_ai_app_prod
-    environment:
-      - ENVIRONMENT=production
-      - DATABASE_URL=postgresql://fragrance_ai:${POSTGRES_PASSWORD}@postgres:5432/fragrance_ai
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
-      - CHROMA_HOST=chroma
-      - CHROMA_PORT=8001
-      - SECRET_KEY=${SECRET_KEY}
-      - CORS_ORIGINS=${CORS_ORIGINS:-["https://yourdomain.com"]}
-      - WORKERS=4
-      - MAX_REQUESTS=1000
-      - TIMEOUT=120
-      - LOG_LEVEL=info
-      - API_HOST=0.0.0.0
-      - API_PORT=8000
-    volumes:
-      - ./data:/app/data:Z
-      - ./logs:/app/logs:Z
-      - ./models:/app/models:ro
-      - ./checkpoints:/app/checkpoints:Z
+      dockerfile: Dockerfile.production
+    container_name: fragrance-api
+    restart: always
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "--max-time", "10", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 15s
-      retries: 3
-      start_period: 90s
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-fragrance}:${DB_PASSWORD:-secure_password}@postgres:5432/fragrance_ai
+      REDIS_URL: redis://redis:6379
+      OLLAMA_BASE_URL: http://ollama:11434
+      APP_ENV: production
+      SECRET_KEY: ${SECRET_KEY}
+      LOG_LEVEL: info
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./logs:/app/logs
+      - ./models:/app/models:ro
+      - ./data:/app/data:ro
     networks:
-      - fragrance_ai_internal
-      - fragrance_ai_external
-    restart: always
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /app/tmp:size=200M,mode=1777
-      - /tmp:size=100M,mode=1777
-    ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
+      - fragrance-network
     deploy:
-      resources:
-        limits:
-          memory: 4G
-          cpus: '3.0'
-        reservations:
-          memory: 2G
-          cpus: '2.0'
       replicas: 2
-      update_config:
-        parallelism: 1
-        delay: 30s
-        order: start-first
-        failure_action: rollback
-      rollback_config:
-        parallelism: 1
-        delay: 30s
       restart_policy:
-        condition: any
+        condition: on-failure
         delay: 5s
         max_attempts: 3
-        window: 120s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
 
-  # Nginx Reverse Proxy with SSL
+  # Nginx Load Balancer
   nginx:
-    image: nginx:1.25-alpine
-    container_name: fragrance_ai_nginx_prod
-    volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-      - ./nginx/logs:/var/log/nginx:Z
+    image: nginx:alpine
+    container_name: fragrance-nginx
+    restart: always
+    depends_on:
+      - api
     ports:
       - "80:80"
       - "443:443"
-    depends_on:
-      - fragrance_ai
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
     networks:
-      - fragrance_ai_external
-    restart: always
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /var/cache/nginx:size=100M,mode=0755
-      - /var/run:size=50M,mode=0755
-      - /tmp:size=50M,mode=1777
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "3"
+      - fragrance-network
 
   # Prometheus Monitoring
   prometheus:
-    image: prom/prometheus:v2.47.2
-    container_name: fragrance_ai_prometheus_prod
+    image: prom/prometheus:latest
+    container_name: fragrance-prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-      - '--storage.tsdb.retention.time=30d'
-      - '--storage.tsdb.retention.size=50GB'
-    volumes:
-      - ./monitoring/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus:Z
     networks:
-      - fragrance_ai_internal
-    restart: always
-    security_opt:
-      - no-new-privileges:true
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: '1.0'
-        reservations:
-          memory: 1G
-          cpus: '0.5'
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "3"
+      - fragrance-network
 
-  # Grafana Visualization
+  # Grafana Dashboard
   grafana:
-    image: grafana/grafana:10.2.2
-    container_name: fragrance_ai_grafana_prod
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
-      - GF_SECURITY_COOKIE_SECURE=true
-      - GF_SECURITY_COOKIE_SAMESITE=strict
-      - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
-      - GF_INSTALL_PLUGINS=grafana-piechart-panel
-    volumes:
-      - grafana_data:/var/lib/grafana:Z
-      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    image: grafana/grafana:latest
+    container_name: fragrance-grafana
+    restart: always
     depends_on:
       - prometheus
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
     networks:
-      - fragrance_ai_internal
-    restart: always
-    security_opt:
-      - no-new-privileges:true
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '0.5'
-        reservations:
-          memory: 512M
-          cpus: '0.25'
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "3"
+      - fragrance-network
+
+networks:
+  fragrance-network:
+    driver: bridge
 
 volumes:
   postgres_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/fragrance_ai/postgres_data
   redis_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/fragrance_ai/redis_data
-  chroma_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/fragrance_ai/chroma_data
+  ollama_data:
   prometheus_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/fragrance_ai/prometheus_data
   grafana_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/fragrance_ai/grafana_data
-
-networks:
-  fragrance_ai_internal:
-    driver: bridge
-    internal: true
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
-  fragrance_ai_external:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.21.0.0/16

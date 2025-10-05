@@ -46,6 +46,9 @@ class ConnectionMetrics:
     last_connection_time: Optional[float]
 
 
+# Alias for compatibility
+DatabaseManager = 'DatabaseConnectionManager'
+
 class DatabaseConnectionManager:
     """데이터베이스 연결 관리자"""
     

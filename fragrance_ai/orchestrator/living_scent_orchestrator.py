@@ -52,12 +52,44 @@ class LivingScentOrchestrator:
         self.epigenetic_variation = get_epigenetic_variation()
 
         # 실제 AI 알고리즘 초기화 (시뮬레이션 아님)
-        self.moga_optimizer = UnifiedProductionMOGA()  # 통합된 Production NSGA-II + DB
-        self.fragrance_env = FragranceEnvironment()  # 실제 강화학습 환경
-        self.ppo_trainer = PPOTrainer(
-            state_dim=self.fragrance_env.observation_space.shape[0],
-            action_dim=self.fragrance_env.action_space.n
-        )  # 실제 PPO 구현
+        try:
+            # MOGA 옵티마이저 설정과 함께 초기화
+            moga_config = {
+                'population_size': 100,
+                'tournament_size': 3,
+                'crossover_prob': 0.9,
+                'mutation_prob': 0.1,
+                'n_objectives': 3,
+                'eta_c': 20,  # SBX distribution index
+                'eta_m': 20   # Polynomial mutation distribution index
+            }
+            self.moga_optimizer = UnifiedProductionMOGA(**moga_config)
+            logger.info("MOGA optimizer initialized with real NSGA-II algorithm")
+        except Exception as e:
+            logger.warning(f"MOGA initialization failed: {e}, using default")
+            self.moga_optimizer = None
+
+        try:
+            # PPO 환경과 트레이너 초기화
+            self.fragrance_env = FragranceEnvironment()
+
+            # PPO 트레이너 설정
+            ppo_config = {
+                'state_dim': self.fragrance_env.observation_space.shape[0],
+                'action_dim': self.fragrance_env.action_space.n,
+                'lr': 3e-4,
+                'gamma': 0.99,
+                'gae_lambda': 0.95,
+                'clip_epsilon': 0.2,
+                'value_loss_coef': 0.5,
+                'entropy_coef': 0.01
+            }
+            self.ppo_trainer = PPOTrainer(**ppo_config)
+            logger.info("PPO trainer initialized with real reinforcement learning")
+        except Exception as e:
+            logger.warning(f"PPO initialization failed: {e}, using fallback")
+            self.ppo_trainer = None
+            self.fragrance_env = None
 
         # 데이터베이스 세션
         self.db = db_session
@@ -65,6 +97,15 @@ class LivingScentOrchestrator:
         # 메모리 캐시 (DB 없이도 작동)
         self.memory_dna_library = {}
         self.memory_phenotype_library = {}
+
+        # 통계 추적
+        self.stats = {
+            'total_creations': 0,
+            'total_evolutions': 0,
+            'moga_successes': 0,
+            'ppo_successes': 0,
+            'fallback_uses': 0
+        }
 
         logger.info("Living Scent Orchestrator initialized with real AI algorithms")
 
@@ -292,37 +333,104 @@ class LivingScentOrchestrator:
     def _create_new_dna(self, creative_brief: Any, user_id: Optional[str] = None) -> Dict[str, Any]:
         """새로운 DNA 생성 - 실제 MOGA 알고리즘 사용"""
 
-        # 실제 MOGA 최적화 실행 (시뮬레이션 아님)
-        logger.info("Starting real MOGA optimization...")
-        optimization_result = self.moga_optimizer.optimize(generations=50)  # 실제 최적화
+        self.stats['total_creations'] += 1
 
-        # 최적 레시피 선택 (Pareto Front에서 첫 번째)
-        best_recipe = optimization_result['pareto_front'][0] if optimization_result['pareto_front'] else None
+        # MOGA 엔진 사용 시도
+        if self.moga_optimizer:
+            try:
+                # Creative brief를 MOGA 제약조건으로 변환
+                constraints = self._convert_brief_to_constraints(creative_brief)
 
-        if not best_recipe:
-            # MOGA 실패 시 기존 방식 fallback
-            olfactory_dna = self.olfactory_recombinator.create(creative_brief)
-        else:
-            # MOGA 결과를 OlfactoryDNA 형식으로 변환
-            import uuid
-            from fragrance_ai.models.living_scent.olfactory_recombinator import OlfactoryDNA
+                # 실제 MOGA 최적화 실행 (시뮬레이션 아님)
+                logger.info("Starting real MOGA optimization with NSGA-II...")
+                optimization_result = self.moga_optimizer.optimize(
+                    generations=50,
+                    target_family=constraints.get('fragrance_family', 'fresh'),
+                    target_mood=constraints.get('mood', 'balanced'),
+                    constraints=constraints
+                )
 
-            olfactory_dna = OlfactoryDNA(
-                dna_id=f"DNA-{uuid.uuid4().hex[:8]}",
-                lineage="MOGA-Optimized",
-                genotype=best_recipe['ingredients'],
-                phenotype_potential=best_recipe['quality_score'],
-                story=f"Created using real NSGA-II optimization. Stability: {best_recipe['stability']:.2f}",
-                creation_timestamp=str(datetime.now()),
-                generation=optimization_result['final_generation'],
-                fitness_score=best_recipe['quality_score']
-            )
+                # 최적 레시피 선택 (Pareto Front에서 가장 균형잡힌 것)
+                if optimization_result and 'pareto_front' in optimization_result:
+                    best_recipe = self._select_best_from_pareto(
+                        optimization_result['pareto_front'],
+                        creative_brief
+                    )
+
+                    if best_recipe:
+                        # MOGA 결과를 OlfactoryDNA 형식으로 변환
+                        import uuid
+                        from fragrance_ai.models.living_scent.olfactory_recombinator import OlfactoryDNA, OlfactoryGene
+
+                        # Genotype 구성
+                        genotype = {
+                            'top': [],
+                            'heart': [],
+                            'base': []
+                        }
+
+                        # 재료를 노트별로 분류
+                        for ing in best_recipe.get('ingredients', []):
+                            note_type = self._classify_note_type(ing.get('volatility', 0.5))
+                            gene = OlfactoryGene(
+                                note_type=note_type,
+                                ingredient=ing.get('name', 'unknown'),
+                                concentration=ing.get('concentration', 0.1),
+                                volatility=ing.get('volatility', 0.5),
+                                molecular_weight=ing.get('molecular_weight', 150),
+                                odor_family=ing.get('chemical_family', 'unknown'),
+                                expression_level=ing.get('concentration', 0.1) * 10
+                            )
+                            genotype[note_type].append(gene)
+
+                        olfactory_dna = OlfactoryDNA(
+                            dna_id=f"DNA-MOGA-{uuid.uuid4().hex[:8]}",
+                            lineage="MOGA-Optimized-NSGA-II",
+                            genotype=genotype,
+                            phenotype_potential=best_recipe.get('quality_score', 100),
+                            story=f"Created using real NSGA-II multi-objective optimization. "
+                                  f"Quality: {best_recipe.get('quality_score', 0):.1f}, "
+                                  f"Stability: {best_recipe.get('stability', 0):.2f}, "
+                                  f"Cost: ${best_recipe.get('cost', 0):.2f}/kg",
+                            creation_timestamp=str(datetime.now()),
+                            generation=optimization_result.get('final_generation', 50),
+                            fitness_score=best_recipe.get('quality_score', 100),
+                            mutation_history=[f"MOGA optimization with {optimization_result.get('evaluations', 0)} evaluations"]
+                        )
+
+                        self.stats['moga_successes'] += 1
+
+                        # 데이터베이스 저장
+                        self._save_dna_to_db(olfactory_dna, user_id)
+
+                        return {
+                            'type': 'new_dna',
+                            'dna_id': olfactory_dna.dna_id,
+                            'lineage': olfactory_dna.lineage,
+                            'recipe': best_recipe,
+                            'story': olfactory_dna.story,
+                            'phenotype_potential': olfactory_dna.phenotype_potential,
+                            'generation': olfactory_dna.generation,
+                            'fitness_score': olfactory_dna.fitness_score,
+                            'optimization_method': 'REAL_MOGA_NSGA_II',
+                            'pareto_solutions': len(optimization_result.get('pareto_front', [])),
+                            'total_evaluations': optimization_result.get('evaluations', 0)
+                        }
+
+            except Exception as e:
+                logger.error(f"MOGA optimization failed: {e}")
+                self.stats['fallback_uses'] += 1
+
+        # Fallback: 기존 방식 사용
+        logger.info("Using fallback method for DNA creation")
+        olfactory_dna = self.olfactory_recombinator.create(creative_brief)
+        self.stats['fallback_uses'] += 1
 
         # 데이터베이스 저장
         self._save_dna_to_db(olfactory_dna, user_id)
 
         # 레시피 변환
-        recipe = self.olfactory_recombinator.to_recipe(olfactory_dna) if hasattr(olfactory_dna, 'genotype') else best_recipe
+        recipe = self.olfactory_recombinator.to_recipe(olfactory_dna)
 
         return {
             'type': 'new_dna',
@@ -333,8 +441,78 @@ class LivingScentOrchestrator:
             'phenotype_potential': olfactory_dna.phenotype_potential,
             'generation': olfactory_dna.generation,
             'fitness_score': olfactory_dna.fitness_score,
-            'optimization_method': 'REAL_MOGA_NSGA_II'  # 실제 알고리즘 사용 표시
+            'optimization_method': 'FALLBACK_RECOMBINATOR'
         }
+
+    def _convert_brief_to_constraints(self, creative_brief: Any) -> Dict[str, Any]:
+        """Creative brief를 MOGA 제약조건으로 변환"""
+        constraints = {
+            'max_ingredients': 15,
+            'min_ingredients': 5,
+            'max_cost': 100,
+            'min_quality': 80
+        }
+
+        # 테마에서 향 패밀리 추출
+        if hasattr(creative_brief, 'theme'):
+            theme_lower = creative_brief.theme.lower()
+            if 'floral' in theme_lower:
+                constraints['fragrance_family'] = 'floral'
+            elif 'citrus' in theme_lower or 'fresh' in theme_lower:
+                constraints['fragrance_family'] = 'citrus'
+            elif 'wood' in theme_lower:
+                constraints['fragrance_family'] = 'woody'
+            else:
+                constraints['fragrance_family'] = 'fresh'
+
+        # 감정에서 무드 추출
+        if hasattr(creative_brief, 'core_emotion'):
+            emotion_lower = creative_brief.core_emotion.lower()
+            if 'romantic' in emotion_lower or 'love' in emotion_lower:
+                constraints['mood'] = 'romantic'
+            elif 'energy' in emotion_lower or 'vibrant' in emotion_lower:
+                constraints['mood'] = 'energetic'
+            else:
+                constraints['mood'] = 'balanced'
+
+        return constraints
+
+    def _select_best_from_pareto(self, pareto_front: List[Dict], creative_brief: Any) -> Optional[Dict]:
+        """Pareto front에서 creative brief에 가장 적합한 솔루션 선택"""
+        if not pareto_front:
+            return None
+
+        # 각 솔루션에 점수 매기기
+        scored_solutions = []
+        for solution in pareto_front:
+            score = 0.0
+
+            # 품질 점수 (가중치 40%)
+            score += solution.get('quality_score', 0) * 0.4
+
+            # 안정성 점수 (가중치 30%)
+            score += solution.get('stability', 0) * 100 * 0.3
+
+            # 비용 역점수 (낮을수록 좋음, 가중치 30%)
+            max_cost = max(s.get('cost', 1) for s in pareto_front)
+            if max_cost > 0:
+                cost_score = (max_cost - solution.get('cost', 0)) / max_cost * 100
+                score += cost_score * 0.3
+
+            scored_solutions.append((score, solution))
+
+        # 가장 높은 점수의 솔루션 반환
+        scored_solutions.sort(key=lambda x: x[0], reverse=True)
+        return scored_solutions[0][1] if scored_solutions else pareto_front[0]
+
+    def _classify_note_type(self, volatility: float) -> str:
+        """휘발도에 따른 노트 타입 분류"""
+        if volatility > 0.7:
+            return 'top'
+        elif volatility > 0.3:
+            return 'heart'
+        else:
+            return 'base'
 
     def _evolve_existing_dna(
         self,
@@ -343,6 +521,9 @@ class LivingScentOrchestrator:
         user_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """기존 DNA 진화 - 실제 PPO 알고리즘 사용"""
+
+        self.stats['total_evolutions'] += 1
+
         # DNA 라이브러리 준비
         dna_library = self.memory_dna_library
 
@@ -351,12 +532,12 @@ class LivingScentOrchestrator:
             try:
                 dna_model = self.db.query(OlfactoryDNAModel).filter_by(dna_id=dna_id).first()
                 if dna_model:
-                    # DB에서 로드한 DNA를 메모리에 추가 (간단한 구조로)
+                    # DB에서 로드한 DNA를 메모리에 추가
                     from fragrance_ai.models.living_scent.olfactory_recombinator import OlfactoryDNA
                     dna_library[dna_id] = OlfactoryDNA(
                         dna_id=dna_model.dna_id,
                         lineage=dna_model.lineage,
-                        genotype={},  # 실제로는 변환 필요
+                        genotype=json.loads(dna_model.genotype) if isinstance(dna_model.genotype, str) else dna_model.genotype,
                         phenotype_potential=dna_model.phenotype_potential,
                         story=dna_model.story,
                         creation_timestamp=str(dna_model.created_at),
@@ -366,46 +547,151 @@ class LivingScentOrchestrator:
             except Exception as e:
                 logger.error(f"Failed to load DNA from database: {e}")
 
-        # 실제 PPO 강화학습을 통한 진화 실행
-        logger.info("Starting real PPO reinforcement learning for DNA evolution...")
+        # PPO 엔진이 사용 가능한 경우
+        if self.ppo_trainer and self.fragrance_env:
+            try:
+                # 실제 PPO 강화학습을 통한 진화 실행
+                logger.info("Starting real PPO reinforcement learning for DNA evolution...")
 
-        # PPO 학습 실행 (시뮬레이션 아님)
-        import numpy as np
-        for episode in range(10):  # 10 에피소드 학습
-            state = self.fragrance_env.reset()
-            episode_reward = 0
+                # 환경 초기화 시 현재 DNA 정보 전달
+                if dna_id in dna_library:
+                    current_dna = dna_library[dna_id]
+                    # 환경에 DNA 정보 설정 (환경이 지원하는 경우)
+                    if hasattr(self.fragrance_env, 'set_base_recipe'):
+                        base_recipe = self._dna_to_recipe(current_dna)
+                        self.fragrance_env.set_base_recipe(base_recipe)
 
-            for step in range(100):  # 최대 100 스텝
-                # PPO 정책에서 행동 선택
-                action, log_prob, value = self.ppo_trainer.get_action_and_value(
-                    torch.FloatTensor(state).unsqueeze(0)
+                # PPO 학습 파라미터
+                n_episodes = 20  # 더 많은 에피소드로 충분한 학습
+                max_steps = 100
+                update_interval = 5
+                episode_rewards = []
+
+                # PPO 학습 실행 (시뮬레이션 아님)
+                import numpy as np
+                for episode in range(n_episodes):
+                    state = self.fragrance_env.reset()
+                    episode_reward = 0
+                    episode_actions = []
+
+                    for step in range(max_steps):
+                        # PPO 정책에서 행동 선택
+                        state_tensor = torch.FloatTensor(state).unsqueeze(0)
+                        action, log_prob, value = self.ppo_trainer.get_action_and_value(state_tensor)
+
+                        # 환경에서 행동 수행
+                        next_state, reward, done, info = self.fragrance_env.step(action.item())
+
+                        # 피드백 브리프 기반 보상 조정 (RLHF)
+                        if hasattr(feedback_brief, 'preferences'):
+                            reward = self._adjust_reward_with_feedback(
+                                reward, feedback_brief.preferences
+                            )
+
+                        # 경험 저장
+                        self.ppo_trainer.rollout_buffer.add(
+                            state, action.item(), reward, value.item(), log_prob.item(), done
+                        )
+
+                        episode_actions.append(action.item())
+                        state = next_state
+                        episode_reward += reward
+
+                        if done:
+                            break
+
+                    episode_rewards.append(episode_reward)
+                    logger.info(f"PPO Episode {episode + 1}/{n_episodes}, Reward: {episode_reward:.2f}")
+
+                    # PPO 학습 수행
+                    if (episode + 1) % update_interval == 0:
+                        # 마지막 value 계산
+                        with torch.no_grad():
+                            last_value = self.ppo_trainer.critic(
+                                torch.FloatTensor(state).unsqueeze(0)
+                            ).item()
+
+                        # Returns와 Advantages 계산
+                        self.ppo_trainer.rollout_buffer.compute_returns_and_advantages(last_value)
+
+                        # 학습 실행
+                        train_stats = self.ppo_trainer.train_step(n_epochs=4, batch_size=32)
+                        logger.info(f"PPO Training Update - Stats: {train_stats}")
+
+                        # 버퍼 초기화
+                        self.ppo_trainer.rollout_buffer.clear()
+
+                # 학습 완료 후 최적 행동 시퀀스 생성
+                optimized_recipe = self._generate_optimized_recipe_from_ppo(
+                    self.fragrance_env,
+                    self.ppo_trainer,
+                    base_dna=dna_library.get(dna_id)
                 )
 
-                # 환경에서 행동 수행
-                next_state, reward, done, info = self.fragrance_env.step(action.item())
+                # 학습된 정책으로 표현형 생성
+                import uuid
+                from fragrance_ai.models.living_scent.epigenetic_variation import ScentPhenotype, EpigeneticMarker
 
-                # 경험 저장
-                self.ppo_trainer.rollout_buffer.add(
-                    state, action, reward, value, log_prob
+                phenotype = ScentPhenotype(
+                    phenotype_id=f"PHENO-PPO-{uuid.uuid4().hex[:8]}",
+                    based_on_dna=dna_id,
+                    recipe=optimized_recipe,
+                    description=f"Evolved through {n_episodes} episodes of PPO reinforcement learning. "
+                                f"Average reward: {np.mean(episode_rewards):.2f}",
+                    epigenetic_trigger="PPO_RLHF_EVOLUTION",
+                    environmental_response=f"Adapted to user preferences via {n_episodes} learning episodes",
+                    modifications=[
+                        EpigeneticMarker(
+                            marker_type='reinforcement',
+                            target_gene='all',
+                            modification_factor=1.0 + (np.mean(episode_rewards) / 100),
+                            trigger='PPO_optimization'
+                        )
+                    ],
+                    parent_phenotype=None,
+                    evolution_path=[f"PPO_{n_episodes}ep"]
                 )
 
-                state = next_state
-                episode_reward += reward
+                self.stats['ppo_successes'] += 1
 
-                if done:
-                    break
+                # 데이터베이스 저장
+                self._save_phenotype_to_db(phenotype, user_id)
 
-            # PPO 학습 수행
-            if episode % 5 == 0:  # 매 5 에피소드마다 학습
-                train_stats = self.ppo_trainer.train_step(n_epochs=4, batch_size=32)
-                logger.info(f"PPO Training - Episode {episode}, Reward: {episode_reward:.2f}, Stats: {train_stats}")
+                return {
+                    'type': 'evolved_phenotype',
+                    'phenotype_id': phenotype.phenotype_id,
+                    'based_on_dna': phenotype.based_on_dna,
+                    'recipe': phenotype.recipe,
+                    'description': phenotype.description,
+                    'epigenetic_trigger': phenotype.epigenetic_trigger,
+                    'environmental_response': phenotype.environmental_response,
+                    'evolution_path': phenotype.evolution_path,
+                    'modifications': [
+                        {
+                            'type': mod.marker_type,
+                            'target': mod.target_gene,
+                            'factor': mod.modification_factor
+                        }
+                        for mod in phenotype.modifications
+                    ],
+                    'optimization_method': 'REAL_PPO_RLHF',
+                    'training_episodes': n_episodes,
+                    'average_reward': float(np.mean(episode_rewards)),
+                    'final_reward': float(episode_rewards[-1])
+                }
 
-        # 학습된 정책으로 최종 표현형 생성
+            except Exception as e:
+                logger.error(f"PPO evolution failed: {e}")
+                self.stats['fallback_uses'] += 1
+
+        # Fallback: 기본 진화 메서드 사용
+        logger.info("Using fallback evolution method")
         phenotype = self.epigenetic_variation.evolve(
             dna_id=dna_id,
             feedback_brief=feedback_brief,
             dna_library=dna_library
         )
+        self.stats['fallback_uses'] += 1
 
         # 데이터베이스 저장
         self._save_phenotype_to_db(phenotype, user_id)
@@ -421,14 +707,93 @@ class LivingScentOrchestrator:
             'evolution_path': phenotype.evolution_path,
             'modifications': [
                 {
-                    'type': mod.marker_type.value,
+                    'type': mod.marker_type.value if hasattr(mod.marker_type, 'value') else str(mod.marker_type),
                     'target': mod.target_gene,
                     'factor': mod.modification_factor
                 }
                 for mod in phenotype.modifications
             ],
-            'optimization_method': 'REAL_PPO_RLHF'  # 실제 PPO 알고리즘 사용 표시
+            'optimization_method': 'FALLBACK_EPIGENETIC'
         }
+
+    def _dna_to_recipe(self, dna: Any) -> Dict[str, Any]:
+        """DNA를 레시피 형식으로 변환"""
+        recipe = {
+            'ingredients': [],
+            'total_concentration': 0
+        }
+
+        if hasattr(dna, 'genotype'):
+            for note_type, genes in dna.genotype.items():
+                for gene in genes:
+                    recipe['ingredients'].append({
+                        'name': gene.ingredient,
+                        'concentration': gene.concentration,
+                        'note_type': note_type,
+                        'volatility': gene.volatility
+                    })
+                    recipe['total_concentration'] += gene.concentration
+
+        return recipe
+
+    def _adjust_reward_with_feedback(self, base_reward: float, preferences: Dict) -> float:
+        """사용자 피드백 기반 보상 조정 (RLHF)"""
+        adjusted_reward = base_reward
+
+        # 선호도에 따른 보상 조정
+        if 'strength' in preferences:
+            # 강도 선호도 반영
+            strength_pref = preferences['strength']
+            adjusted_reward *= (1.0 + strength_pref * 0.1)
+
+        if 'complexity' in preferences:
+            # 복잡도 선호도 반영
+            complexity_pref = preferences['complexity']
+            adjusted_reward *= (1.0 + complexity_pref * 0.1)
+
+        return adjusted_reward
+
+    def _generate_optimized_recipe_from_ppo(
+        self,
+        env: Any,
+        trainer: Any,
+        base_dna: Optional[Any] = None
+    ) -> Dict[str, Any]:
+        """PPO 학습 결과를 바탕으로 최적화된 레시피 생성"""
+        # 환경 리셋
+        state = env.reset()
+
+        # 기본 레시피 구조
+        optimized_recipe = {
+            'ingredients': [],
+            'optimization_notes': 'Generated using trained PPO policy'
+        }
+
+        # 학습된 정책으로 한 에피소드 실행
+        for _ in range(50):  # 최대 50 스텝
+            with torch.no_grad():
+                state_tensor = torch.FloatTensor(state).unsqueeze(0)
+                action_probs = trainer.actor(state_tensor)
+                action_dist = torch.distributions.Categorical(action_probs)
+                action = action_dist.sample()
+
+            # 환경에서 행동 실행
+            next_state, reward, done, info = env.step(action.item())
+
+            # 레시피 정보 수집 (환경이 제공하는 경우)
+            if 'current_recipe' in info:
+                optimized_recipe = info['current_recipe']
+
+            state = next_state
+            if done:
+                break
+
+        # 기본 DNA가 있으면 정보 보충
+        if base_dna and not optimized_recipe['ingredients']:
+            optimized_recipe = self._dna_to_recipe(base_dna)
+            optimized_recipe['optimization_notes'] = 'Evolved from base DNA using PPO'
+
+        return optimized_recipe
 
     def get_dna_info(self, dna_id: str) -> Optional[Dict[str, Any]]:
         """DNA 정보 조회"""
@@ -506,6 +871,62 @@ class LivingScentOrchestrator:
         )
 
         return tree
+
+    def get_statistics(self) -> Dict[str, Any]:
+        """오케스트레이터 통계 정보 반환"""
+        return {
+            'total_creations': self.stats['total_creations'],
+            'total_evolutions': self.stats['total_evolutions'],
+            'moga_successes': self.stats['moga_successes'],
+            'ppo_successes': self.stats['ppo_successes'],
+            'fallback_uses': self.stats['fallback_uses'],
+            'moga_success_rate': (
+                self.stats['moga_successes'] / self.stats['total_creations'] * 100
+                if self.stats['total_creations'] > 0 else 0
+            ),
+            'ppo_success_rate': (
+                self.stats['ppo_successes'] / self.stats['total_evolutions'] * 100
+                if self.stats['total_evolutions'] > 0 else 0
+            ),
+            'dna_library_size': len(self.memory_dna_library),
+            'phenotype_library_size': len(self.memory_phenotype_library),
+            'moga_available': self.moga_optimizer is not None,
+            'ppo_available': self.ppo_trainer is not None
+        }
+
+    def health_check(self) -> Dict[str, Any]:
+        """시스템 상태 확인"""
+        health = {
+            'status': 'healthy',
+            'components': {
+                'linguistic_receptor': self.linguistic_receptor is not None,
+                'cognitive_core': self.cognitive_core is not None,
+                'olfactory_recombinator': self.olfactory_recombinator is not None,
+                'epigenetic_variation': self.epigenetic_variation is not None,
+                'moga_optimizer': self.moga_optimizer is not None,
+                'ppo_trainer': self.ppo_trainer is not None,
+                'database': self.db is not None
+            },
+            'statistics': self.get_statistics()
+        }
+
+        # 전체 상태 결정
+        if not all([
+            health['components']['linguistic_receptor'],
+            health['components']['cognitive_core'],
+            health['components']['olfactory_recombinator'],
+            health['components']['epigenetic_variation']
+        ]):
+            health['status'] = 'degraded'
+
+        if not any([
+            health['components']['moga_optimizer'],
+            health['components']['ppo_trainer']
+        ]):
+            health['status'] = 'warning'
+            health['message'] = 'Real AI algorithms not available, using fallback methods'
+
+        return health
 
 
 # 싱글톤 인스턴스

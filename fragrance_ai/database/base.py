@@ -1,67 +1,25 @@
-from sqlalchemy import create_engine, MetaData
+"""
+Central database base configuration
+모든 SQLAlchemy 모델이 사용하는 단일 Base 클래스
+"""
+
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.pool import StaticPool
-from typing import Generator
-import logging
+from sqlalchemy import MetaData
 
-from ..core.config import settings
+# Naming convention for constraints
+convention = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s"
+}
 
-logger = logging.getLogger(__name__)
+# Create metadata with naming convention
+metadata = MetaData(naming_convention=convention)
 
-# SQLAlchemy 기본 설정
-metadata = MetaData()
+# Single Base instance for all models
 Base = declarative_base(metadata=metadata)
 
-# 데이터베이스 엔진 설정
-if settings.database_url.startswith("sqlite"):
-    engine = create_engine(
-        settings.database_url,
-        poolclass=StaticPool,
-        connect_args={
-            "check_same_thread": False,
-            "timeout": 20
-        },
-        echo=settings.debug
-    )
-else:
-    engine = create_engine(
-        settings.database_url,
-        pool_size=10,
-        max_overflow=20,
-        pool_recycle=3600,
-        echo=settings.debug
-    )
-
-# 세션 팩토리 생성
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def get_db() -> Generator[Session, None, None]:
-    """데이터베이스 세션 의존성"""
-    db = SessionLocal()
-    try:
-        yield db
-    except Exception as e:
-        logger.error(f"Database session error: {e}")
-        db.rollback()
-        raise
-    finally:
-        db.close()
-
-def create_tables():
-    """테이블 생성"""
-    try:
-        Base.metadata.create_all(bind=engine)
-        logger.info("Database tables created successfully")
-    except Exception as e:
-        logger.error(f"Failed to create database tables: {e}")
-        raise
-
-def drop_tables():
-    """테이블 삭제"""
-    try:
-        Base.metadata.drop_all(bind=engine)
-        logger.info("Database tables dropped successfully")
-    except Exception as e:
-        logger.error(f"Failed to drop database tables: {e}")
-        raise
+# Export
+__all__ = ['Base', 'metadata']
