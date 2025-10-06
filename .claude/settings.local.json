@@ -85,7 +85,11 @@
       "Bash(ping:*)",
       "Bash(alembic current:*)",
       "Bash(alembic:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(start http://localhost:3000/auth/login)",
+      "Bash(start http://localhost:3000/dashboard)",
+      "Bash(psql:*)",
+      "Bash(ollama list:*)"
     ],
     "deny": [],
     "ask": []
