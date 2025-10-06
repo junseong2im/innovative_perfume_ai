@@ -40,15 +40,15 @@ export default function AIFragranceChat() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
     try {
-      const response = await fetch(`${API_URL}/api/v1/generate/recipe`, {
+      // Python 백엔드의 /api/v1/chat 엔드포인트 호출
+      const response = await fetch(`${API_URL}/api/v1/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          description: description,
-          // AI가 설명을 분석하여 모든 파라미터를 자동으로 결정하도록 함
-          // 하드코딩된 기본값 제거
+          message: description,
+          session_id: `web-${Date.now()}`
         }),
       });
 
@@ -58,21 +58,27 @@ export default function AIFragranceChat() {
 
       const data = await response.json();
 
-      // API 응답을 그대로 사용 (fallback 제거)
-      if (!data.recipe || !data.recipe.name) {
-        throw new Error('Invalid API response');
+      // 백엔드 응답 구조에 맞게 파싱
+      if (!data.recipe) {
+        throw new Error('No recipe generated');
       }
 
       return {
         name: data.recipe.name,
         notes: {
-          top: data.recipe.composition.top_notes.map((note: any) => note.name),
-          middle: data.recipe.composition.heart_notes.map((note: any) => note.name),
-          base: data.recipe.composition.base_notes.map((note: any) => note.name)
+          top: data.recipe.ingredients
+            .filter((ing: any) => ing.type === 'top')
+            .map((ing: any) => ing.name),
+          middle: data.recipe.ingredients
+            .filter((ing: any) => ing.type === 'heart' || ing.type === 'middle')
+            .map((ing: any) => ing.name),
+          base: data.recipe.ingredients
+            .filter((ing: any) => ing.type === 'base')
+            .map((ing: any) => ing.name)
         },
         description: data.recipe.description,
-        intensity: data.recipe.characteristics.intensity,
-        season: data.recipe.characteristics.season
+        intensity: data.recipe.metadata?.intensity || 'moderate',
+        season: data.recipe.metadata?.season || 'all-season'
       };
     } catch (error: any) {
       console.error('AI 향수 생성 API 호출 실패:', error);

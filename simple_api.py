@@ -87,7 +87,7 @@ async def generate_recipe(request: FragranceRequest):
 
     try:
         # Import our real AI models
-        from fragrance_ai.training.real_moga_complete import UnifiedProductionMOGA
+        from fragrance_ai.training.moga_optimizer import UnifiedProductionMOGA
         from fragrance_ai.orchestrator.living_scent_orchestrator import LivingScentOrchestrator
 
         # Use our orchestrator for generation
