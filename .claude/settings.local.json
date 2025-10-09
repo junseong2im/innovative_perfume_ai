@@ -90,7 +90,8 @@
       "Bash(start http://localhost:3000/dashboard)",
       "Bash(psql:*)",
       "Bash(ollama list:*)",
-      "Bash(git rebase:*)"
+      "Bash(git rebase:*)",
+      "Bash(git filter-branch:*)"
     ],
     "deny": [],
     "ask": []
