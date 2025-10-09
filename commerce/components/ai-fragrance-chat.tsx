@@ -37,11 +37,9 @@ export default function AIFragranceChat() {
   }, [messages]);
 
   const generateFragrance = async (description: string) => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-
     try {
-      // Python 백엔드의 /api/v1/chat 엔드포인트 호출
-      const response = await fetch(`${API_URL}/api/v1/chat`, {
+      // Next.js API Route를 통해 백엔드 호출
+      const response = await fetch('/api/ai-perfumer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
