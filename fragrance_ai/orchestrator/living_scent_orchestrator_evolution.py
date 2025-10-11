@@ -83,13 +83,22 @@ class LivingScentOrchestrator:
                     "message": "진화 세션이 없습니다. 먼저 EVOLVE_EXISTING으로 시작해주세요."
                 }
 
-            # 3. RL 엔진의 정책을 업데이트한다 (REINFORCE 알고리즘)
+            # 3. RL 엔진의 정책을 업데이트한다 (REINFORCE/PPO 알고리즘)
+            # 사용자가 평점을 제공한 경우 활용
+            user_rating = request.get('rating', None)  # 1-5 스케일 (선택사항)
+
             training_result = self.rl_engine.update_policy_with_feedback(
                 chosen_phenotype_id=chosen_id,
                 options=cached_data['options'],
                 state=cached_data['state'],
-                saved_actions=cached_data['saved_actions']
+                saved_actions=cached_data['saved_actions'],
+                rating=user_rating
             )
+
+            # 학습 결과 로깅
+            print(f"[RL Training] User: {user_id}, Loss: {training_result.get('loss', 'N/A'):.4f}, "
+                  f"Reward: {training_result.get('reward', 'N/A'):.2f}, "
+                  f"Algorithm: {training_result.get('algorithm', 'REINFORCE')}")
 
             # 4. 선택된 Phenotype를 데이터베이스에 저장
             chosen_phenotype = next(

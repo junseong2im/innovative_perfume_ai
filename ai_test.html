@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 기능 테스트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 800px;
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .test-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .response-box {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            min-height: 100px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            margin-top: 10px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            margin-top: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-wrapper label {
+            padding: 10px 20px;
+            background: #764ba2;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+
+        .file-input-wrapper label:hover {
+            background: #6b4299;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI 기능 테스트 페이지</h1>
+
+        <!-- 텍스트 생성 테스트 -->
+        <div class="test-section">
+            <h2>📝 텍스트 생성</h2>
+            <div class="input-group">
+                <label for="textPrompt">프롬프트 입력:</label>
+                <textarea id="textPrompt" placeholder="AI에게 물어볼 내용을 입력하세요...">한국의 전통 음식 3가지를 소개해주세요.</textarea>
+            </div>
+            <div class="input-group">
+                <label for="modelSelect">모델 선택:</label>
+                <select id="modelSelect">
+                    <option value="gpt-3.5">GPT-3.5</option>
+                    <option value="gpt-4">GPT-4</option>
+                    <option value="claude">Claude</option>
+                    <option value="gemini">Gemini</option>
+                </select>
+            </div>
+            <div class="button-group">
+                <button onclick="generateText()">텍스트 생성</button>
+                <button onclick="streamText()">스트리밍 생성</button>
+                <button onclick="clearResponse('textResponse')">결과 지우기</button>
+            </div>
+            <div class="loading" id="textLoading">⏳ 생성 중...</div>
+            <div class="response-box" id="textResponse"></div>
+        </div>
+
+        <!-- 이미지 분석 테스트 -->
+        <div class="test-section">
+            <h2>🖼️ 이미지 분석</h2>
+            <div class="input-group">
+                <div class="file-input-wrapper">
+                    <label for="imageInput">이미지 선택</label>
+                    <input type="file" id="imageInput" accept="image/*" onchange="previewImage(event)">
+                </div>
+            </div>
+            <img id="imagePreview" alt="미리보기">
+            <div class="input-group">
+                <label for="imagePrompt">분석 요청:</label>
+                <input type="text" id="imagePrompt" placeholder="이미지에 대해 물어보세요..." value="이 이미지를 설명해주세요">
+            </div>
+            <div class="button-group">
+                <button onclick="analyzeImage()">이미지 분석</button>
+                <button onclick="extractText()">텍스트 추출 (OCR)</button>
+            </div>
+            <div class="loading" id="imageLoading">⏳ 분석 중...</div>
+            <div class="response-box" id="imageResponse"></div>
+        </div>
+
+        <!-- 번역 테스트 -->
+        <div class="test-section">
+            <h2>🌍 번역</h2>
+            <div class="input-group">
+                <label for="translateText">번역할 텍스트:</label>
+                <textarea id="translateText" placeholder="번역할 텍스트를 입력하세요...">Hello, how are you today?</textarea>
+            </div>
+            <div class="input-group">
+                <label for="targetLang">목표 언어:</label>
+                <select id="targetLang">
+                    <option value="ko">한국어</option>
+                    <option value="ja">일본어</option>
+                    <option value="zh">중국어</option>
+                    <option value="es">스페인어</option>
+                    <option value="fr">프랑스어</option>
+                </select>
+            </div>
+            <button onclick="translateContent()">번역하기</button>
+            <div class="loading" id="translateLoading">⏳ 번역 중...</div>
+            <div class="response-box" id="translateResponse"></div>
+        </div>
+
+        <!-- 요약 테스트 -->
+        <div class="test-section">
+            <h2>📋 텍스트 요약</h2>
+            <div class="input-group">
+                <label for="summaryText">요약할 텍스트:</label>
+                <textarea id="summaryText" placeholder="긴 텍스트를 입력하세요..." rows="5">인공지능(AI)은 인간의 학습능력, 추론능력, 지각능력, 언어이해능력 등을 컴퓨터 프로그램으로 실현한 기술입니다. 최근 딥러닝 기술의 발전으로 AI는 이미지 인식, 자연어 처리, 음성 인식 등 다양한 분야에서 놀라운 성과를 보이고 있습니다. 특히 ChatGPT와 같은 대규모 언어 모델의 등장으로 AI와 인간의 대화가 더욱 자연스러워졌으며, 이는 교육, 의료, 비즈니스 등 다양한 분야에서 혁신을 가져오고 있습니다.</textarea>
+            </div>
+            <button onclick="summarizeText()">요약하기</button>
+            <div class="loading" id="summaryLoading">⏳ 요약 중...</div>
+            <div class="response-box" id="summaryResponse"></div>
+        </div>
+
+        <!-- API 연결 테스트 -->
+        <div class="test-section">
+            <h2>🔌 API 연결 테스트</h2>
+            <div class="button-group">
+                <button onclick="testConnection()">연결 테스트</button>
+                <button onclick="checkAPIStatus()">API 상태 확인</button>
+                <button onclick="testBatchRequest()">배치 요청 테스트</button>
+            </div>
+            <div class="response-box" id="apiResponse"></div>
+        </div>
+    </div>
+
+    <script>
+        // API 설정 (실제 환경에 맞게 수정 필요)
+        const API_BASE_URL = 'http://localhost:8000/api';
+        const API_KEY = 'your-api-key-here';
+
+        // 텍스트 생성
+        async function generateText() {
+            const prompt = document.getElementById('textPrompt').value;
+            const model = document.getElementById('modelSelect').value;
+            const loading = document.getElementById('textLoading');
+            const response = document.getElementById('textResponse');
+
+            loading.classList.add('active');
+            response.innerHTML = '';
+
+            try {
+                // 실제 API 호출 시뮬레이션
+                await simulateAPICall();
+                response.innerHTML = `[${model} 응답]\n\n한국의 대표적인 전통 음식 3가지를 소개합니다:\n\n1. 김치 - 발효된 배추나 무를 고춧가루와 양념으로 버무린 음식\n2. 불고기 - 간장 양념에 재운 소고기를 구워먹는 요리\n3. 비빔밥 - 밥 위에 각종 나물과 고추장을 올려 비벼먹는 음식`;
+                addStatus(response, 'success', '생성 완료');
+            } catch (error) {
+                response.innerHTML = '오류: ' + error.message;
+                addStatus(response, 'error', '생성 실패');
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // 스트리밍 텍스트 생성
+        async function streamText() {
+            const prompt = document.getElementById('textPrompt').value;
+            const loading = document.getElementById('textLoading');
+            const response = document.getElementById('textResponse');
+
+            loading.classList.add('active');
+            response.innerHTML = '';
+
+            try {
+                // 스트리밍 시뮬레이션
+                const text = "스트리밍으로 텍스트를 생성하는 예제입니다. 한 글자씩 출력됩니다.";
+                for (let i = 0; i < text.length; i++) {
+                    response.innerHTML += text[i];
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+                addStatus(response, 'success', '스트리밍 완료');
+            } catch (error) {
+                response.innerHTML = '오류: ' + error.message;
+                addStatus(response, 'error', '스트리밍 실패');
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // 이미지 미리보기
+        function previewImage(event) {
+            const file = event.target.files[0];
+            const preview = document.getElementById('imagePreview');
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // 이미지 분석
+        async function analyzeImage() {
+            const loading = document.getElementById('imageLoading');
+            const response = document.getElementById('imageResponse');
+
+            loading.classList.add('active');
+            response.innerHTML = '';
+
+            try {
+                await simulateAPICall();
+                response.innerHTML = '이미지 분석 결과:\n\n- 주요 객체: 사람, 건물, 나무\n- 색상: 파란색 하늘, 녹색 나무\n- 분위기: 화창하고 평화로운 풍경';
+                addStatus(response, 'success', '분석 완료');
+            } catch (error) {
+                response.innerHTML = '오류: ' + error.message;
+                addStatus(response, 'error', '분석 실패');
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // 텍스트 추출 (OCR)
+        async function extractText() {
+            const loading = document.getElementById('imageLoading');
+            const response = document.getElementById('imageResponse');
+
+            loading.classList.add('active');
+            response.innerHTML = '';
+
+            try {
+                await simulateAPICall();
+                response.innerHTML = 'OCR 결과:\n\n"이미지에서 추출된 텍스트가 여기에 표시됩니다."';
+                addStatus(response, 'success', 'OCR 완료');
+            } catch (error) {
+                response.innerHTML = '오류: ' + error.message;
+                addStatus(response, 'error', 'OCR 실패');
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // 번역
+        async function translateContent() {
+            const text = document.getElementById('translateText').value;
+            const targetLang = document.getElementById('targetLang').value;
+            const loading = document.getElementById('translateLoading');
+            const response = document.getElementById('translateResponse');
+
+            loading.classList.add('active');
+            response.innerHTML = '';
+
+            try {
+                await simulateAPICall();
+                const translations = {
+                    'ko': '안녕하세요, 오늘 어떻게 지내세요?',
+                    'ja': 'こんにちは、今日はお元気ですか？',
+                    'zh': '你好，你今天好吗？',
+                    'es': '¡Hola! ¿Cómo estás hoy?',
+                    'fr': 'Bonjour, comment allez-vous aujourd\'hui?'
+                };
+                response.innerHTML = `원문: ${text}\n\n번역 (${targetLang}): ${translations[targetLang]}`;
+                addStatus(response, 'success', '번역 완료');
+            } catch (error) {
+                response.innerHTML = '오류: ' + error.message;
+                addStatus(response, 'error', '번역 실패');
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // 요약
+        async function summarizeText() {
+            const loading = document.getElementById('summaryLoading');
+            const response = document.getElementById('summaryResponse');
+
+            loading.classList.add('active');
+            response.innerHTML = '';
+
+            try {
+                await simulateAPICall();
+                response.innerHTML = '요약:\n\nAI는 인간의 지능을 컴퓨터로 구현한 기술로, 딥러닝 발전으로 다양한 분야에서 성과를 보이고 있으며, 특히 ChatGPT 같은 언어 모델이 여러 산업에 혁신을 가져오고 있습니다.';
+                addStatus(response, 'success', '요약 완료');
+            } catch (error) {
+                response.innerHTML = '오류: ' + error.message;
+                addStatus(response, 'error', '요약 실패');
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // API 연결 테스트
+        async function testConnection() {
+            const response = document.getElementById('apiResponse');
+            response.innerHTML = '연결 테스트 중...';
+
+            try {
+                await simulateAPICall();
+                response.innerHTML = '✅ API 연결 성공!\n\n서버: localhost:8000\n응답 시간: 120ms\n상태: 정상';
+                addStatus(response, 'success', '연결 성공');
+            } catch (error) {
+                response.innerHTML = '❌ API 연결 실패\n\n' + error.message;
+                addStatus(response, 'error', '연결 실패');
+            }
+        }
+
+        // API 상태 확인
+        async function checkAPIStatus() {
+            const response = document.getElementById('apiResponse');
+            response.innerHTML = '상태 확인 중...';
+
+            try {
+                await simulateAPICall();
+                response.innerHTML = '📊 API 상태\n\n• GPT-3.5: ✅ 정상\n• GPT-4: ✅ 정상\n• Claude: ✅ 정상\n• Gemini: ⚠️ 지연\n\n요청 한도: 950/1000\n응답 시간: 평균 200ms';
+                addStatus(response, 'success', '상태 확인 완료');
+            } catch (error) {
+                response.innerHTML = '오류: ' + error.message;
+                addStatus(response, 'error', '상태 확인 실패');
+            }
+        }
+
+        // 배치 요청 테스트
+        async function testBatchRequest() {
+            const response = document.getElementById('apiResponse');
+            response.innerHTML = '배치 요청 처리 중...';
+
+            try {
+                await simulateAPICall(2000);
+                response.innerHTML = '📦 배치 요청 결과\n\n요청 1: ✅ 성공 (120ms)\n요청 2: ✅ 성공 (95ms)\n요청 3: ✅ 성공 (110ms)\n요청 4: ✅ 성공 (88ms)\n요청 5: ✅ 성공 (102ms)\n\n총 처리 시간: 515ms\n성공률: 100%';
+                addStatus(response, 'success', '배치 처리 완료');
+            } catch (error) {
+                response.innerHTML = '오류: ' + error.message;
+                addStatus(response, 'error', '배치 처리 실패');
+            }
+        }
+
+        // 응답 지우기
+        function clearResponse(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        // 상태 표시 추가
+        function addStatus(element, type, message) {
+            const status = document.createElement('span');
+            status.className = `status ${type}`;
+            status.textContent = message;
+            element.appendChild(status);
+        }
+
+        // API 호출 시뮬레이션
+        function simulateAPICall(delay = 1000) {
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    // 랜덤하게 성공/실패 시뮬레이션 (90% 성공)
+                    if (Math.random() > 0.1) {
+                        resolve();
+                    } else {
+                        reject(new Error('네트워크 오류가 발생했습니다.'));
+                    }
+                }, delay);
+            });
+        }
+
+        // 실제 API 호출 함수 (백엔드 연결 시 사용)
+        async function callAPI(endpoint, data) {
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error('API 호출 오류:', error);
+                throw error;
+            }
+        }
+    </script>
+</body>
+</html>

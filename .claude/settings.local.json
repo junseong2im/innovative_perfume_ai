@@ -91,7 +91,9 @@
       "Bash(psql:*)",
       "Bash(ollama list:*)",
       "Bash(git rebase:*)",
-      "Bash(git filter-branch:*)"
+      "Bash(git filter-branch:*)",
+      "Bash(start:*)",
+      "Bash(explorer:*)"
     ],
     "deny": [],
     "ask": []

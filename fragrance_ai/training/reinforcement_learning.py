@@ -122,12 +122,45 @@ class RLEngine:
 
         return options
 
-    def update_policy_with_feedback(self, chosen_phenotype_id: str, options: List[Dict], state: torch.Tensor, saved_actions: List[tuple]):
+    def update_policy_with_feedback(self, chosen_phenotype_id: str, options: List[Dict], state: torch.Tensor, saved_actions: List[tuple], rating: float = None):
         """
         사용자의 선택을 보상으로 삼아 정책 신경망을 업데이트(학습)합니다.
+        REINFORCE 알고리즘을 사용한 최소 구현 버전입니다.
+
+        Args:
+            chosen_phenotype_id: 선택된 phenotype ID
+            options: 제공된 옵션 목록
+            state: 현재 상태
+            saved_actions: 저장된 (action, log_prob) 튜플 리스트
+            rating: 사용자 평점 (1-5, 선택사항)
+
+        Returns:
+            학습 통계 딕셔너리
         """
-        # 이 부분은 Step 3.3에서 구현할 예정
-        pass
+        # 1) 보상 설계
+        # rating ∈ [1..5]가 있으면 (rating-3)/2로 정규화; 없으면 선택=+1, 비선택=0
+        if rating is not None:
+            reward = (rating - 3) / 2.0  # -1.0 ~ +1.0 범위로 정규화
+        else:
+            # 선택된 옵션에 대해서만 양의 보상
+            reward = 1.0 if any(opt["id"] == chosen_phenotype_id for opt in options) else 0.0
+
+        # 2) REINFORCE loss 계산
+        loss = 0.0
+        for (action, log_prob) in saved_actions:
+            # REINFORCE: -log_prob * reward
+            loss += -log_prob * reward
+
+        # 3) 역전파 및 파라미터 업데이트
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        return {
+            "loss": float(loss.item()),
+            "reward": float(reward),
+            "algorithm": "REINFORCE"
+        }
 
     def save_model(self, path="policy_network.pth"):
         torch.save(self.policy_network.state_dict(), path)

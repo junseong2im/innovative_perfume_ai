@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>향수 AI 테스트 - Fragrance AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h2 {
+            color: #d63384;
+            margin-bottom: 20px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #f0f0f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #d63384;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .slider-group {
+            margin-bottom: 15px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        .slider-value {
+            display: inline-block;
+            color: #d63384;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #d63384, #f77062);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(214, 51, 132, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .response-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #d63384;
+            border-radius: 5px;
+            min-height: 60px;
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #d63384;
+            margin-top: 10px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+
+        .status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .fragrance-notes {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .note-tag {
+            background: #ffeef7;
+            color: #d63384;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .recipe-card {
+            background: linear-gradient(135deg, #ffeef7, #fff);
+            border: 1px solid #ffcce5;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .recipe-title {
+            color: #d63384;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .ingredient-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .ingredient-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .api-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.offline {
+            background: #dc3545;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌸 향수 AI 테스트 시스템</h1>
+        <p>Fragrance AI - 맞춤형 향수 추천 및 레시피 생성</p>
+    </div>
+
+    <div class="container">
+        <!-- 향수 추천 -->
+        <div class="card">
+            <h2>🎯 맞춤 향수 추천</h2>
+            <div class="input-group">
+                <label for="userProfile">사용자 프로필:</label>
+                <textarea id="userProfile" placeholder="예: 30대 여성, 부드럽고 은은한 향 선호, 알레르기 없음">20대 여성, 상큼하고 프레시한 향 선호, 여름에 어울리는 향수</textarea>
+            </div>
+            <div class="input-group">
+                <label for="occasion">사용 상황:</label>
+                <select id="occasion">
+                    <option value="daily">일상/데일리</option>
+                    <option value="office">오피스/비즈니스</option>
+                    <option value="date">데이트/로맨틱</option>
+                    <option value="party">파티/이벤트</option>
+                    <option value="special">특별한 날</option>
+                </select>
+            </div>
+            <div class="slider-group">
+                <label>향의 강도: <span class="slider-value" id="intensityValue">5</span></label>
+                <input type="range" id="intensity" min="1" max="10" value="5" oninput="document.getElementById('intensityValue').textContent = this.value">
+            </div>
+            <button onclick="getRecommendation()">향수 추천받기</button>
+            <div class="loading" id="recommendLoading">AI가 추천 중입니다</div>
+            <div class="response-box" id="recommendResponse"></div>
+        </div>
+
+        <!-- 향수 레시피 생성 -->
+        <div class="card">
+            <h2>🧪 AI 레시피 생성</h2>
+            <div class="input-group">
+                <label for="fragranceDescription">원하는 향 설명:</label>
+                <textarea id="fragranceDescription" placeholder="예: 봄날 아침의 신선한 꽃향기와 과일향이 조화로운 향수">여름 해변의 시원한 바람과 코코넛, 바닐라가 어우러진 달콤한 향</textarea>
+            </div>
+            <div class="input-group">
+                <label for="baseNote">베이스 노트:</label>
+                <select id="baseNote">
+                    <option value="woody">우디 (Woody)</option>
+                    <option value="musk">머스크 (Musk)</option>
+                    <option value="amber">앰버 (Amber)</option>
+                    <option value="vanilla">바닐라 (Vanilla)</option>
+                    <option value="sandalwood">샌달우드 (Sandalwood)</option>
+                </select>
+            </div>
+            <div class="slider-group">
+                <label>복잡도: <span class="slider-value" id="complexityValue">5</span></label>
+                <input type="range" id="complexity" min="1" max="10" value="5" oninput="document.getElementById('complexityValue').textContent = this.value">
+            </div>
+            <button onclick="generateRecipe()">레시피 생성</button>
+            <button onclick="generateAdvancedRecipe()">고급 레시피 생성</button>
+            <div class="loading" id="recipeLoading">레시피 생성 중입니다</div>
+            <div class="response-box" id="recipeResponse"></div>
+        </div>
+
+        <!-- 향수 검색 -->
+        <div class="card">
+            <h2>🔍 시맨틱 향수 검색</h2>
+            <div class="input-group">
+                <label for="searchQuery">검색어:</label>
+                <input type="text" id="searchQuery" placeholder="예: 장미와 자스민이 어우러진 로맨틱한 향" value="신선한 시트러스 향수">
+            </div>
+            <div class="input-group">
+                <label for="searchType">검색 타입:</label>
+                <select id="searchType">
+                    <option value="semantic">시맨틱 검색</option>
+                    <option value="hybrid">하이브리드 검색</option>
+                    <option value="keyword">키워드 검색</option>
+                </select>
+            </div>
+            <div class="slider-group">
+                <label>결과 개수: <span class="slider-value" id="topKValue">5</span></label>
+                <input type="range" id="topK" min="1" max="20" value="5" oninput="document.getElementById('topKValue').textContent = this.value">
+            </div>
+            <button onclick="searchFragrances()">검색하기</button>
+            <div class="loading" id="searchLoading">검색 중입니다</div>
+            <div class="response-box" id="searchResponse"></div>
+        </div>
+
+        <!-- RAG 채팅 -->
+        <div class="card">
+            <h2>💬 AI 향수 전문가 채팅</h2>
+            <div class="input-group">
+                <label for="chatQuery">질문:</label>
+                <textarea id="chatQuery" placeholder="향수에 대해 궁금한 점을 물어보세요">샤넬 No.5와 비슷한 향의 향수를 추천해주세요</textarea>
+            </div>
+            <div class="input-group">
+                <label for="chatContext">대화 컨텍스트:</label>
+                <input type="text" id="chatContext" placeholder="선택사항: 추가 정보" value="">
+            </div>
+            <div class="slider-group">
+                <label>창의성: <span class="slider-value" id="tempValue">7</span></label>
+                <input type="range" id="temperature" min="1" max="10" value="7" oninput="document.getElementById('tempValue').textContent = this.value">
+            </div>
+            <button onclick="chatWithAI()">AI와 대화하기</button>
+            <button onclick="chatWithReasoning()">추론 과정 포함</button>
+            <div class="loading" id="chatLoading">AI가 답변 중입니다</div>
+            <div class="response-box" id="chatResponse"></div>
+        </div>
+
+        <!-- 향료 호환성 분석 -->
+        <div class="card">
+            <h2>⚗️ 향료 호환성 분석</h2>
+            <div class="input-group">
+                <label for="ingredient1">향료 1:</label>
+                <input type="text" id="ingredient1" placeholder="예: Rose" value="Bergamot">
+            </div>
+            <div class="input-group">
+                <label for="ingredient2">향료 2:</label>
+                <input type="text" id="ingredient2" placeholder="예: Jasmine" value="Lavender">
+            </div>
+            <div class="input-group">
+                <label for="ingredient3">향료 3 (선택):</label>
+                <input type="text" id="ingredient3" placeholder="예: Sandalwood" value="Vanilla">
+            </div>
+            <button onclick="analyzeCompatibility()">호환성 분석</button>
+            <div class="loading" id="compatibilityLoading">분석 중입니다</div>
+            <div class="response-box" id="compatibilityResponse"></div>
+        </div>
+
+        <!-- API 상태 -->
+        <div class="card">
+            <h2>🔌 시스템 상태</h2>
+            <button onclick="checkHealth()">헬스체크</button>
+            <button onclick="getPerformance()">성능 메트릭</button>
+            <button onclick="testAuth()">인증 테스트</button>
+            <div class="response-box" id="statusResponse"></div>
+        </div>
+    </div>
+
+    <div class="api-status">
+        <div class="status-indicator" id="statusIndicator"></div>
+        <span id="statusText">API 연결 중...</span>
+    </div>
+
+    <script>
+        // API 설정
+        const API_BASE_URL = 'http://localhost:8000';
+        let apiConnected = false;
+
+        // 페이지 로드 시 API 연결 확인
+        window.onload = async function() {
+            await checkAPIConnection();
+        };
+
+        // API 연결 상태 확인
+        async function checkAPIConnection() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                if (response.ok) {
+                    apiConnected = true;
+                    document.getElementById('statusIndicator').classList.remove('offline');
+                    document.getElementById('statusText').textContent = 'API 연결됨';
+                } else {
+                    throw new Error('API 응답 오류');
+                }
+            } catch (error) {
+                apiConnected = false;
+                document.getElementById('statusIndicator').classList.add('offline');
+                document.getElementById('statusText').textContent = 'API 오프라인';
+                console.error('API 연결 실패:', error);
+            }
+        }
+
+        // 맞춤 향수 추천
+        async function getRecommendation() {
+            const loading = document.getElementById('recommendLoading');
+            const response = document.getElementById('recommendResponse');
+
+            loading.classList.add('active');
+            response.innerHTML = '';
+
+            try {
+                const profile = document.getElementById('userProfile').value;
+                const occasion = document.getElementById('occasion').value;
+                const intensity = document.getElementById('intensity').value;
+
+                const query = `${profile} ${occasion} 상황에 어울리는 강도 ${intensity}/10 향수 추천`;
+
+                const res = await fetch(`${API_BASE_URL}/api/v2/rag-chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        temperature: 0.7,
+                        enable_reasoning: false
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.response) {
+                    response.innerHTML = `🌸 AI 추천:\n\n${data.response}\n\n신뢰도: ${(data.confidence_score * 100).toFixed(1)}%`;
+                    addStatus(response, 'success', '추천 완료');
+                } else {
+                    throw new Error('추천 생성 실패');
+                }
+            } catch (error) {
+                response.innerHTML = `오류: ${error.message}`;
+                addStatus(response, 'error', '추천 실패');
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // 향수 레시피 생성
+        async function generateRecipe() {
+            const loading = document.getElementById('recipeLoading');
+            const response = document.getElementById('recipeResponse');
+
+            loading.classList.add('active');
+            response.innerHTML = '';
+
+            try {
+                const description = document.getElementById('fragranceDescription').value;
+                const baseNote = document.getElementById('baseNote').value;
+                const complexity = document.getElementById('complexity').value;
+
+                const res = await fetch(`${API_BASE_URL}/api/v2/public/recipes/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        description: description,
+                        base_notes: [baseNote],
+                        complexity_level: parseInt(complexity),
+                        quantity_ml: 50
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.recipe) {
+                    let recipeHTML = `<div class="recipe-card">`;
+                    recipeHTML += `<div class="recipe-title">${data.recipe.name}</div>`;
+                    recipeHTML += `<p>${data.recipe.description}</p>`;
+                    recipeHTML += `<ul class="ingredient-list">`;
+
+                    if (data.recipe.ingredients) {
+                        data.recipe.ingredients.forEach(ing => {
+                            recipeHTML += `<li><span>${ing.name}</span><span>${ing.percentage}%</span></li>`;
+                        });
+                    }
+
+                    recipeHTML += `</ul>`;
+                    recipeHTML += `<div class="fragrance-notes">`;
+                    if (data.recipe.top_notes) {
+                        data.recipe.top_notes.forEach(note => {
+                            recipeHTML += `<span class="note-tag">탑: ${note}</span>`;
+                        });
+                    }
+                    if (data.recipe.middle_notes) {
+                        data.recipe.middle_notes.forEach(note => {
+                            recipeHTML += `<span class="note-tag">미들: ${note}</span>`;
+                        });
+                    }
+                    if (data.recipe.base_notes) {
+                        data.recipe.base_notes.forEach(note => {
+                            recipeHTML += `<span class="note-tag">베이스: ${note}</span>`;
+                        });
+                    }
+                    recipeHTML += `</div></div>`;
+
+                    response.innerHTML = recipeHTML;
+                    addStatus(response, 'success', '레시피 생성 완료');
+                } else {
+                    throw new Error('레시피 생성 실패');
+                }
+            } catch (error) {
+                response.innerHTML = `오류: ${error.message}`;
+                addStatus(response, 'error', '레시피 생성 실패');
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // 고급 레시피 생성
+        async function generateAdvancedRecipe() {
+            const loading = document.getElementById('recipeLoading');
+            const response = document.getElementById('recipeResponse');
+
+            loading.classList.add('active');
+            response.innerHTML = '';
+
+            try {
+                const description = document.getElementById('fragranceDescription').value;
+
+                const query = `전문가 수준의 향수 레시피 생성: ${description}`;
+
+                const res = await fetch(`${API_BASE_URL}/api/v2/rag-chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        temperature: 0.8,
+                        enable_reasoning: true
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.response) {
+                    response.innerHTML = `🧪 고급 레시피:\n\n${data.response}`;
+                    if (data.reasoning_steps && data.reasoning_steps.length > 0) {
+                        response.innerHTML += `\n\n📝 추론 과정:\n`;
+                        data.reasoning_steps.forEach((step, i) => {
+                            response.innerHTML += `${i+1}. ${step}\n`;
+                        });
+                    }
+                    addStatus(response, 'success', '고급 레시피 생성 완료');
+                } else {
+                    throw new Error('레시피 생성 실패');
+                }
+            } catch (error) {
+                response.innerHTML = `오류: ${error.message}`;
+                addStatus(response, 'error', '레시피 생성 실패');
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // 시맨틱 검색
+        async function searchFragrances() {
+            const loading = document.getElementById('searchLoading');
+            const response = document.getElementById('searchResponse');
+
+            loading.classList.add('active');
+            response.innerHTML = '';
+
+            try {
+                const query = document.getElementById('searchQuery').value;
+                const searchType = document.getElementById('searchType').value;
+                const topK = parseInt(document.getElementById('topK').value);
+
+                const res = await fetch(`${API_BASE_URL}/api/v2/semantic-search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        search_type: searchType,
+                        top_k: topK,
+                        min_similarity: 0.5,
+                        enable_reranking: true,
+                        use_cache: true
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.results) {
+                    let searchHTML = `검색 결과 (${data.total_results}개, ${data.search_time.toFixed(3)}초):\n\n`;
+
+                    data.results.forEach((result, i) => {
+                        searchHTML += `${i+1}. ${result.document}\n`;
+                        searchHTML += `   유사도: ${(result.similarity * 100).toFixed(1)}%\n\n`;
+                    });
+
+                    response.innerHTML = searchHTML;
+                    addStatus(response, 'success', '검색 완료');
+                } else {
+                    throw new Error('검색 실패');
+                }
+            } catch (error) {
+                response.innerHTML = `오류: ${error.message}`;
+                addStatus(response, 'error', '검색 실패');
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // AI 채팅
+        async function chatWithAI() {
+            await performChat(false);
+        }
+
+        async function chatWithReasoning() {
+            await performChat(true);
+        }
+
+        async function performChat(enableReasoning) {
+            const loading = document.getElementById('chatLoading');
+            const response = document.getElementById('chatResponse');
+
+            loading.classList.add('active');
+            response.innerHTML = '';
+
+            try {
+                const query = document.getElementById('chatQuery').value;
+                const context = document.getElementById('chatContext').value;
+                const temperature = parseInt(document.getElementById('temperature').value) / 10;
+
+                const res = await fetch(`${API_BASE_URL}/api/v2/rag-chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        context: context || undefined,
+                        temperature: temperature,
+                        enable_reasoning: enableReasoning
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.response) {
+                    let chatHTML = `💬 AI 답변:\n\n${data.response}\n\n`;
+                    chatHTML += `신뢰도: ${(data.confidence_score * 100).toFixed(1)}%\n`;
+
+                    if (enableReasoning && data.reasoning_steps) {
+                        chatHTML += `\n📝 추론 과정:\n`;
+                        data.reasoning_steps.forEach((step, i) => {
+                            chatHTML += `${i+1}. ${step}\n`;
+                        });
+                    }
+
+                    if (data.source_documents && data.source_documents.length > 0) {
+                        chatHTML += `\n📚 참고 자료:\n`;
+                        data.source_documents.forEach((doc, i) => {
+                            chatHTML += `${i+1}. ${doc.substring(0, 100)}...\n`;
+                        });
+                    }
+
+                    response.innerHTML = chatHTML;
+                    addStatus(response, 'success', '답변 완료');
+                } else {
+                    throw new Error('답변 생성 실패');
+                }
+            } catch (error) {
+                response.innerHTML = `오류: ${error.message}`;
+                addStatus(response, 'error', '답변 실패');
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // 향료 호환성 분석
+        async function analyzeCompatibility() {
+            const loading = document.getElementById('compatibilityLoading');
+            const response = document.getElementById('compatibilityResponse');
+
+            loading.classList.add('active');
+            response.innerHTML = '';
+
+            try {
+                const ingredient1 = document.getElementById('ingredient1').value;
+                const ingredient2 = document.getElementById('ingredient2').value;
+                const ingredient3 = document.getElementById('ingredient3').value;
+
+                let ingredients = [ingredient1, ingredient2];
+                if (ingredient3) ingredients.push(ingredient3);
+
+                const query = `향료 호환성 분석: ${ingredients.join(', ')}의 조합은 어떤가요? 각 향료의 특성과 함께 조합의 장단점을 설명해주세요.`;
+
+                const res = await fetch(`${API_BASE_URL}/api/v2/rag-chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        temperature: 0.6,
+                        enable_reasoning: true
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.response) {
+                    response.innerHTML = `⚗️ 호환성 분석 결과:\n\n${data.response}`;
+                    addStatus(response, 'success', '분석 완료');
+                } else {
+                    throw new Error('분석 실패');
+                }
+            } catch (error) {
+                response.innerHTML = `오류: ${error.message}`;
+                addStatus(response, 'error', '분석 실패');
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // 헬스체크
+        async function checkHealth() {
+            const response = document.getElementById('statusResponse');
+            response.innerHTML = '확인 중...';
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/health`);
+                const data = await res.json();
+
+                let statusHTML = `시스템 상태:\n\n`;
+                statusHTML += `상태: ${data.status}\n`;
+                statusHTML += `버전: ${data.version}\n`;
+                statusHTML += `가동 시간: ${(data.uptime / 60).toFixed(1)}분\n\n`;
+
+                if (data.components) {
+                    statusHTML += `컴포넌트 상태:\n`;
+                    for (const [key, value] of Object.entries(data.components)) {
+                        statusHTML += `• ${key}: ${value ? '✅' : '❌'}\n`;
+                    }
+                }
+
+                if (data.cache_stats) {
+                    statusHTML += `\n캐시 성능:\n`;
+                    statusHTML += `• 히트율: ${(data.cache_stats.hit_rate * 100).toFixed(1)}%\n`;
+                    statusHTML += `• 캐시 크기: ${data.cache_stats.cache_size}\n`;
+                }
+
+                response.innerHTML = statusHTML;
+                addStatus(response, 'success', '헬스체크 완료');
+            } catch (error) {
+                response.innerHTML = `오류: ${error.message}`;
+                addStatus(response, 'error', '헬스체크 실패');
+            }
+        }
+
+        // 성능 메트릭
+        async function getPerformance() {
+            const response = document.getElementById('statusResponse');
+            response.innerHTML = '조회 중...';
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/v2/performance`);
+                const data = await res.json();
+
+                let perfHTML = `성능 메트릭:\n\n`;
+                perfHTML += `시스템 정보:\n`;
+                perfHTML += `• 버전: ${data.system_info.version}\n`;
+                perfHTML += `• 가동 시간: ${(data.system_info.uptime / 3600).toFixed(1)}시간\n\n`;
+
+                if (data.performance) {
+                    perfHTML += `성능 통계:\n`;
+                    perfHTML += JSON.stringify(data.performance, null, 2);
+                }
+
+                response.innerHTML = perfHTML;
+                addStatus(response, 'success', '성능 메트릭 조회 완료');
+            } catch (error) {
+                response.innerHTML = `오류: ${error.message}`;
+                addStatus(response, 'error', '메트릭 조회 실패');
+            }
+        }
+
+        // 인증 테스트
+        async function testAuth() {
+            const response = document.getElementById('statusResponse');
+            response.innerHTML = '인증 테스트 중...';
+
+            try {
+                // 로그인 시도
+                const loginRes = await fetch(`${API_BASE_URL}/api/v2/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'test_user',
+                        password: 'test_password'
+                    })
+                });
+
+                if (loginRes.ok) {
+                    const data = await loginRes.json();
+                    response.innerHTML = `인증 성공!\n\n토큰: ${data.access_token ? '발급됨' : '실패'}\n유형: ${data.token_type || 'N/A'}`;
+                    addStatus(response, 'success', '인증 테스트 성공');
+                } else {
+                    response.innerHTML = `인증 실패 (상태 코드: ${loginRes.status})`;
+                    addStatus(response, 'error', '인증 실패');
+                }
+            } catch (error) {
+                response.innerHTML = `오류: ${error.message}`;
+                addStatus(response, 'error', '인증 테스트 실패');
+            }
+        }
+
+        // 상태 표시 추가
+        function addStatus(element, type, message) {
+            const status = document.createElement('span');
+            status.className = `status ${type}`;
+            status.textContent = message;
+            element.appendChild(status);
+        }
+
+        // 주기적으로 API 연결 상태 확인 (30초마다)
+        setInterval(checkAPIConnection, 30000);
+    </script>
+</body>
+</html>

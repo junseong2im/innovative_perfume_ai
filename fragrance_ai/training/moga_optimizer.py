@@ -537,25 +537,36 @@ class UnifiedProductionMOGA:
 
     def polynomial_mutation(self, individual: List) -> Tuple[List]:
         """
-        Polynomial Mutation
-        Standard mutation operator for real-valued optimization
+        Polynomial Mutation with enhanced stability
+        Uses exponential form to guarantee positive values
         """
         mutated = creator.Individual()
+        min_concentration = 0.1  # Minimum effective concentration
 
         for ing_id, concentration in individual:
             if random.random() < self.mutation_prob:
-                # Apply polynomial mutation to concentration
-                delta = 0
+                # Use exponential form for mutation to ensure positive values
+                # c' = c * exp(N(0, σ)) instead of c' = c * (1 + N(0, σ))
+                sigma = 0.2  # Standard deviation for mutation
                 u = random.random()
 
+                # Generate Gaussian-like perturbation using polynomial mutation
                 if u < 0.5:
                     delta = (2 * u) ** (1 / (self.eta_m + 1)) - 1
                 else:
                     delta = 1 - (2 * (1 - u)) ** (1 / (self.eta_m + 1))
 
-                # Apply mutation
-                new_concentration = concentration + delta * concentration
-                new_concentration = max(0, min(100, new_concentration))
+                # Apply exponential mutation to guarantee positive values
+                mutation_factor = np.exp(delta * sigma)
+                new_concentration = concentration * mutation_factor
+
+                # Apply IFRA limits and bounds
+                ing_data = next((i for i in self.ingredients if i['id'] == ing_id), None)
+                if ing_data and 'ifra_limit' in ing_data:
+                    new_concentration = min(new_concentration, ing_data['ifra_limit'])
+
+                # Ensure minimum and maximum bounds
+                new_concentration = max(min_concentration, min(100, new_concentration))
 
                 if new_concentration > 1:  # Keep if above threshold
                     mutated.append((ing_id, new_concentration))
@@ -578,15 +589,53 @@ class UnifiedProductionMOGA:
         return (mutated,)
 
     def normalize_concentrations(self, individual: List) -> List:
-        """Normalize concentrations to sum to 100%"""
+        """
+        Normalize concentrations to sum to 100% with constraint checking
+        Ensures all concentrations are positive and respect IFRA limits
+        """
         if not individual:
             return creator.Individual()
 
-        total = sum(c for _, c in individual)
+        # Filter out very small concentrations
+        min_effective_concentration = 0.1
+        filtered = [(i, c) for i, c in individual if c >= min_effective_concentration]
+
+        if not filtered:
+            return creator.Individual()
+
+        # Apply IFRA limits before normalization
+        constrained = []
+        for ing_id, concentration in filtered:
+            ing_data = next((i for i in self.ingredients if i['id'] == ing_id), None)
+            if ing_data and 'ifra_limit' in ing_data:
+                # Ensure concentration doesn't exceed IFRA limit
+                safe_concentration = min(concentration, ing_data['ifra_limit'])
+            else:
+                safe_concentration = concentration
+            constrained.append((ing_id, safe_concentration))
+
+        # Calculate total and normalize to 100%
+        total = sum(c for _, c in constrained)
         if total > 0:
-            normalized = [(i, c * 100 / total) for i, c in individual]
+            normalized = []
+            for ing_id, c in constrained:
+                norm_conc = (c * 100) / total
+
+                # Final IFRA check after normalization
+                ing_data = next((i for i in self.ingredients if i['id'] == ing_id), None)
+                if ing_data and 'ifra_limit' in ing_data:
+                    norm_conc = min(norm_conc, ing_data['ifra_limit'])
+
+                normalized.append((ing_id, norm_conc))
+
+            # Re-normalize if IFRA limits caused total to be less than 100%
+            final_total = sum(c for _, c in normalized)
+            if abs(final_total - 100) > 0.01:  # Tolerance for floating point
+                normalized = [(i, c * 100 / final_total) for i, c in normalized]
+
             return creator.Individual(normalized)
-        return creator.Individual(individual)
+
+        return creator.Individual(constrained)
 
     def optimize(self) -> Dict[str, Any]:
         """
