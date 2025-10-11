@@ -560,3 +560,213 @@ async def ai_perfumer_chat(
     except Exception as e:
         logger.error(f"AI Perfumer chat error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# RLHF Evolution Endpoints
+# ============================================================================
+
+class EvolutionOptionsRequest(BaseModel):
+    """Evolution options request model"""
+    dna_id: str = Field(..., description="Fragrance DNA ID")
+    brief: Dict[str, Any] = Field(..., description="Creative brief")
+    num_options: int = Field(default=3, ge=1, le=5, description="Number of options to generate")
+    algorithm: str = Field(default="PPO", description="RL algorithm (REINFORCE or PPO)")
+
+
+class EvolutionOptionsResponse(BaseModel):
+    """Evolution options response model"""
+    status: str = Field(..., description="Status of the request")
+    experiment_id: str = Field(..., description="Unique experiment ID")
+    options: List[Dict[str, Any]] = Field(..., description="Generated variation options")
+
+
+class EvolutionFeedbackRequest(BaseModel):
+    """Evolution feedback request model"""
+    experiment_id: str = Field(..., description="Experiment ID from options request")
+    chosen_id: str = Field(..., description="ID of chosen option")
+    rating: Optional[float] = Field(None, ge=1, le=5, description="User rating (1-5)")
+
+
+class EvolutionFeedbackResponse(BaseModel):
+    """Evolution feedback response model"""
+    status: str = Field(..., description="Status of the request")
+    experiment_id: str = Field(..., description="Experiment ID")
+    iteration: int = Field(..., description="Current iteration number")
+    metrics: Dict[str, Any] = Field(..., description="Training metrics")
+
+
+@router.post("/evolve/options", response_model=EvolutionOptionsResponse)
+async def generate_evolution_options(
+    request: EvolutionOptionsRequest,
+    current_user: Optional[dict] = Depends(get_optional_user)
+):
+    """
+    Generate fragrance variation options using RLHF
+
+    Uses reinforcement learning to propose fragrance variations
+    that learn from user preferences over time.
+    """
+    try:
+        from ...services import get_evolution_service
+        from ...schemas.domain_models import OlfactoryDNA, CreativeBrief
+
+        # Get evolution service
+        evolution_service = get_evolution_service(algorithm=request.algorithm)
+
+        # Create DNA object (simplified for now)
+        dna = OlfactoryDNA(
+            dna_id=request.dna_id,
+            genotype={"type": "user_request"},
+            ingredients=[]  # Would be loaded from database
+        )
+
+        # Create brief from request
+        brief = CreativeBrief(
+            user_id=current_user.get("id") if current_user else "guest",
+            theme=request.brief.get("theme", "Modern"),
+            desired_intensity=request.brief.get("intensity", 0.7),
+            masculinity=request.brief.get("masculinity", 0.5),
+            complexity=request.brief.get("complexity", 0.6),
+            longevity=request.brief.get("longevity", 0.7),
+            sillage=request.brief.get("sillage", 0.5),
+            warmth=request.brief.get("warmth", 0.5),
+            freshness=request.brief.get("freshness", 0.5),
+            sweetness=request.brief.get("sweetness", 0.3)
+        )
+
+        # Generate options
+        user_id = current_user.get("id") if current_user else f"guest_{uuid.uuid4().hex[:8]}"
+        result = evolution_service.generate_options(
+            user_id=user_id,
+            dna=dna,
+            brief=brief,
+            num_options=request.num_options
+        )
+
+        logger.info(f"Generated {len(result['options'])} evolution options for user {user_id}")
+
+        return EvolutionOptionsResponse(
+            status=result["status"],
+            experiment_id=result["experiment_id"],
+            options=result["options"]
+        )
+
+    except ImportError as e:
+        logger.error(f"Failed to import evolution service: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Evolution service not available"
+        )
+    except Exception as e:
+        logger.error(f"Evolution options generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/evolve/feedback", response_model=EvolutionFeedbackResponse)
+async def process_evolution_feedback(
+    request: EvolutionFeedbackRequest,
+    current_user: Optional[dict] = Depends(get_optional_user)
+):
+    """
+    Process user feedback for RLHF policy update
+
+    Updates the reinforcement learning policy based on user's
+    choice and optional rating.
+    """
+    try:
+        from ...services import get_evolution_service
+
+        # Get evolution service
+        evolution_service = get_evolution_service()
+
+        # Process feedback
+        result = evolution_service.process_feedback(
+            experiment_id=request.experiment_id,
+            chosen_id=request.chosen_id,
+            rating=request.rating
+        )
+
+        if result["status"] == "error":
+            raise HTTPException(status_code=400, detail=result.get("message", "Feedback processing failed"))
+
+        logger.info(f"Processed feedback for experiment {request.experiment_id}")
+
+        return EvolutionFeedbackResponse(
+            status=result["status"],
+            experiment_id=request.experiment_id,
+            iteration=result.get("iteration", 1),
+            metrics=result.get("metrics", {})
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Evolution feedback processing failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/evolve/session/{experiment_id}")
+async def get_evolution_session(
+    experiment_id: str,
+    current_user: Optional[dict] = Depends(get_optional_user)
+):
+    """
+    Get information about an evolution session
+
+    Returns the current state and history of an evolution experiment.
+    """
+    try:
+        from ...services import get_evolution_service
+
+        evolution_service = get_evolution_service()
+        session_info = evolution_service.get_session_info(experiment_id)
+
+        if not session_info:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Remove sensitive data
+        safe_info = {
+            "experiment_id": session_info.get("experiment_id"),
+            "iteration": session_info.get("iteration", 0),
+            "created_at": session_info.get("created_at"),
+            "last_feedback": session_info.get("last_feedback")
+        }
+
+        return safe_info
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Session retrieval failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/evolve/session/{experiment_id}")
+async def end_evolution_session(
+    experiment_id: str,
+    current_user: Optional[dict] = Depends(get_optional_user)
+):
+    """
+    End an evolution session
+
+    Cleans up session data and returns summary statistics.
+    """
+    try:
+        from ...services import get_evolution_service
+
+        evolution_service = get_evolution_service()
+        result = evolution_service.end_session(experiment_id)
+
+        if result["status"] == "error":
+            raise HTTPException(status_code=400, detail=result.get("message", "Session end failed"))
+
+        logger.info(f"Ended evolution session {experiment_id}")
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Session end failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1,6 +1,6 @@
 # fragrance_ai/schemas/domain_models.py
 
-from pydantic import BaseModel, Field, validator, root_validator
+from pydantic import BaseModel, Field, validator, model_validator
 from typing import List, Dict, Optional, Any, Union
 from datetime import datetime
 from enum import Enum
@@ -109,13 +109,13 @@ class OlfactoryDNA(BaseModel):
     category_balance: Optional[Dict[str, float]] = None
     complexity_score: Optional[float] = Field(None, ge=0.0, le=1.0)
 
-    @root_validator
-    def validate_and_normalize(cls, values):
+    @model_validator(mode='after')
+    def validate_and_normalize(self):
         """Normalize concentrations to sum to 100% and compute properties"""
-        ingredients = values.get('ingredients', [])
+        ingredients = self.ingredients
 
         if not ingredients:
-            return values
+            return self
 
         # Calculate total
         total = sum(ing.concentration for ing in ingredients)
@@ -135,8 +135,8 @@ class OlfactoryDNA(BaseModel):
             for ing in filtered_ingredients:
                 ing.concentration = (ing.concentration / total) * 100.0
 
-        values['ingredients'] = filtered_ingredients
-        values['total_concentration'] = sum(ing.concentration for ing in filtered_ingredients)
+        self.ingredients = filtered_ingredients
+        self.total_concentration = sum(ing.concentration for ing in filtered_ingredients)
 
         # Calculate category balance
         category_totals = {'top': 0.0, 'heart': 0.0, 'base': 0.0}
@@ -148,7 +148,7 @@ class OlfactoryDNA(BaseModel):
             elif ing.category == NoteCategory.BASE:
                 category_totals['base'] += ing.concentration
 
-        values['category_balance'] = category_totals
+        self.category_balance = category_totals
 
         # Calculate complexity score (Shannon entropy normalized)
         concentrations = [ing.concentration for ing in filtered_ingredients]
@@ -158,9 +158,9 @@ class OlfactoryDNA(BaseModel):
             # Calculate entropy
             entropy = -np.sum(probs * np.log(probs + 1e-10))
             max_entropy = np.log(len(concentrations))
-            values['complexity_score'] = entropy / max_entropy if max_entropy > 0 else 0.0
+            self.complexity_score = entropy / max_entropy if max_entropy > 0 else 0.0
 
-        return values
+        return self
 
     def is_balanced(self) -> bool:
         """Check if fragrance has good category balance"""
