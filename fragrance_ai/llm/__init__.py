@@ -10,8 +10,8 @@ import time
 import hashlib
 from typing import Literal, Optional, Dict, Any
 from functools import lru_cache
-import signal
-from contextlib import contextmanager
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from datetime import datetime, timedelta
 
 from .schemas import CreativeBrief, LLMResponse, DEFAULT_BRIEF
 from .llm_router import route_mode, detect_language
@@ -22,33 +22,14 @@ from .llama_hints import generate_creative_hints, get_llama_generator
 logger = logging.getLogger(__name__)
 
 
-# Timeout context manager
-class TimeoutException(Exception):
-    pass
+# Thread pool for timeout enforcement
+_executor = ThreadPoolExecutor(max_workers=3)
 
 
-@contextmanager
-def time_limit(seconds: int):
-    """Context manager for timeout"""
-    def signal_handler(signum, frame):
-        raise TimeoutException("Timed out!")
-
-    # Set signal handler (Unix only)
-    try:
-        signal.signal(signal.SIGALRM, signal_handler)
-        signal.alarm(seconds)
-        try:
-            yield
-        finally:
-            signal.alarm(0)
-    except AttributeError:
-        # Windows doesn't support SIGALRM, just yield without timeout
-        yield
-
-
-# Simple LRU cache for brief generation
+# Cache with TTL support
 _brief_cache: Dict[str, Dict[str, Any]] = {}
 MAX_CACHE_SIZE = 100
+CACHE_TTL_SECONDS = 3600  # 1 hour
 
 
 def _get_cache_key(user_text: str, mode: str) -> str:
@@ -58,15 +39,26 @@ def _get_cache_key(user_text: str, mode: str) -> str:
 
 
 def _get_from_cache(cache_key: str) -> Optional[Dict[str, Any]]:
-    """Get from cache if exists"""
+    """Get from cache if exists and not expired"""
     if cache_key in _brief_cache:
+        cached_data = _brief_cache[cache_key]
+        cached_time = cached_data.get("cached_at")
+
+        # Check TTL expiration
+        if cached_time:
+            age_seconds = (datetime.now() - cached_time).total_seconds()
+            if age_seconds > CACHE_TTL_SECONDS:
+                logger.info(f"Cache EXPIRED for key {cache_key[:8]}... (age: {age_seconds:.1f}s)")
+                del _brief_cache[cache_key]
+                return None
+
         logger.info(f"Cache HIT for key {cache_key[:8]}...")
-        return _brief_cache[cache_key]
+        return cached_data
     return None
 
 
 def _save_to_cache(cache_key: str, data: Dict[str, Any]):
-    """Save to cache with LRU eviction"""
+    """Save to cache with LRU eviction and TTL"""
     global _brief_cache
 
     # LRU eviction if cache is full
@@ -76,8 +68,11 @@ def _save_to_cache(cache_key: str, data: Dict[str, Any]):
         del _brief_cache[oldest_key]
         logger.debug(f"Cache evicted key {oldest_key[:8]}...")
 
+    # Add timestamp for TTL
+    data["cached_at"] = datetime.now()
+
     _brief_cache[cache_key] = data
-    logger.info(f"Cached brief for key {cache_key[:8]}...")
+    logger.info(f"Cached brief for key {cache_key[:8]}... (TTL: {CACHE_TTL_SECONDS}s)")
 
 
 def build_brief(
@@ -190,22 +185,30 @@ def build_brief(
 
 
 def _call_qwen_with_timeout(user_text: str, timeout_s: int) -> Optional[CreativeBrief]:
-    """Call Qwen with timeout"""
+    """Call Qwen with enforced timeout using ThreadPoolExecutor"""
     try:
-        # For now, direct call (timeout context manager doesn't work well with model inference)
-        # In production, use threading or asyncio for timeout
-        brief = infer_brief_qwen(user_text)
+        # Submit to thread pool with timeout
+        future = _executor.submit(infer_brief_qwen, user_text)
+        brief = future.result(timeout=timeout_s)
         return brief
+    except FuturesTimeoutError:
+        logger.error(f"Qwen inference TIMEOUT after {timeout_s}s")
+        return None
     except Exception as e:
         logger.error(f"Qwen inference error: {e}")
         return None
 
 
 def _call_llama_with_timeout(user_text: str, timeout_s: int) -> list:
-    """Call Llama with timeout"""
+    """Call Llama with enforced timeout using ThreadPoolExecutor"""
     try:
-        hints = generate_creative_hints(user_text)
+        # Submit to thread pool with timeout
+        future = _executor.submit(generate_creative_hints, user_text)
+        hints = future.result(timeout=timeout_s)
         return hints
+    except FuturesTimeoutError:
+        logger.error(f"Llama hints generation TIMEOUT after {timeout_s}s")
+        return []
     except Exception as e:
         logger.error(f"Llama hints error: {e}")
         return []
