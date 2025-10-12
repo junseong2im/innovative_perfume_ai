@@ -8,7 +8,7 @@ DNA 생성부터 진화까지의 전체 프로세스를 관리합니다.
 
 import json
 import logging
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Literal
 from dataclasses import asdict
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -27,6 +27,10 @@ from fragrance_ai.models.living_scent.cognitive_core import get_cognitive_core
 from fragrance_ai.models.living_scent.olfactory_recombinator import get_olfactory_recombinator
 from fragrance_ai.models.living_scent.epigenetic_variation import get_epigenetic_variation
 
+# LLM Ensemble Integration
+from fragrance_ai.llm import build_brief, initialize_models
+from fragrance_ai.llm.brief_mapper import map_llm_brief_to_domain, extract_moga_constraints
+
 # 데이터베이스 모델
 from fragrance_ai.database.living_scent_models import (
     OlfactoryDNAModel,
@@ -44,12 +48,29 @@ class LivingScentOrchestrator:
     생명체의 탄생과 진화 과정을 조율
     """
 
-    def __init__(self, db_session: Optional[Session] = None):
+    def __init__(
+        self,
+        db_session: Optional[Session] = None,
+        llm_mode: Optional[Literal["fast", "balanced", "creative"]] = None,
+        use_llm: bool = True
+    ):
+        """
+        Initialize Living Scent Orchestrator
+
+        Args:
+            db_session: Optional database session
+            llm_mode: LLM mode (fast/balanced/creative), auto-detect if None
+            use_llm: Whether to use LLM ensemble for brief generation
+        """
         # AI 에이전트 초기화
         self.linguistic_receptor = get_linguistic_receptor()
         self.cognitive_core = get_cognitive_core()
         self.olfactory_recombinator = get_olfactory_recombinator()
         self.epigenetic_variation = get_epigenetic_variation()
+
+        # LLM 설정
+        self.use_llm = use_llm
+        self.llm_mode = llm_mode
 
         # 실제 AI 알고리즘 초기화 (시뮬레이션 아님)
         try:
@@ -258,14 +279,36 @@ class LivingScentOrchestrator:
             structured_input = self.linguistic_receptor.process(user_input)
             logger.info(f"Intent classified: {structured_input.intent}")
 
-            # 2단계: 인지 코어 - 감정 해석
-            creative_brief = self.cognitive_core.synthesize(structured_input)
-            logger.info(f"Creative brief generated: {creative_brief.theme}")
+            # 2단계: 브리프 생성 - LLM 또는 Cognitive Core
+            llm_brief = None
+            if self.use_llm:
+                try:
+                    # LLM 앙상블로 브리프 생성
+                    logger.info(f"Using LLM ensemble for brief generation (mode: {self.llm_mode})")
+                    llm_brief = build_brief(
+                        user_text=user_input,
+                        mode=self.llm_mode,
+                        timeout_s=12,
+                        retry=1,
+                        use_cache=True
+                    )
+                    logger.info(f"LLM brief generated: {len(llm_brief.mood)} moods, {len(llm_brief.creative_hints)} hints")
+                except Exception as e:
+                    logger.warning(f"LLM brief generation failed: {e}, falling back to cognitive core")
+                    self.use_llm = False  # Disable for this session
+
+            # Fallback to cognitive core if LLM disabled or failed
+            if not self.use_llm:
+                creative_brief = self.cognitive_core.synthesize(structured_input)
+                logger.info(f"Creative brief generated (cognitive core): {creative_brief.theme}")
+            else:
+                # Use cognitive core's output format but enrich with LLM data
+                creative_brief = self.cognitive_core.synthesize(structured_input)
 
             # 3단계: 의도에 따른 처리 분기
             if structured_input.intent == UserIntent.CREATE_NEW:
-                # 새로운 DNA 생성
-                result = self._create_new_dna(creative_brief, user_id)
+                # 새로운 DNA 생성 (LLM brief 전달)
+                result = self._create_new_dna(creative_brief, user_id, llm_brief=llm_brief)
                 interaction_type = "create"
 
             elif structured_input.intent == UserIntent.EVOLVE_EXISTING:
@@ -277,7 +320,7 @@ class LivingScentOrchestrator:
                     else:
                         # 진화할 DNA가 없으면 새로 생성
                         logger.warning("No existing DNA found, creating new one")
-                        result = self._create_new_dna(creative_brief, user_id)
+                        result = self._create_new_dna(creative_brief, user_id, llm_brief=llm_brief)
                         interaction_type = "create"
                 else:
                     result = self._evolve_existing_dna(
@@ -288,7 +331,7 @@ class LivingScentOrchestrator:
                     interaction_type = "evolve"
             else:
                 # Unknown intent - 기본적으로 새로 생성
-                result = self._create_new_dna(creative_brief, user_id)
+                result = self._create_new_dna(creative_brief, user_id, llm_brief=llm_brief)
                 interaction_type = "create"
 
             # 4단계: 상호작용 기록
@@ -330,8 +373,20 @@ class LivingScentOrchestrator:
                 'message': 'Failed to process your request'
             }
 
-    def _create_new_dna(self, creative_brief: Any, user_id: Optional[str] = None) -> Dict[str, Any]:
-        """새로운 DNA 생성 - 실제 MOGA 알고리즘 사용"""
+    def _create_new_dna(
+        self,
+        creative_brief: Any,
+        user_id: Optional[str] = None,
+        llm_brief: Optional[Any] = None
+    ) -> Dict[str, Any]:
+        """
+        새로운 DNA 생성 - 실제 MOGA 알고리즘 사용
+
+        Args:
+            creative_brief: Cognitive core의 브리프
+            user_id: 사용자 ID
+            llm_brief: LLM 앙상블의 브리프 (optional)
+        """
 
         self.stats['total_creations'] += 1
 
@@ -339,7 +394,7 @@ class LivingScentOrchestrator:
         if self.moga_optimizer:
             try:
                 # Creative brief를 MOGA 제약조건으로 변환
-                constraints = self._convert_brief_to_constraints(creative_brief)
+                constraints = self._convert_brief_to_constraints(creative_brief, llm_brief=llm_brief)
 
                 # 실제 MOGA 최적화 실행 (시뮬레이션 아님)
                 logger.info("Starting real MOGA optimization with NSGA-II...")
@@ -444,8 +499,21 @@ class LivingScentOrchestrator:
             'optimization_method': 'FALLBACK_RECOMBINATOR'
         }
 
-    def _convert_brief_to_constraints(self, creative_brief: Any) -> Dict[str, Any]:
-        """Creative brief를 MOGA 제약조건으로 변환"""
+    def _convert_brief_to_constraints(
+        self,
+        creative_brief: Any,
+        llm_brief: Optional[Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Creative brief를 MOGA 제약조건으로 변환
+
+        Args:
+            creative_brief: Cognitive core의 브리프
+            llm_brief: LLM 앙상블의 브리프 (optional)
+
+        Returns:
+            MOGA 제약조건 딕셔너리
+        """
         constraints = {
             'max_ingredients': 15,
             'min_ingredients': 5,
@@ -453,27 +521,81 @@ class LivingScentOrchestrator:
             'min_quality': 80
         }
 
-        # 테마에서 향 패밀리 추출
-        if hasattr(creative_brief, 'theme'):
-            theme_lower = creative_brief.theme.lower()
-            if 'floral' in theme_lower:
-                constraints['fragrance_family'] = 'floral'
-            elif 'citrus' in theme_lower or 'fresh' in theme_lower:
-                constraints['fragrance_family'] = 'citrus'
-            elif 'wood' in theme_lower:
-                constraints['fragrance_family'] = 'woody'
-            else:
-                constraints['fragrance_family'] = 'fresh'
+        # LLM brief 사용 시 더 풍부한 제약조건 생성
+        if llm_brief:
+            logger.info("Using LLM brief for enhanced MOGA constraints")
 
-        # 감정에서 무드 추출
-        if hasattr(creative_brief, 'core_emotion'):
-            emotion_lower = creative_brief.core_emotion.lower()
-            if 'romantic' in emotion_lower or 'love' in emotion_lower:
-                constraints['mood'] = 'romantic'
-            elif 'energy' in emotion_lower or 'vibrant' in emotion_lower:
-                constraints['mood'] = 'energetic'
-            else:
-                constraints['mood'] = 'balanced'
+            # notes_preference 추가
+            if hasattr(llm_brief, 'notes_preference') and llm_brief.notes_preference:
+                constraints['notes_preference'] = llm_brief.notes_preference
+                logger.info(f"Added notes_preference: {list(llm_brief.notes_preference.keys())}")
+
+            # forbidden_ingredients 추가
+            if hasattr(llm_brief, 'forbidden_ingredients') and llm_brief.forbidden_ingredients:
+                constraints['forbidden_ingredients'] = llm_brief.forbidden_ingredients
+
+            # budget_tier에서 max_cost 설정
+            if hasattr(llm_brief, 'budget_tier'):
+                budget_map = {'low': 50, 'mid': 100, 'high': 300}
+                constraints['max_cost'] = budget_map.get(llm_brief.budget_tier, 100)
+
+            # Creative hints: novelty_weight 증가
+            if hasattr(llm_brief, 'creative_hints') and llm_brief.creative_hints:
+                hints = llm_brief.creative_hints
+                k = 0.05  # Novelty boost per hint
+                novelty_boost = k * len(hints)
+                constraints['novelty_weight'] = 0.2 + novelty_boost  # Base 0.2
+                constraints['creative_hints'] = hints
+                logger.info(f"MOGA novelty_weight = 0.2 + {novelty_boost:.3f} ({len(hints)} creative hints)")
+
+            # target_profile에서 mood 추출
+            if hasattr(llm_brief, 'target_profile'):
+                profile = llm_brief.target_profile
+                if profile == 'sport':
+                    constraints['mood'] = 'energetic'
+                    constraints['fragrance_family'] = 'fresh'
+                elif profile == 'evening':
+                    constraints['mood'] = 'romantic'
+                    constraints['fragrance_family'] = 'woody'
+                elif profile == 'luxury':
+                    constraints['mood'] = 'sophisticated'
+                    constraints['fragrance_family'] = 'floral'
+                else:
+                    constraints['mood'] = 'balanced'
+                    constraints['fragrance_family'] = 'fresh'
+
+            # season에서 fragrance_family 조정
+            if hasattr(llm_brief, 'season') and llm_brief.season:
+                if 'summer' in llm_brief.season or 'spring' in llm_brief.season:
+                    if 'fragrance_family' not in constraints:
+                        constraints['fragrance_family'] = 'citrus'
+                elif 'winter' in llm_brief.season or 'autumn' in llm_brief.season:
+                    if 'fragrance_family' not in constraints:
+                        constraints['fragrance_family'] = 'woody'
+
+        # Fallback: 기존 방식 (cognitive core brief)
+        else:
+            # 테마에서 향 패밀리 추출
+            if hasattr(creative_brief, 'theme'):
+                theme_lower = creative_brief.theme.lower()
+                if 'floral' in theme_lower:
+                    constraints['fragrance_family'] = 'floral'
+                elif 'citrus' in theme_lower or 'fresh' in theme_lower:
+                    constraints['fragrance_family'] = 'citrus'
+                elif 'wood' in theme_lower:
+                    constraints['fragrance_family'] = 'woody'
+                else:
+                    constraints['fragrance_family'] = 'fresh'
+
+            # 감정에서 무드 추출
+            if hasattr(creative_brief, 'core_emotion'):
+                emotion_lower = creative_brief.core_emotion.lower()
+                if 'romantic' in emotion_lower or 'love' in emotion_lower:
+                    constraints['mood'] = 'romantic'
+                elif 'energy' in emotion_lower or 'vibrant' in emotion_lower:
+                    constraints['mood'] = 'energetic'
+                else:
+                    constraints['mood'] = 'balanced'
 
         return constraints
 

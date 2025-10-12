@@ -1,0 +1,119 @@
+# LLM Ensemble Configuration
+# 3-Model Pipeline: Qwen → Mistral → Llama
+
+# Router settings for mode detection
+router:
+  fast_keywords:
+    - "%"
+    - "비율"
+    - "정량"
+    - "정확"
+    - "수치"
+    - "농도"
+    - "퍼센트"
+    - "exact"
+    - "precise"
+    - "ratio"
+    - "percentage"
+    - "concentration"
+
+  creative_keywords:
+    - "서사"
+    - "스토리"
+    - "시적"
+    - "몽환"
+    - "이미지"
+    - "상상"
+    - "감정"
+    - "느낌"
+    - "분위기"
+    - "무드"
+    - "예술적"
+    - "영감"
+    - "추상적"
+    - "은유"
+    - "시나리오"
+    - "narrative"
+    - "story"
+    - "poetic"
+    - "dreamy"
+    - "imagery"
+    - "imagination"
+    - "emotion"
+    - "feeling"
+    - "atmosphere"
+    - "mood"
+    - "artistic"
+    - "inspiration"
+
+  # Length thresholds
+  fast_max_length: 100
+  creative_min_length: 200
+  creative_min_keyword_count: 3
+  fast_min_keyword_count: 2
+
+# Qwen 2.5-7B Instruct (Main LLM - Korean brief interpretation + JSON)
+qwen:
+  model: "Qwen/Qwen2.5-7B-Instruct"
+  max_new_tokens: 512
+  dtype: "float16"
+  device_map: "auto"
+  timeout_s: 12
+  retry: 1
+  temperature: 0.7
+  top_p: 0.9
+  load_in_4bit: false  # Set to true for memory optimization
+
+# Mistral 7B Instruct v0.3 (Validator - Schema/Unit/IFRA correction)
+mistral:
+  model: "mistralai/Mistral-7B-Instruct-v0.3"
+  dtype: "float16"
+  device_map: "auto"
+  load_in_4bit: false
+  # Mistral uses rule-based validation for now (no LLM call)
+  # Future: Can add LLM-based validation if needed
+
+# Llama-3 8B Instruct (Creative hints generator - Creative mode only)
+llama:
+  model: "meta-llama/Meta-Llama-3-8B-Instruct"
+  max_new_tokens: 128
+  dtype: "float16"
+  device_map: "auto"
+  timeout_s: 12
+  temperature: 0.9
+  top_p: 0.95
+  hints_limit: 8
+  load_in_4bit: false
+
+# Cache settings
+cache:
+  enabled: true
+  max_size: 100
+  ttl_seconds: 3600  # 1 hour
+
+# Validation defaults
+validation:
+  default_product_category: "EDP"
+  default_max_allergens_ppm: 500.0
+  default_mood:
+    - "fresh"
+    - "clean"
+  default_season:
+    - "spring"
+  default_budget_tier: "mid"
+  default_target_profile: "daily_fresh"
+
+# Logging
+logging:
+  structured_json: true
+  log_level: "INFO"
+  log_llm_events: true
+  log_validation_events: true
+  log_cache_hits: true
+
+# Performance
+performance:
+  enable_quantization: false  # Set to true for 4-bit quantization
+  use_gpu: true
+  batch_size: 1
+  max_parallel_requests: 1
