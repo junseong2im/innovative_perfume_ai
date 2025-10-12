@@ -93,7 +93,11 @@
       "Bash(git rebase:*)",
       "Bash(git filter-branch:*)",
       "Bash(start:*)",
-      "Bash(explorer:*)"
+      "Bash(explorer:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(while read file)",
+      "Bash(do echo:*)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

@@ -1,4 +1,4 @@
-# 🧪 포괄적인 테스트 설정
+# Comprehensive test configuration
 import asyncio
 import pytest
 import pytest_asyncio

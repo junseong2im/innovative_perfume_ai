@@ -199,13 +199,23 @@ class REINFORCEAgent:
         # Optimizer step
         self.optimizer.step()
 
-        # Log the update
-        logger.info(f"REINFORCE update: loss={loss.item():.4f}, reward={reward:.2f}")
+        # Log the update in JSON format (Acceptance Criteria)
+        import json
+        logger.info(json.dumps({
+            "event": "rl_update",
+            "algorithm": "REINFORCE",
+            "loss": round(loss.item(), 4),
+            "reward": round(float(reward), 4),
+            "entropy": 0.0,  # REINFORCE doesn't track entropy
+            "clip_frac": 0.0  # N/A for REINFORCE
+        }))
 
         return {
             "algorithm": "REINFORCE",
             "loss": float(loss.item()),
             "reward": float(reward),
+            "entropy": 0.0,
+            "clip_frac": 0.0,
             "chosen_id": chosen_id
         }
 
@@ -388,6 +398,7 @@ class PPOAgent:
         total_policy_loss = 0
         total_value_loss = 0
         total_entropy = 0
+        total_clip_frac = 0
 
         for epoch in range(self.ppo_epochs):
             # Mini-batch updates
@@ -413,6 +424,10 @@ class PPOAgent:
                 # PPO clipped objective
                 ratio = torch.exp(new_log_probs - mb_old_log_probs)
                 clipped_ratio = torch.clamp(ratio, 1 - self.clip_eps, 1 + self.clip_eps)
+
+                # Calculate clip_frac (fraction of ratios that were clipped)
+                clip_frac = torch.mean((torch.abs(ratio - 1.0) > self.clip_eps).float())
+
                 policy_loss = -torch.min(
                     ratio * mb_advantages,
                     clipped_ratio * mb_advantages
@@ -445,6 +460,7 @@ class PPOAgent:
                 total_policy_loss += policy_loss.item()
                 total_value_loss += value_loss.item()
                 total_entropy += entropy.item()
+                total_clip_frac += clip_frac.item()
 
         # Clear buffer after update
         self.buffer.clear()
@@ -454,13 +470,20 @@ class PPOAgent:
         avg_policy_loss = total_policy_loss / num_updates
         avg_value_loss = total_value_loss / num_updates
         avg_entropy = total_entropy / num_updates
+        avg_clip_frac = total_clip_frac / num_updates
 
-        # Log update
-        logger.info(
-            f"PPO update: policy_loss={avg_policy_loss:.4f}, "
-            f"value_loss={avg_value_loss:.4f}, entropy={avg_entropy:.4f}, "
-            f"reward={reward:.2f}"
-        )
+        # Log update in JSON format (Acceptance Criteria)
+        import json
+        logger.info(json.dumps({
+            "event": "rl_update",
+            "algorithm": "PPO",
+            "loss": round(avg_policy_loss + avg_value_loss, 4),
+            "policy_loss": round(avg_policy_loss, 4),
+            "value_loss": round(avg_value_loss, 4),
+            "reward": round(float(reward), 4),
+            "entropy": round(avg_entropy, 4),
+            "clip_frac": round(avg_clip_frac, 4)
+        }))
 
         return {
             "algorithm": "PPO",
@@ -468,6 +491,7 @@ class PPOAgent:
             "policy_loss": avg_policy_loss,
             "value_loss": avg_value_loss,
             "entropy": avg_entropy,
+            "clip_frac": avg_clip_frac,
             "reward": float(reward),
             "chosen_id": chosen_id
         }
@@ -542,7 +566,9 @@ class RLHFEngine:
         self.algorithm = algorithm.upper()
 
         if self.algorithm == "REINFORCE":
-            self.agent = REINFORCEAgent(state_dim, action_dim, **kwargs)
+            # Filter kwargs for REINFORCE (only lr is accepted)
+            reinforce_kwargs = {k: v for k, v in kwargs.items() if k in ['lr']}
+            self.agent = REINFORCEAgent(state_dim, action_dim, **reinforce_kwargs)
         elif self.algorithm == "PPO":
             self.agent = PPOAgent(state_dim, action_dim, **kwargs)
         else:
