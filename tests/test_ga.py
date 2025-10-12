@@ -101,8 +101,8 @@ class TestGAMutations:
         assert violations["empty_formulas"] == 0, f"Found {violations['empty_formulas']} empty formulas"
 
         print(f"\n[OK] All 100,000 mutations passed!")
-        print(f"  - No negative values: ✓")
-        print(f"  - All sums = 100%: ✓")
+        print(f"  - No negative values: OK")
+        print(f"  - All sums = 100%: OK")
         print(f"  - IFRA violations found and clipped: {violations['ifra_violations']}")
         print(f"  - Avg mutation time: {avg_time:.3f} ms")
         print(f"  - Max mutation time: {max_time:.3f} ms")
