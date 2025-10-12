@@ -22,3 +22,12 @@ factory-boy>=3.3.0
 responses>=0.23.0
 freezegun>=1.2.0
 testcontainers>=3.7.0
+
+# Observability Testing
+prometheus-client>=0.17.0
+
+# Progress bars for long tests
+tqdm>=4.66.0
+
+# Timeout handling
+pytest-timeout>=2.1.0

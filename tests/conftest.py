@@ -166,3 +166,72 @@ def test_data_files(temp_dir):
     files['generation'] = generation_file
     
     return files
+
+
+# ============================================================================
+# New Fixtures for Observability and Testing
+# ============================================================================
+
+@pytest.fixture
+def sample_brief():
+    """Sample creative brief for testing"""
+    return {
+        "style": "fresh",
+        "intensity": 0.7,
+        "complexity": 0.5,
+        "masculinity": 0.6,
+        "warmth": 0.4,
+        "freshness": 0.8,
+        "sweetness": 0.3
+    }
+
+
+@pytest.fixture
+def sample_recipe():
+    """Sample recipe for IFRA testing"""
+    return {
+        "ingredients": [
+            {"name": "Bergamot Oil", "concentration": 15.0},
+            {"name": "Lemon Oil", "concentration": 10.0},
+            {"name": "Lavender", "concentration": 25.0},
+            {"name": "Rose Absolute", "concentration": 20.0},
+            {"name": "Sandalwood", "concentration": 30.0}
+        ]
+    }
+
+
+# ============================================================================
+# Pytest Configuration
+# ============================================================================
+
+def pytest_configure(config):
+    """Configure pytest with custom markers"""
+    config.addinivalue_line(
+        "markers", "slow: marks tests as slow (100k+ iterations)"
+    )
+    config.addinivalue_line(
+        "markers", "integration: marks tests as integration tests"
+    )
+    config.addinivalue_line(
+        "markers", "unit: marks tests as unit tests"
+    )
+    config.addinivalue_line(
+        "markers", "benchmark: marks tests as performance benchmarks"
+    )
+
+
+# ============================================================================
+# Performance Tracking
+# ============================================================================
+
+import time
+
+@pytest.fixture(autouse=True)
+def track_test_performance(request):
+    """Track test execution time"""
+    start_time = time.time()
+    yield
+    duration = time.time() - start_time
+
+    if duration > 2.0:  # Warn if test takes > 2s
+        print(f"\n⚠️  Slow test: {request.node.name} took {duration:.2f}s")

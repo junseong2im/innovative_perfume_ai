@@ -403,6 +403,297 @@ def calculate_dilution(
 
 
 # ============================================================================
+# Mass Conservation Checker
+# ============================================================================
+
+class MassConservationChecker:
+    """Verify mass conservation in formulation operations"""
+
+    def __init__(self, tolerance: float = 0.01):
+        """
+        Initialize checker
+
+        Args:
+            tolerance: Acceptable deviation (1% default)
+        """
+        self.tolerance = tolerance
+
+    def check_percentage_sum(
+        self,
+        components: Dict[str, float],
+        expected_sum: float = 100.0
+    ) -> Dict[str, Union[bool, float, str]]:
+        """
+        Check if percentages sum to expected value
+
+        Args:
+            components: Dictionary of ingredient to percentage
+            expected_sum: Expected sum (usually 100%)
+
+        Returns:
+            Dictionary with check results
+        """
+        actual_sum = sum(components.values())
+        deviation = abs(actual_sum - expected_sum)
+        is_valid = deviation <= self.tolerance
+
+        return {
+            "valid": is_valid,
+            "actual_sum": actual_sum,
+            "expected_sum": expected_sum,
+            "deviation": deviation,
+            "tolerance": self.tolerance,
+            "message": "OK" if is_valid else f"Sum deviation {deviation:.2f}% exceeds tolerance"
+        }
+
+    def check_mass_balance(
+        self,
+        input_masses: Dict[str, float],
+        output_masses: Dict[str, float]
+    ) -> Dict[str, Union[bool, float, str]]:
+        """
+        Check mass balance (input = output)
+
+        Args:
+            input_masses: Dictionary of input ingredient to mass
+            output_masses: Dictionary of output ingredient to mass
+
+        Returns:
+            Dictionary with balance results
+        """
+        total_input = sum(input_masses.values())
+        total_output = sum(output_masses.values())
+
+        if total_input == 0:
+            return {
+                "valid": False,
+                "message": "Total input mass is zero"
+            }
+
+        deviation_g = abs(total_output - total_input)
+        deviation_pct = (deviation_g / total_input) * 100
+        is_valid = deviation_pct <= self.tolerance
+
+        return {
+            "valid": is_valid,
+            "total_input_g": total_input,
+            "total_output_g": total_output,
+            "deviation_g": deviation_g,
+            "deviation_percent": deviation_pct,
+            "tolerance_percent": self.tolerance,
+            "message": "Mass conserved" if is_valid else f"Mass imbalance: {deviation_pct:.2f}%"
+        }
+
+    def check_dilution(
+        self,
+        concentrate_g: float,
+        solvent_g: float,
+        final_g: float
+    ) -> Dict[str, Union[bool, float, str]]:
+        """
+        Check dilution mass conservation
+
+        Args:
+            concentrate_g: Concentrate mass in grams
+            solvent_g: Solvent mass in grams
+            final_g: Final product mass in grams
+
+        Returns:
+            Validation results
+        """
+        expected_final = concentrate_g + solvent_g
+        deviation = abs(final_g - expected_final)
+        deviation_pct = (deviation / expected_final * 100) if expected_final > 0 else 100
+        is_valid = deviation_pct <= self.tolerance
+
+        return {
+            "valid": is_valid,
+            "concentrate_g": concentrate_g,
+            "solvent_g": solvent_g,
+            "expected_final_g": expected_final,
+            "actual_final_g": final_g,
+            "deviation_percent": deviation_pct,
+            "message": "Dilution valid" if is_valid else f"Dilution error: {deviation_pct:.2f}%"
+        }
+
+    def validate_formulation(
+        self,
+        formula: Dict[str, float],
+        batch_size_g: float,
+        actual_weights: Optional[Dict[str, float]] = None
+    ) -> Dict[str, Union[bool, float, str, list]]:
+        """
+        Complete formulation validation
+
+        Args:
+            formula: Dictionary of ingredient to percentage
+            batch_size_g: Target batch size in grams
+            actual_weights: Optional actual measured weights
+
+        Returns:
+            Comprehensive validation results
+        """
+        results = {
+            "percentage_check": self.check_percentage_sum(formula),
+            "issues": []
+        }
+
+        # Check percentage sum
+        if not results["percentage_check"]["valid"]:
+            results["issues"].append("Percentages do not sum to 100%")
+
+        # Calculate theoretical weights
+        converter = UnitConverter()
+        theoretical_weights = {}
+        for ingredient, percent in formula.items():
+            theoretical_weights[ingredient] = (percent / 100) * batch_size_g
+
+        results["theoretical_weights"] = theoretical_weights
+        results["theoretical_total"] = sum(theoretical_weights.values())
+
+        # Check actual vs theoretical if provided
+        if actual_weights:
+            results["mass_balance"] = self.check_mass_balance(
+                theoretical_weights, actual_weights
+            )
+            if not results["mass_balance"]["valid"]:
+                results["issues"].append("Mass balance deviation exceeds tolerance")
+
+        results["valid"] = len(results["issues"]) == 0
+        return results
+
+
+# ============================================================================
+# Batch Scaler
+# ============================================================================
+
+class BatchScaler:
+    """Scale formulas between different batch sizes"""
+
+    @staticmethod
+    def scale_formula(
+        formula: Dict[str, float],
+        from_batch_g: float,
+        to_batch_g: float,
+        maintain_percentages: bool = True
+    ) -> Dict[str, float]:
+        """
+        Scale formula to different batch size
+
+        Args:
+            formula: Dictionary of ingredient to amount
+            from_batch_g: Original batch size in grams
+            to_batch_g: Target batch size in grams
+            maintain_percentages: If True, formula contains percentages; if False, contains weights
+
+        Returns:
+            Scaled formula
+        """
+        if maintain_percentages:
+            # Formula contains percentages - they stay the same
+            return formula.copy()
+        else:
+            # Formula contains weights - scale proportionally
+            scale_factor = to_batch_g / from_batch_g
+            return {
+                ingredient: amount * scale_factor
+                for ingredient, amount in formula.items()
+            }
+
+    @staticmethod
+    def calculate_yield(
+        theoretical_g: float,
+        actual_g: float
+    ) -> Dict[str, float]:
+        """
+        Calculate production yield
+
+        Args:
+            theoretical_g: Theoretical yield in grams
+            actual_g: Actual yield in grams
+
+        Returns:
+            Yield metrics
+        """
+        if theoretical_g <= 0:
+            return {
+                "yield_percent": 0.0,
+                "loss_g": 0.0,
+                "loss_percent": 0.0
+            }
+
+        yield_pct = (actual_g / theoretical_g) * 100
+        loss_g = theoretical_g - actual_g
+        loss_pct = (loss_g / theoretical_g) * 100
+
+        return {
+            "yield_percent": yield_pct,
+            "loss_g": loss_g,
+            "loss_percent": loss_pct,
+            "efficiency": "good" if yield_pct >= 98 else "acceptable" if yield_pct >= 95 else "poor"
+        }
+
+
+# ============================================================================
+# Enhanced Unit Converter with % conversions
+# ============================================================================
+
+# Add methods to existing UnitConverter class
+def percentage_to_grams(self, percentage: float, batch_size_g: float) -> float:
+    """
+    Convert percentage to grams
+
+    Args:
+        percentage: Percentage in formula (0-100)
+        batch_size_g: Total batch size in grams
+
+    Returns:
+        Weight in grams
+    """
+    return (percentage / 100.0) * batch_size_g
+
+def grams_to_percentage(self, grams: float, batch_size_g: float) -> float:
+    """
+    Convert grams to percentage
+
+    Args:
+        grams: Weight in grams
+        batch_size_g: Total batch size in grams
+
+    Returns:
+        Percentage in formula
+    """
+    if batch_size_g <= 0:
+        return 0.0
+    return (grams / batch_size_g) * 100.0
+
+def percentage_to_ml(
+    self,
+    percentage: float,
+    batch_size_g: float,
+    material_name: str
+) -> Optional[float]:
+    """
+    Convert percentage to milliliters
+
+    Args:
+        percentage: Percentage in formula
+        batch_size_g: Total batch size in grams
+        material_name: Material name for density lookup
+
+    Returns:
+        Volume in milliliters
+    """
+    grams = self.percentage_to_grams(percentage, batch_size_g)
+    return self.mass_to_volume(grams, MassUnit.GRAM, material_name, VolumeUnit.MILLILITER)
+
+# Add these methods to UnitConverter class
+UnitConverter.percentage_to_grams = percentage_to_grams
+UnitConverter.grams_to_percentage = grams_to_percentage
+UnitConverter.percentage_to_ml = percentage_to_ml
+
+
+# ============================================================================
 # Export
 # ============================================================================
 
@@ -413,6 +704,8 @@ __all__ = [
     'MaterialDensity',
     'DensityDatabase',
     'UnitConverter',
+    'MassConservationChecker',
+    'BatchScaler',
     'format_quantity',
     'parse_quantity',
     'calculate_dilution'

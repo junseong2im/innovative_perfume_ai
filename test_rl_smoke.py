@@ -1,39 +1,42 @@
-# Simple smoke test for RL implementation
-# Avoids complex imports that might cause issues
+# test_rl_smoke.py
+"""
+Smoke tests for RL updates
+Verifies optimizer.step() calls and reward normalization
+"""
 
 import torch
 import numpy as np
+import json
+import logging
 import sys
 from pathlib import Path
 
 # Add to path
 sys.path.append(str(Path(__file__).parent))
 
-print("="*60)
-print("RL/PPO SMOKE TEST - Minimal Validation")
-print("="*60)
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+logger = logging.getLogger(__name__)
 
-# Test 1: Basic REINFORCE implementation
-print("\n1. Testing REINFORCE Implementation:")
-print("-" * 40)
+print("="*70)
+print("RL SMOKE TESTS")
+print("="*70)
+
+# ============================================================================
+# Test 1: REINFORCE optimizer.step() verification
+# ============================================================================
+print("\n[TEST 1] REINFORCE optimizer.step() Verification")
+print("-"*50)
 
 try:
-    # Simple mock classes to avoid import issues
-    class MockDNA:
-        def __init__(self):
-            self.dna_id = "test_001"
-            self.genotype = {"test": "data"}
-            self.notes = [
-                {"name": "bergamot", "intensity": 0.3},
-                {"name": "rose", "intensity": 0.5}
-            ]
+    from fragrance_ai.training.rl.reinforce import REINFORCETrainer
 
-    class MockPhenotype:
-        def __init__(self, phenotype_id, variation):
-            self.phenotype_id = phenotype_id
-            self.variation_applied = variation
-            self.description = f"Variation: {variation}"
-            self.recipe_adjusted = {"modified": True}
+    # Create trainer
+    trainer = REINFORCETrainer(state_dim=10, action_dim=4, lr=0.001)
+
+    # Get initial parameters
+    initial_params = {
+        name: param.clone() for name, param in trainer.policy_net.named_parameters()
+    }
 
     # Create minimal RL engine directly
     class MinimalRLEngine:
