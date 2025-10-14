@@ -193,28 +193,32 @@ for episode in range(num_episodes):
 - **Database**: PostgreSQL + Redis + ChromaDB
 - **Frontend**: Next.js 15 + TypeScript
 
-### 6.2 수식 ↔ 코드 대응 (Formula-Code Alignment)
+### 6.2 수식 ↔ 코드 대응표 (Formula-Code Alignment Table)
 
 수학적 수식과 실제 Python 구현 간의 정확한 대응 관계:
 
-#### 6.2.1 정규화 (Normalization)
+| 수식 | 설명 | 코드 위치 | 부호/정규화/극대화 처리 |
+|------|------|-----------|------------------------|
+| $\sum_{i=1}^{n} c_i = 100$ | 농도 정규화 | `moga_optimizer_stable.py:137` | **정규화**: `(c_i / total) * 100` |
+| $\max F_{total} = w_c \cdot f_c + w_f \cdot f_f + w_s \cdot f_s$ | 적합도 극대화 | `moga_optimizer_stable.py:245` | **극대화**: `return w*f` (높을수록 좋음) |
+| $L^{CLIP} = \mathbb{E}[\min(r\hat{A}, \text{clip}(r)\hat{A})]$ | PPO Clipping | `ppo_engine.py:156` | **부호 보존**: `min()` 사용, 음수 advantage도 동일 방향 페널티 |
+| $H(\pi) = -\sum_a \pi(a\|s) \log \pi(a\|s)$ | 엔트로피 최대화 | `ppo_engine.py:165` | **극대화**: `loss += -coef * entropy` (음수로 추가) |
+| $\hat{A}_t = (A_t - \mu_A) / (\sigma_A + \epsilon)$ | Advantage 정규화 | `ppo_engine.py:148` | **정규화**: Z-score, $\epsilon=10^{-8}$ |
+| $r_{clip} = \text{clip}(r, -1, 1)$ | Reward Clipping | `rlhf_complete.py:234` | **부호 보존**: $[-1, 1]$ 범위로 clamp |
+| $\nabla_\theta \leftarrow \text{clip}(\|\nabla\|, 0.5)$ | Gradient Clipping | `ppo_engine.py:180` | **정규화**: L2 norm을 0.5 이하로 제한 |
 
-**수식**: $\sum_{i=1}^{n} c_i = 100$ (농도 합 = 100%)
+#### 상세 코드 예시
 
-**코드**:
+**1) 농도 정규화 (합=100%)**
 ```python
 # fragrance_ai/training/moga_optimizer_stable.py:137
 total = sum(ing.concentration for ing in ingredients)
 if total > 0:
     for ing in ingredients:
-        ing.concentration = (ing.concentration / total) * 100
+        ing.concentration = (ing.concentration / total) * 100  # 정규화
 ```
 
-#### 6.2.2 적합도 극대화 (Fitness Maximization)
-
-**수식**: $\max F_{total} = w_c \cdot f_{creativity} + w_f \cdot f_{fitness} + w_s \cdot f_{stability}$
-
-**코드**:
+**2) 적합도 극대화 (가중합)**
 ```python
 # fragrance_ai/training/moga_optimizer_stable.py:245
 def calculate_fitness(self, individual):
@@ -222,40 +226,33 @@ def calculate_fitness(self, individual):
     f_fitness = self._user_fitness(individual)
     f_stability = self._stability_score(individual)
 
-    # Weighted sum (maximize)
+    # 극대화: 높을수록 좋은 개체
     return (self.w_creativity * f_creativity +
             self.w_fitness * f_fitness +
             self.w_stability * f_stability)
 ```
 
-#### 6.2.3 PPO Clipping (부호 유지)
-
-**수식**: $L^{CLIP}(\theta) = \mathbb{E}_t \left[ \min \left( r_t(\theta) \hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon) \hat{A}_t \right) \right]$
-
-**코드**:
+**3) PPO Clipping (부호 보존)**
 ```python
 # fragrance_ai/training/ppo_engine.py:156
 ratio = torch.exp(log_probs - old_log_probs)
 clipped_ratio = torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon)
 
-# Advantage 부호 보존 - min()으로 페널티 방향 동일
+# min()으로 양수/음수 advantage 모두 동일한 방향으로 페널티
 surr1 = ratio * advantages
 surr2 = clipped_ratio * advantages
-policy_loss = -torch.min(surr1, surr2).mean()  # 음수 = gradient ascent
+policy_loss = -torch.min(surr1, surr2).mean()  # 음수로 gradient ascent
 ```
 
-#### 6.2.4 Entropy Regularization (최대화)
-
-**수식**: $H(\pi) = -\sum_a \pi(a|s) \log \pi(a|s)$ (높을수록 탐색↑)
-
-**코드**:
+**4) 엔트로피 최대화 (탐색 장려)**
 ```python
 # fragrance_ai/training/ppo_engine.py:165
 dist = torch.distributions.Categorical(action_probs)
 entropy = dist.entropy().mean()
 
-# Maximize entropy = minimize negative entropy
-entropy_loss = -self.entropy_coef * entropy  # 음수로 loss에 추가
+# 높은 엔트로피 = 더 많은 탐색 (좋음)
+# Loss에 음수로 추가하여 극대화
+entropy_loss = -self.entropy_coef * entropy
 ```
 
 ### 6.3 API 엔드포인트
@@ -268,57 +265,122 @@ POST /api/v1/optimize/rlhf/feedback
 POST /api/v1/optimize/hybrid
 ```
 
-### 6.4 API 사용 예제 (cURL)
+### 6.4 API 사용 예제 (cURL - 세 가지 모드)
 
-#### 6.4.1 향수 옵션 생성 (RLHF)
+#### 6.4.1 Fast 모드 (빠른 응답, 간단한 최적화)
 
 ```bash
-# /evolve/options - 3가지 변형 옵션 생성
+# DNA 생성 (Fast 모드 - 2.5초 이하)
+curl -X POST "http://localhost:8001/api/v1/dna/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_text": "상쾌한 아침 향기",
+    "mode": "fast",
+    "options": {
+      "population_size": 30,
+      "n_generations": 15
+    }
+  }'
+
+# 응답 예시 (1.8-2.3초):
+# {
+#   "status": "success",
+#   "dna_id": "dna_fast_abc123",
+#   "processing_time": 2.1,
+#   "brief": {
+#     "style": "Fresh Citrus",
+#     "intensity": 0.6,
+#     "top_notes": ["Bergamot", "Lemon"],
+#     "middle_notes": ["Green Tea"],
+#     "base_notes": ["White Musk"]
+#   }
+# }
+```
+
+#### 6.4.2 Balanced 모드 (균형잡힌 품질과 속도)
+
+```bash
+# DNA 생성 (Balanced 모드 - 3.2초 이하)
+curl -X POST "http://localhost:8001/api/v1/dna/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_text": "따뜻하고 우아한 저녁 향수",
+    "mode": "balanced",
+    "options": {
+      "population_size": 50,
+      "n_generations": 20,
+      "creative_hints": ["unique", "sophisticated"]
+    }
+  }'
+
+# 응답 예시 (2.8-3.1초):
+# {
+#   "status": "success",
+#   "dna_id": "dna_balanced_def456",
+#   "processing_time": 2.9,
+#   "brief": {
+#     "style": "Oriental Woody",
+#     "intensity": 0.75,
+#     "top_notes": ["Bergamot", "Pink Pepper", "Cardamom"],
+#     "middle_notes": ["Rose", "Jasmine", "Iris"],
+#     "base_notes": ["Sandalwood", "Amber", "Vanilla"]
+#   }
+# }
+```
+
+#### 6.4.3 Creative 모드 (최고 품질, 복잡한 조향)
+
+```bash
+# DNA 생성 (Creative 모드 - 4.5초 이하)
+curl -X POST "http://localhost:8001/api/v1/dna/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_text": "예술적이고 독특한 니치 향수, 깊이있는 복합적인 향",
+    "mode": "creative",
+    "options": {
+      "population_size": 70,
+      "n_generations": 30,
+      "creative_hints": ["unique", "artistic", "complex", "niche", "avant-garde"]
+    }
+  }'
+
+# 응답 예시 (4.0-4.3초):
+# {
+#   "status": "success",
+#   "dna_id": "dna_creative_ghi789",
+#   "processing_time": 4.2,
+#   "brief": {
+#     "style": "Avant-Garde Chypre",
+#     "intensity": 0.85,
+#     "complexity": 0.92,
+#     "top_notes": ["Bergamot", "Grapefruit", "Pink Pepper", "Saffron"],
+#     "middle_notes": ["Rose de Mai", "Iris", "Osmanthus", "Black Currant"],
+#     "base_notes": ["Oakmoss", "Patchouli", "Vetiver", "Amber", "Leather", "Incense"]
+#   },
+#   "novelty_weight": 0.35,
+#   "mutation_sigma": 0.14
+# }
+```
+
+#### 6.4.4 RLHF 진화 (모든 모드 공통)
+
+```bash
+# 향수 옵션 생성
 curl -X POST "http://localhost:8001/api/v1/living-scent/evolve/options" \
   -H "Content-Type: application/json" \
   -d '{
     "user_id": "user_123",
-    "dna_id": "dna_a1b2c3d4",
+    "dna_id": "dna_balanced_def456",
     "brief": {
       "brief_id": "brief_001",
       "user_prompt": "더 상큼하고 가벼운 향으로",
       "desired_intensity": 0.6,
-      "masculinity": 0.3,
-      "complexity": 0.5,
-      "longevity": 0.7,
-      "sillage": 0.5,
-      "warmth": 0.3,
-      "freshness": 0.8,
-      "sweetness": 0.4
+      "freshness": 0.8
     },
     "num_options": 3
   }'
 
-# 응답 예시:
-# {
-#   "status": "success",
-#   "session_id": "exp_abc123_1234567890",
-#   "iteration": 1,
-#   "options": [
-#     {
-#       "id": "pheno_1234567890_0",
-#       "action": "Add Freshness",
-#       "description": "Variation: Add Freshness",
-#       "preview": {
-#         "top_notes": ["Bergamot", "Lemon", "Green Tea"],
-#         "heart_notes": ["Jasmine", "Rose"],
-#         "base_notes": ["Musk", "Cedar"]
-#       }
-#     },
-#     ...
-#   ]
-# }
-```
-
-#### 6.4.2 사용자 피드백 전송
-
-```bash
-# /evolve/feedback - 선택한 옵션과 평점 전송
+# 사용자 피드백 전송
 curl -X POST "http://localhost:8001/api/v1/living-scent/evolve/feedback" \
   -H "Content-Type: application/json" \
   -d '{
@@ -326,52 +388,297 @@ curl -X POST "http://localhost:8001/api/v1/living-scent/evolve/feedback" \
     "chosen_phenotype_id": "pheno_1234567890_0",
     "rating": 4.5
   }'
+```
 
-# 응답 예시:
+#### 6.4.5 모드별 비교표
+
+| 특성 | Fast | Balanced | Creative |
+|------|------|----------|----------|
+| **응답 시간** | ≤ 2.5초 | ≤ 3.2초 | ≤ 4.5초 |
+| **Population** | 30 | 50 | 70 |
+| **세대 수** | 15 | 20 | 30 |
+| **Novelty Weight** | 0.08 | 0.10 + 0.05*hints | 0.15 + 0.05*hints |
+| **Mutation Sigma** | 0.10 | 0.12 | 0.14 |
+| **추천 용도** | 빠른 프로토타입 | 일반 상용 | 고급/니치 향수 |
+
+## 7. 장애 대응 가이드 (Failure Response Guide)
+
+### 7.1 자동 다운시프트 (Auto Downshift)
+
+#### 7.1.1 다운시프트 트리거 조건
+
+시스템이 자동으로 하위 모드로 전환하는 조건:
+
+| 조건 | Creative → Balanced | Balanced → Fast | 조치 |
+|------|---------------------|-----------------|------|
+| **높은 지연** | p95 > 6.0초 | p95 > 4.3초 | 즉시 다운시프트 |
+| **높은 에러율** | 30% 이상 (10개 중 3개) | 30% 이상 | 즉시 다운시프트 |
+| **메모리 압박** | > 12GB 또는 85% | > 12GB 또는 85% | 즉시 다운시프트 |
+| **모델 사용 불가** | Qwen/Mistral 장애 | Mistral 장애 | 즉시 다운시프트 |
+
+#### 7.1.2 다운시프트 설정
+
+```python
+# fragrance_ai/guards/downshift.py
+from fragrance_ai.guards.downshift import DownshiftManager, Mode
+
+manager = DownshiftManager(
+    # 지연 임계값 (초)
+    creative_latency_threshold=6.0,
+    balanced_latency_threshold=4.3,
+    fast_latency_threshold=3.3,
+
+    # 에러율 임계값
+    error_rate_threshold=0.3,  # 30%
+    error_window_size=10,      # 최근 10개 요청
+
+    # 메모리 임계값
+    memory_threshold_mb=12000,  # 12GB
+    memory_threshold_percent=85,  # 85%
+
+    # 쿨다운 시간 (초)
+    cooldown_seconds=60,  # 60초 내 재다운시프트 방지
+
+    # 자동 복구 시간 (초)
+    recovery_time_seconds=300  # 5분 후 자동 상향 시도
+)
+
+# API 엔드포인트에서 사용
+@app.post("/dna/create")
+async def create_dna(request: DNACreateRequest):
+    # 현재 모드 확인
+    current_mode = manager.get_current_mode()
+
+    # 요청 처리
+    try:
+        start_time = time.time()
+        result = generate_dna(request.user_text, mode=current_mode)
+        latency = time.time() - start_time
+
+        # 다운시프트 체크
+        should_downshift, reason = manager.should_downshift(
+            mode=current_mode,
+            latency_ms=latency * 1000,
+            error=False
+        )
+
+        if should_downshift:
+            new_mode = manager.downshift(current_mode, reason)
+            logger.warning(f"다운시프트: {current_mode} → {new_mode}, 이유: {reason}")
+
+        return result
+
+    except Exception as e:
+        # 에러 발생 시 다운시프트 체크
+        manager.record_error(current_mode)
+        should_downshift, reason = manager.should_downshift(
+            mode=current_mode,
+            error=True
+        )
+
+        if should_downshift:
+            new_mode = manager.downshift(current_mode, reason)
+            logger.warning(f"에러로 인한 다운시프트: {current_mode} → {new_mode}")
+
+        raise
+```
+
+#### 7.1.3 수동 모드 전환
+
+```bash
+# 관리자 API로 수동 전환
+curl -X POST "http://localhost:8001/admin/mode/set" \
+  -H "Content-Type: application/json" \
+  -d '{"mode": "fast"}'
+
+# 자동 복구 비활성화
+curl -X POST "http://localhost:8001/admin/downshift/disable-recovery"
+
+# 다운시프트 통계 조회
+curl "http://localhost:8001/admin/downshift/stats"
+# 응답:
 # {
-#   "status": "success",
-#   "update_result": {
-#     "loss": 0.0234,
-#     "reward": 0.75,
-#     "entropy": 1.234,
-#     "policy_loss": 0.0156,
-#     "value_loss": 0.0078
-#   },
-#   "session": {
-#     "experiment_id": "exp_abc123_1234567890",
-#     "iteration": 1
-#   }
+#   "current_mode": "balanced",
+#   "downshift_count": 3,
+#   "last_downshift_time": "2025-10-13T10:30:00",
+#   "last_downshift_reason": "HIGH_LATENCY",
+#   "time_until_recovery": 180  # 초
 # }
 ```
 
-#### 6.4.3 MOGA 최적화
+### 7.2 캐시 TTL 조정 (Cache TTL Adjustment)
 
-```bash
-# MOGA로 다목적 최적화 수행
-curl -X POST "http://localhost:8001/api/v1/optimize/moga" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "brief": {
-      "brief_id": "brief_002",
-      "user_prompt": "균형잡힌 우아한 향수",
-      "desired_intensity": 0.7,
-      "masculinity": 0.5,
-      "complexity": 0.8,
-      "longevity": 0.9,
-      "sillage": 0.7
-    },
-    "generations": 30,
-    "population_size": 50
-  }'
+#### 7.2.1 Redis 캐시 전략
+
+```python
+# fragrance_ai/cache/redis_manager.py
+import redis
+from typing import Optional
+import json
+
+class CacheManager:
+    def __init__(self, redis_client):
+        self.redis = redis_client
+
+        # 모드별 TTL (초)
+        self.ttl_config = {
+            "fast": 300,      # 5분 (자주 갱신)
+            "balanced": 600,  # 10분
+            "creative": 1800  # 30분 (안정적)
+        }
+
+    def get_dna_cache(self, cache_key: str, mode: str) -> Optional[dict]:
+        """DNA 캐시 조회"""
+        cached = self.redis.get(cache_key)
+        if cached:
+            logger.info(f"캐시 히트: {cache_key} (mode={mode})")
+            return json.loads(cached)
+        return None
+
+    def set_dna_cache(self, cache_key: str, dna_data: dict, mode: str):
+        """DNA 캐시 저장"""
+        ttl = self.ttl_config.get(mode, 600)
+        self.redis.setex(
+            cache_key,
+            ttl,
+            json.dumps(dna_data)
+        )
+        logger.info(f"캐시 저장: {cache_key}, TTL={ttl}s (mode={mode})")
+
+    def adjust_ttl(self, mode: str, new_ttl: int):
+        """TTL 동적 조정 (운영 중)"""
+        old_ttl = self.ttl_config[mode]
+        self.ttl_config[mode] = new_ttl
+        logger.info(f"TTL 조정: mode={mode}, {old_ttl}s → {new_ttl}s")
+
+        # 기존 캐시에 새 TTL 적용 (옵션)
+        # pattern = f"dna:{mode}:*"
+        # for key in self.redis.scan_iter(match=pattern):
+        #     self.redis.expire(key, new_ttl)
 ```
 
-## 7. 문제 해결 가이드 (Troubleshooting Guide)
+#### 7.2.2 상황별 TTL 조정 전략
 
-### 7.1 NaN (Not a Number) 발생 시 해결 방법
+| 상황 | Fast | Balanced | Creative | 이유 |
+|------|------|----------|----------|------|
+| **정상** | 300s (5분) | 600s (10분) | 1800s (30분) | 기본 설정 |
+| **높은 부하** | 600s (10분) | 1200s (20분) | 3600s (1시간) | 캐시 히트율 ↑, 부하 ↓ |
+| **모델 업데이트** | 60s (1분) | 120s (2분) | 300s (5분) | 새 결과 빠르게 반영 |
+| **메모리 부족** | 120s (2분) | 300s (5분) | 600s (10분) | 캐시 메모리 사용량 ↓ |
+
+#### 7.2.3 TTL 조정 API
+
+```bash
+# TTL 조정 (관리자 API)
+curl -X POST "http://localhost:8001/admin/cache/ttl" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mode": "creative",
+    "ttl_seconds": 3600
+  }'
+
+# 캐시 통계 조회
+curl "http://localhost:8001/admin/cache/stats"
+# 응답:
+# {
+#   "fast": {
+#     "current_ttl": 300,
+#     "hit_rate": 0.67,
+#     "total_keys": 1243,
+#     "memory_usage_mb": 45.2
+#   },
+#   "balanced": {
+#     "current_ttl": 600,
+#     "hit_rate": 0.78,
+#     "total_keys": 892,
+#     "memory_usage_mb": 67.8
+#   },
+#   "creative": {
+#     "current_ttl": 1800,
+#     "hit_rate": 0.85,
+#     "total_keys": 456,
+#     "memory_usage_mb": 89.3
+#   }
+# }
+
+# 캐시 전체 삭제 (긴급 시)
+curl -X DELETE "http://localhost:8001/admin/cache/flush?mode=all"
+```
+
+### 7.3 종합 장애 대응 시나리오
+
+#### 시나리오 1: 높은 지연 발생
+
+```
+[증상] Creative 모드 p95 지연 > 6초
+
+[자동 조치]
+1. Creative → Balanced 다운시프트
+2. 사용자에게 알림 (optional)
+
+[수동 조치]
+1. Grafana 대시보드 확인 (/health/llm)
+2. 모델 상태 확인 (Qwen/Mistral)
+3. 시스템 리소스 확인 (메모리/CPU)
+4. 필요 시 캐시 TTL 증가 (부하 감소)
+
+[복구]
+- 5분 후 자동 상향 시도
+- 또는 수동 복구: POST /admin/mode/set
+```
+
+#### 시나리오 2: 메모리 부족
+
+```
+[증상] 메모리 사용률 > 85% 또는 > 12GB
+
+[자동 조치]
+1. 현재 모드에서 하위 모드로 다운시프트
+2. 캐시 정리 (LRU)
+
+[수동 조치]
+1. 캐시 TTL 감소 (메모리 사용량 감소)
+   curl -X POST /admin/cache/ttl -d '{"mode":"all","ttl_seconds":120}'
+
+2. 캐시 일부 삭제
+   curl -X DELETE /admin/cache/flush?mode=fast
+
+3. 모델 재시작 (메모리 누수 의심 시)
+   POST /admin/model/reload
+
+[복구]
+- 메모리 안정화 후 자동 상향
+```
+
+#### 시나리오 3: 모델 장애
+
+```
+[증상] Qwen 모델 응답 없음
+
+[자동 조치]
+1. Creative → Balanced (Mistral로 전환)
+2. 또는 Balanced → Fast (Llama로 전환)
+
+[수동 조치]
+1. 모델 헬스체크
+   curl http://localhost:8001/health/llm?model=qwen
+
+2. 모델 재로드
+   POST /admin/model/reload
+
+3. 워커 확인
+   GET /admin/workers/status
+
+[복구]
+- 모델 복구 확인 후 자동 상향
+- 또는 다른 모델로 영구 전환
+```
+
+### 7.4 NaN (Not a Number) 발생 시 해결 방법
 
 훈련 중 `loss=NaN` 또는 `reward=NaN` 발생 시 다음 순서로 해결:
 
-#### 7.1.1 학습률 감소 (Learning Rate Reduction)
+#### 7.4.1 학습률 감소 (Learning Rate Reduction)
 
 **증상**: 초기 몇 에피소드 후 loss가 NaN으로 폭발
 
@@ -389,7 +696,7 @@ scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
 
 **원인**: 큰 gradient가 파라미터를 불안정한 영역으로 밀어냄
 
-#### 7.1.2 Gradient Clipping 강화
+#### 7.4.2 Gradient Clipping 강화
 
 **증상**: `RuntimeWarning: overflow encountered in exp`
 
@@ -411,7 +718,7 @@ torch.nn.utils.clip_grad_norm_(
 
 **원인**: 극단적인 gradient가 weight 업데이트를 불안정하게 만듦
 
-#### 7.1.3 입력 정규화 (Input Normalization)
+#### 7.4.3 입력 정규화 (Input Normalization)
 
 **증상**: 특정 state에서만 NaN 발생
 
@@ -437,7 +744,7 @@ def encode_state(self, dna, brief):
 
 **원인**: 입력 스케일 차이로 인한 활성화 함수 포화
 
-#### 7.1.4 Reward Clipping
+#### 7.4.4 Reward Clipping
 
 **증상**: reward 값이 매우 크거나 작을 때 NaN
 
@@ -459,7 +766,7 @@ def update_policy_with_feedback(self, chosen_id, options, rating=None):
 
 **원인**: 극단적인 reward가 Q-value를 발산시킴
 
-#### 7.1.5 로그 확률 안정화
+#### 7.4.5 로그 확률 안정화
 
 **증상**: `log_prob`이 `-inf`가 되면서 NaN 전파
 
@@ -479,7 +786,7 @@ log_prob = torch.clamp(log_prob, min=-20.0, max=0.0)
 
 **원인**: softmax 출력이 0에 가까워지면 log(0) = -inf
 
-#### 7.1.6 초기화 개선
+#### 7.4.6 초기화 개선
 
 **증상**: 훈련 시작부터 NaN 발생
 
@@ -506,7 +813,7 @@ class PolicyNetwork(nn.Module):
 
 **원인**: 부적절한 초기 weight가 forward pass에서 폭발/소실 유발
 
-#### 7.1.7 종합 디버깅 체크리스트
+#### 7.4.7 종합 디버깅 체크리스트
 
 ```python
 # 훈련 루프에 추가할 NaN 검출 코드
@@ -631,11 +938,91 @@ python test_living_scent.py
 python test_real_optimizers.py
 ```
 
-## 라이센스
+## 라이선스 (License)
 
-Proprietary License - 상업적 이용 금지
+### 프로젝트 라이선스
 
-## 저자
+**Proprietary License** - 상업적 이용 금지
+
+본 프로젝트의 소스 코드는 저작권자의 명시적 허가 없이 상업적으로 사용할 수 없습니다.
+
+### 사용 모델 라이선스
+
+본 프로젝트는 다음 오픈소스 LLM 모델을 사용합니다:
+
+#### 1. Qwen 2.5 (7B/32B)
+- **라이선스**: Apache 2.0
+- **개발사**: Alibaba Cloud
+- **용도**: Creative 모드 메인 모델
+- **상업 이용**: ✅ 가능 (Apache 2.0 허용)
+- **라이선스 전문**: https://github.com/QwenLM/Qwen/blob/main/LICENSE
+- **조건**:
+  - 원본 저작권 및 라이선스 고지 유지
+  - 변경 사항 명시
+  - Apache 2.0 조항 준수
+
+#### 2. Mistral 7B
+- **라이선스**: Apache 2.0
+- **개발사**: Mistral AI
+- **용도**: Balanced 모드 메인 모델
+- **상업 이용**: ✅ 가능 (Apache 2.0 허용)
+- **라이선스 전문**: https://github.com/mistralai/mistral-src/blob/main/LICENSE
+- **조건**:
+  - 원본 저작권 및 라이선스 고지 유지
+  - 변경 사항 명시
+  - Apache 2.0 조항 준수
+
+#### 3. Llama 3 (8B)
+- **라이선스**: Llama 3 Community License
+- **개발사**: Meta (Facebook AI Research)
+- **용도**: Fast 모드 메인 모델
+- **상업 이용**: ⚠️ 조건부 가능
+  - 월간 활성 사용자 7억 명 미만 서비스: ✅ 가능
+  - 월간 활성 사용자 7억 명 이상 서비스: ❌ 별도 라이선스 필요
+- **라이선스 전문**: https://github.com/meta-llama/llama3/blob/main/LICENSE
+- **조건**:
+  - Meta 라이선스 약관 준수
+  - Llama 3 출력물로 다른 LLM 학습 금지
+  - 사용자 수 제한 준수
+
+### 라이선스 준수 사항
+
+본 프로젝트를 사용하는 모든 사용자는 다음을 준수해야 합니다:
+
+1. **모델 라이선스 고지**
+   ```
+   본 서비스는 다음 오픈소스 모델을 사용합니다:
+   - Qwen 2.5 (Apache 2.0, Alibaba Cloud)
+   - Mistral 7B (Apache 2.0, Mistral AI)
+   - Llama 3 (Llama 3 Community License, Meta)
+   ```
+
+2. **상업적 사용 시 확인 사항**
+   - Qwen, Mistral: Apache 2.0 조항 준수
+   - Llama 3: 월간 활성 사용자 7억 명 미만 확인
+   - 7억 명 이상 시 Meta에 별도 라이선스 요청
+
+3. **라이선스 파일 포함**
+   - `licenses/QWEN_LICENSE` - Qwen 2.5 라이선스 사본
+   - `licenses/MISTRAL_LICENSE` - Mistral 7B 라이선스 사본
+   - `licenses/LLAMA_LICENSE` - Llama 3 라이선스 사본
+
+### 면책 조항
+
+본 프로젝트는 교육 및 연구 목적으로 제공되며, 다음 사항에 대해 책임지지 않습니다:
+
+- 모델 출력의 정확성, 안전성, 적절성
+- 상업적 사용으로 인한 법적 문제
+- 모델 라이선스 위반으로 인한 법적 책임
+- 서비스 중단 또는 데이터 손실
+
+### 기여자 라이선스
+
+본 프로젝트에 기여하는 모든 기여자는 다음에 동의합니다:
+- 기여 코드의 저작권을 프로젝트에 양도
+- Apache 2.0 라이선스 적용에 동의
+
+## 저자 (Author)
 
 Jun Seong Im (junseong2im@gmail.com)
 

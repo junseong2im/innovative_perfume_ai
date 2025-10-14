@@ -371,11 +371,16 @@ class EvolutionService:
             # Store experience in buffer
             reward = (rating - 3) / 2.0 if rating else 1.0
 
+            # Get log_prob and convert if needed
+            log_prob_val = session["log_probs"][chosen_idx]
+            if isinstance(log_prob_val, torch.Tensor):
+                log_prob_val = log_prob_val.item()
+
             # For PPO, store transition
             self.trainer.store_transition(
                 state=session["state"],
                 action=session["options"][chosen_idx]["action_idx"],
-                log_prob=session["log_probs"][chosen_idx].item(),
+                log_prob=log_prob_val,
                 reward=reward,
                 value=session.get("values", [0])[chosen_idx],
                 done=True

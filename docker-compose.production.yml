@@ -1,169 +1,567 @@
+# ============================================================================
+# Production Docker Compose Configuration
+# Fragrance AI - Multi-Service Architecture with Scaling Support
+# ============================================================================
+#
+# Services:
+#   - app: FastAPI application (scalable)
+#   - worker-llm: LLM inference workers (scalable)
+#   - worker-rl: RL training workers (scalable)
+#   - postgres: PostgreSQL database with pgvector
+#   - redis: Redis cache/queue
+#   - nginx: Load balancer
+#
+# Usage:
+#   # Start all services:
+#   docker-compose -f docker-compose.production.yml up -d
+#
+#   # Scale workers:
+#   docker-compose -f docker-compose.production.yml up -d --scale worker-llm=3 --scale worker-rl=2
+#
+#   # View logs:
+#   docker-compose -f docker-compose.production.yml logs -f worker-llm
+#
+#   # Stop all:
+#   docker-compose -f docker-compose.production.yml down
+#
+# ============================================================================
+
 version: '3.8'
 
 services:
-  # PostgreSQL with pgvector
+  # ==========================================================================
+  # PostgreSQL Database with pgvector
+  # ==========================================================================
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: fragrance-postgres
-    restart: always
+    container_name: fragrance-ai-postgres
     environment:
-      POSTGRES_DB: fragrance_ai
-      POSTGRES_USER: ${DB_USER:-fragrance}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password}
+      POSTGRES_DB: ${POSTGRES_DB:-fragrance_ai}
+      POSTGRES_USER: ${POSTGRES_USER:-fragrance_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
       POSTGRES_EXTENSIONS: vector
+      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - fragrance-network
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fragrance"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fragrance_user} -d ${POSTGRES_DB:-fragrance_ai}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - fragrance-network
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # Redis Cache
+  # ==========================================================================
+  # Redis Cache/Queue
+  # ==========================================================================
   redis:
     image: redis:7-alpine
-    container_name: fragrance-redis
-    restart: always
-    ports:
-      - "6379:6379"
+    container_name: fragrance-ai-redis
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+      --save 300 100
+      --save 900 1
     volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+      - redis-data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - fragrance-network
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - fragrance-network
-
-  # Ollama for LLM
-  ollama:
-    image: ollama/ollama:latest
-    container_name: fragrance-ollama
-    restart: always
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    environment:
-      OLLAMA_KEEP_ALIVE: "5m"
-      OLLAMA_HOST: "0.0.0.0"
+      start_period: 5s
     deploy:
       resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
         reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    networks:
-      - fragrance-network
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # Main API Service
-  api:
+  # ==========================================================================
+  # FastAPI Application (Scalable)
+  # ==========================================================================
+  app:
     build:
       context: .
-      dockerfile: Dockerfile.production
-    container_name: fragrance-api
-    restart: always
+      dockerfile: docker/Dockerfile.app
+      args:
+        PYTHON_VERSION: "3.11"
+        BUILD_DATE: "${BUILD_DATE:-}"
+        VCS_REF: "${VCS_REF:-}"
+        VERSION: "${VERSION:-0.1.0}"
+    image: fragrance-ai-app:${VERSION:-latest}
+    environment:
+      # Application
+      - APP_ENV=production
+      - VERSION=${VERSION:-0.1.0}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - WORKERS=${APP_WORKERS:-4}
+
+      # Database
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-fragrance_user}:${POSTGRES_PASSWORD:-changeme_in_production}@postgres:5432/${POSTGRES_DB:-fragrance_ai}
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-20}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-10}
+
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+      - CACHE_TTL=${CACHE_TTL:-3600}
+
+      # Monitoring
+      - PROMETHEUS_ENABLED=true
+      - PROMETHEUS_PORT=9090
+      - SENTRY_DSN=${SENTRY_DSN:-}
+
+      # Security
+      - SECRET_KEY=${SECRET_KEY:-changeme_in_production}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
+    volumes:
+      - ./data:/app/data:ro
+      - ./configs:/app/configs:ro
+      - app-logs:/app/logs
+    ports:
+      - "${API_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://${DB_USER:-fragrance}:${DB_PASSWORD:-secure_password}@postgres:5432/fragrance_ai
-      REDIS_URL: redis://redis:6379
-      OLLAMA_BASE_URL: http://ollama:11434
-      APP_ENV: production
-      SECRET_KEY: ${SECRET_KEY}
-      LOG_LEVEL: info
-    ports:
-      - "8001:8001"
-    volumes:
-      - ./logs:/app/logs
-      - ./models:/app/models:ro
-      - ./data:/app/data:ro
     networks:
       - fragrance-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     deploy:
-      replicas: 2
+      replicas: ${APP_REPLICAS:-2}
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
       restart_policy:
         condition: on-failure
         delay: 5s
         max_attempts: 3
-      resources:
-        limits:
-          cpus: '2'
-          memory: 4G
-        reservations:
-          cpus: '1'
-          memory: 2G
+        window: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
 
-  # Nginx Load Balancer
-  nginx:
-    image: nginx:alpine
-    container_name: fragrance-nginx
-    restart: always
-    depends_on:
-      - api
-    ports:
-      - "80:80"
-      - "443:443"
+  # ==========================================================================
+  # LLM Inference Worker (Scalable)
+  # ==========================================================================
+  worker-llm:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker-llm
+      args:
+        PYTHON_VERSION: "3.11"
+        BUILD_DATE: "${BUILD_DATE:-}"
+        VCS_REF: "${VCS_REF:-}"
+        VERSION: "${VERSION:-0.1.0}"
+    image: fragrance-ai-worker-llm:${VERSION:-latest}
+    environment:
+      # Worker Settings
+      - APP_ENV=production
+      - WORKER_TYPE=llm
+      - WORKER_NAME=${HOSTNAME:-worker-llm}
+      - WORKER_CONCURRENCY=${LLM_WORKER_CONCURRENCY:-2}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+
+      # Model Cache
+      - HF_HOME=/app/cache
+      - TRANSFORMERS_CACHE=/app/cache
+      - TORCH_HOME=/app/cache
+      - HF_DATASETS_CACHE=/app/cache/datasets
+
+      # LLM Settings
+      - USE_GPU=${USE_GPU:-false}
+      - MAX_BATCH_SIZE=${LLM_MAX_BATCH_SIZE:-8}
+      - MAX_SEQUENCE_LENGTH=${LLM_MAX_SEQ_LENGTH:-512}
+      - MODEL_CACHE_SIZE=${LLM_CACHE_SIZE:-1000}
+
+      # Performance
+      - OMP_NUM_THREADS=4
+      - MKL_NUM_THREADS=4
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
+      - ./data:/app/data:ro
+      - ./configs:/app/configs:ro
+      - llm-cache:/app/cache
+      - llm-models:/app/models
+      - worker-llm-logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - fragrance-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'celery.*worker' || exit 1"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 180s
+    deploy:
+      replicas: ${LLM_WORKER_REPLICAS:-2}
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 180s
+    # Uncomment for GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
 
-  # Prometheus Monitoring
+  # ==========================================================================
+  # RL Training Worker (Scalable)
+  # ==========================================================================
+  worker-rl:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker-rl
+      args:
+        PYTHON_VERSION: "3.11"
+        BUILD_DATE: "${BUILD_DATE:-}"
+        VCS_REF: "${VCS_REF:-}"
+        VERSION: "${VERSION:-0.1.0}"
+    image: fragrance-ai-worker-rl:${VERSION:-latest}
+    environment:
+      # Worker Settings
+      - APP_ENV=production
+      - WORKER_TYPE=rl
+      - WORKER_NAME=${HOSTNAME:-worker-rl}
+      - WORKER_CONCURRENCY=${RL_WORKER_CONCURRENCY:-1}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+
+      # RL Training
+      - CHECKPOINT_DIR=/app/checkpoints
+      - TENSORBOARD_DIR=/app/tensorboard
+      - USE_GPU=${USE_GPU:-false}
+      - TRAINING_BATCH_SIZE=${RL_BATCH_SIZE:-64}
+      - CHECKPOINT_INTERVAL=${RL_CHECKPOINT_INTERVAL:-100}
+
+      # Performance
+      - OMP_NUM_THREADS=4
+      - MKL_NUM_THREADS=4
+    volumes:
+      - ./data:/app/data
+      - ./configs:/app/configs:ro
+      - rl-checkpoints:/app/checkpoints
+      - rl-tensorboard:/app/tensorboard
+      - worker-rl-logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - fragrance-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'celery.*worker' || exit 1"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 180s
+    deploy:
+      replicas: ${RL_WORKER_REPLICAS:-1}
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 180s
+    # Uncomment for GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ==========================================================================
+  # NGINX Load Balancer
+  # ==========================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: fragrance-ai-nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    depends_on:
+      - app
+    networks:
+      - fragrance-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==========================================================================
+  # Prometheus Monitoring (Optional)
+  # ==========================================================================
   prometheus:
     image: prom/prometheus:latest
-    container_name: fragrance-prometheus
-    restart: always
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
+    container_name: fragrance-ai-prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
     networks:
       - fragrance-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    profiles:
+      - monitoring
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
 
-  # Grafana Dashboard
+  # ==========================================================================
+  # Grafana Visualization (Optional)
+  # ==========================================================================
   grafana:
     image: grafana/grafana:latest
-    container_name: fragrance-grafana
-    restart: always
+    container_name: fragrance-ai-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-changeme}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3000}
+      - GF_INSTALL_PLUGINS=redis-datasource
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
     depends_on:
       - prometheus
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
-      GF_INSTALL_PLUGINS: grafana-piechart-panel
     networks:
       - fragrance-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    profiles:
+      - monitoring
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+# ============================================================================
+# Networks
+# ============================================================================
 networks:
   fragrance-network:
     driver: bridge
+    name: fragrance-ai-production
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.0.0/16
 
+# ============================================================================
+# Volumes
+# ============================================================================
 volumes:
-  postgres_data:
-  redis_data:
-  ollama_data:
-  prometheus_data:
-  grafana_data:
+  postgres-data:
+    name: fragrance-ai-postgres-data
+    driver: local
+  redis-data:
+    name: fragrance-ai-redis-data
+    driver: local
+  llm-cache:
+    name: fragrance-ai-llm-cache
+    driver: local
+  llm-models:
+    name: fragrance-ai-llm-models
+    driver: local
+  rl-checkpoints:
+    name: fragrance-ai-rl-checkpoints
+    driver: local
+  rl-tensorboard:
+    name: fragrance-ai-rl-tensorboard
+    driver: local
+  app-logs:
+    name: fragrance-ai-app-logs
+    driver: local
+  worker-llm-logs:
+    name: fragrance-ai-worker-llm-logs
+    driver: local
+  worker-rl-logs:
+    name: fragrance-ai-worker-rl-logs
+    driver: local
+  prometheus-data:
+    name: fragrance-ai-prometheus-data
+    driver: local
+  grafana-data:
+    name: fragrance-ai-grafana-data
+    driver: local
+
+# ============================================================================
+# Deployment Notes
+# ============================================================================
+#
+# Environment Variables (.env file):
+#   - POSTGRES_PASSWORD: Database password (REQUIRED)
+#   - SECRET_KEY: Application secret key (REQUIRED)
+#   - VERSION: Application version (default: latest)
+#   - APP_REPLICAS: Number of app instances (default: 2)
+#   - LLM_WORKER_REPLICAS: Number of LLM workers (default: 2)
+#   - RL_WORKER_REPLICAS: Number of RL workers (default: 1)
+#
+# Scaling:
+#   docker-compose up -d --scale worker-llm=5 --scale worker-rl=2
+#
+# Resource Requirements (Minimum):
+#   - CPU: 8 cores
+#   - RAM: 16GB
+#   - Disk: 50GB
+#
+# Resource Requirements (Recommended):
+#   - CPU: 16 cores
+#   - RAM: 32GB
+#   - Disk: 100GB
+#
+# Security Checklist:
+#   - [ ] Change default passwords in .env
+#   - [ ] Configure SSL certificates for NGINX
+#   - [ ] Set up firewall rules
+#   - [ ] Enable rate limiting
+#   - [ ] Configure Sentry for error tracking
+#   - [ ] Review CORS settings
+#
+# ============================================================================

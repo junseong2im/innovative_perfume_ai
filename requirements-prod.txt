@@ -15,7 +15,7 @@ psycopg2-binary==2.9.9
 # Authentication & Security
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
-cryptography==41.0.8
+cryptography==41.0.7
 bcrypt==4.2.0
 PyJWT==2.8.0
 
@@ -25,10 +25,10 @@ python-multipart==0.0.6
 
 # Caching & Task Queue
 redis==5.0.1
-celery[redis]==5.3.4
+celery[redis]==5.3.4  # Includes celery core + redis support
 
 # AI/ML Dependencies - Production optimized
-torch==2.1.2+cpu  # CPU version for smaller footprint
+torch==2.1.2
 transformers==4.36.2
 sentence-transformers==2.2.2
 tokenizers==0.15.1

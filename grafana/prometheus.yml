@@ -1,0 +1,116 @@
+# Prometheus Configuration for LLM Ensemble Monitoring
+#
+# This configuration scrapes metrics from the Fragrance AI API
+# at /health/metrics endpoint every 10 seconds
+
+global:
+  scrape_interval: 15s      # Default scrape interval
+  evaluation_interval: 15s  # Default evaluation interval
+
+  # External labels for all time series and alerts
+  external_labels:
+    cluster: 'fragrance-ai'
+    environment: 'development'
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Rule files (optional - for alerting rules)
+# rule_files:
+#   - "alert_rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # LLM Ensemble API
+  - job_name: 'fragrance-ai-llm'
+
+    # Scrape interval for this job (override global)
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+    # Metrics endpoint path
+    metrics_path: '/health/metrics'
+
+    # Target configuration
+    static_configs:
+      - targets:
+          # For local development
+          - 'localhost:8000'
+
+          # For Docker on Windows/Mac (use host.docker.internal)
+          # - 'host.docker.internal:8000'
+
+          # For Docker on Linux (use host IP)
+          # - '172.17.0.1:8000'
+
+          # For production (use actual hostname/IP)
+          # - 'api.example.com:8000'
+
+        labels:
+          service: 'llm-ensemble'
+          component: 'api'
+
+    # Relabeling configuration (optional)
+    metric_relabel_configs:
+      # Drop metrics with certain labels (example)
+      # - source_labels: [__name__]
+      #   regex: 'go_.*'
+      #   action: drop
+
+      # Rename labels (example)
+      # - source_labels: [model]
+      #   target_label: llm_model
+
+  # Additional job for health check endpoint
+  - job_name: 'fragrance-ai-health'
+    scrape_interval: 30s
+    metrics_path: '/health'
+    static_configs:
+      - targets: ['localhost:8000']
+        labels:
+          service: 'health-check'
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+# Storage configuration
+storage:
+  tsdb:
+    # Retention time for time-series data
+    retention.time: 15d
+
+    # Maximum storage size
+    retention.size: 50GB
+
+    # Path to storage (default: data/)
+    path: /prometheus
+
+# Remote write configuration (optional - for long-term storage)
+# remote_write:
+#   - url: "https://prometheus-remote-storage/api/v1/write"
+#     basic_auth:
+#       username: 'admin'
+#       password: 'password'
+#     queue_config:
+#       capacity: 10000
+#       max_shards: 50
+#       min_shards: 1
+#       max_samples_per_send: 5000
+#       batch_send_deadline: 5s
+#       min_backoff: 30ms
+#       max_backoff: 100ms
+
+# Remote read configuration (optional)
+# remote_read:
+#   - url: "https://prometheus-remote-storage/api/v1/read"
+#     basic_auth:
+#       username: 'admin'
+#       password: 'password'

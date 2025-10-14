@@ -15,7 +15,6 @@ dependencies = [
     "alembic>=1.13.0",
     "psycopg2-binary>=2.9.9",
     "redis>=5.0.1",
-    "celery>=5.3.4",
     "torch>=2.1.0",
     "transformers>=4.35.2",
     "sentence-transformers>=2.2.2",

@@ -1,0 +1,59 @@
+# Dockerfile.worker-llm
+# LLM Ensemble Inference Worker Container
+
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt requirements-llm.txt* ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install LLM-specific dependencies (if exists)
+RUN if [ -f requirements-llm.txt ]; then \
+        pip install --no-cache-dir -r requirements-llm.txt; \
+    fi
+
+# Install transformers and torch (for LLM inference)
+RUN pip install --no-cache-dir \
+    transformers>=4.35.0 \
+    torch>=2.0.0 \
+    accelerate>=0.24.0 \
+    sentencepiece>=0.1.99 \
+    protobuf>=3.20.0
+
+# Copy application code
+COPY fragrance_ai/ ./fragrance_ai/
+COPY configs/ ./configs/
+
+# Create necessary directories
+RUN mkdir -p /app/logs /app/data /app/models /app/cache
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+ENV APP_ENV=production
+ENV HF_HOME=/app/cache
+ENV TRANSFORMERS_CACHE=/app/cache
+
+# Worker-specific settings
+ENV WORKER_TYPE=llm
+ENV WORKER_CONCURRENCY=2
+
+# Health check (check if worker process is running)
+HEALTHCHECK --interval=60s --timeout=30s --start-period=120s --retries=3 \
+    CMD pgrep -f "worker.*llm" > /dev/null || exit 1
+
+# Run LLM worker
+CMD ["python", "-m", "fragrance_ai.workers.llm_worker"]

@@ -1,0 +1,10 @@
+{
+  "dna_id": "dna_e56fa746cf91",
+  "brief": {
+    "mood": ["우아함", "고급스러움"],
+    "season": ["fall", "winter"],
+    "intensity": 0.8
+  },
+  "num_options": 3,
+  "algorithm": "PPO"
+}

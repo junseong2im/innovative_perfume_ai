@@ -1,0 +1,89 @@
+# Grafana Datasources Configuration
+apiVersion: 1
+
+datasources:
+  # ==========================================================================
+  # Prometheus - Metrics
+  # ==========================================================================
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: 15s
+      queryTimeout: 60s
+      httpMethod: POST
+    version: 1
+
+  # ==========================================================================
+  # Loki - Logs
+  # ==========================================================================
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: true
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        - datasourceUid: tempo
+          matcherRegex: "trace_id=(\\w+)"
+          name: TraceID
+          url: "$${__value.raw}"
+    version: 1
+
+  # ==========================================================================
+  # Tempo - Tracing
+  # ==========================================================================
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: true
+    jsonData:
+      tracesToLogs:
+        datasourceUid: loki
+        tags: ['job', 'instance', 'component']
+        mappedTags: [{ key: 'service.name', value: 'job' }]
+        mapTagNamesEnabled: true
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+        filterByTraceID: true
+        filterBySpanID: false
+      tracesToMetrics:
+        datasourceUid: prometheus
+        tags: [{ key: 'service.name', value: 'job' }]
+        queries:
+          - name: 'Request rate'
+            query: 'sum(rate(api_requests_total{$$__tags}[5m]))'
+          - name: 'Error rate'
+            query: 'sum(rate(api_requests_total{status=~"5..", $$__tags}[5m]))'
+      serviceMap:
+        datasourceUid: prometheus
+      search:
+        hide: false
+      nodeGraph:
+        enabled: true
+      lokiSearch:
+        datasourceUid: loki
+    version: 1
+
+  # ==========================================================================
+  # Jaeger - Tracing (Alternative)
+  # ==========================================================================
+  - name: Jaeger
+    type: jaeger
+    access: proxy
+    url: http://jaeger:16686
+    editable: true
+    jsonData:
+      tracesToLogs:
+        datasourceUid: loki
+        tags: ['job', 'instance']
+        mappedTags: [{ key: 'service.name', value: 'job' }]
+        mapTagNamesEnabled: false
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+    version: 1

@@ -66,6 +66,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include routers
+from app.routers import llm_health
+app.include_router(llm_health.router)
+
 
 # ============================================================================
 # Request/Response Models
@@ -198,7 +202,7 @@ class EvolveFeedbackResponse(BaseModel):
     status: str
     experiment_id: str
     iteration: int
-    metrics: Dict[str, float]
+    metrics: Dict[str, Any]  # Changed from Dict[str, float] to allow buffering status
     message: str
 
     class Config:
@@ -295,7 +299,7 @@ def create_dna_from_brief(brief: Dict[str, Any], name: str) -> OlfactoryDNA:
     # Top notes (30%)
     if "citrus" in str(brief).lower() or brief.get("style") == "fresh":
         ingredients.append(Ingredient(
-            id=1,
+            ingredient_id="ing_001",
             name="Bergamot",
             cas_number="8007-75-8",
             concentration=15.0,
@@ -304,7 +308,7 @@ def create_dna_from_brief(brief: Dict[str, Any], name: str) -> OlfactoryDNA:
             ifra_limit=2.0
         ))
         ingredients.append(Ingredient(
-            id=2,
+            ingredient_id="ing_002",
             name="Lemon",
             cas_number="8008-56-8",
             concentration=10.0,
@@ -313,7 +317,7 @@ def create_dna_from_brief(brief: Dict[str, Any], name: str) -> OlfactoryDNA:
             ifra_limit=3.0
         ))
         ingredients.append(Ingredient(
-            id=3,
+            ingredient_id="ing_003",
             name="Grapefruit",
             cas_number="8016-20-4",
             concentration=5.0,
@@ -324,7 +328,7 @@ def create_dna_from_brief(brief: Dict[str, Any], name: str) -> OlfactoryDNA:
     # Heart notes (40%)
     if "floral" in str(brief).lower():
         ingredients.append(Ingredient(
-            id=4,
+            ingredient_id="ing_004",
             name="Rose Absolute",
             cas_number="8007-01-0",
             concentration=20.0,
@@ -334,7 +338,7 @@ def create_dna_from_brief(brief: Dict[str, Any], name: str) -> OlfactoryDNA:
         ))
     else:
         ingredients.append(Ingredient(
-            id=5,
+            ingredient_id="ing_005",
             name="Lavender",
             cas_number="8000-28-0",
             concentration=20.0,
@@ -343,7 +347,7 @@ def create_dna_from_brief(brief: Dict[str, Any], name: str) -> OlfactoryDNA:
         ))
 
     ingredients.append(Ingredient(
-        id=6,
+        ingredient_id="ing_006",
         name="Geranium",
         cas_number="8000-46-2",
         concentration=20.0,
@@ -354,7 +358,7 @@ def create_dna_from_brief(brief: Dict[str, Any], name: str) -> OlfactoryDNA:
     # Base notes (30%)
     if "woody" in str(brief).lower() or brief.get("masculinity", 0) > 0.5:
         ingredients.append(Ingredient(
-            id=7,
+            ingredient_id="ing_007",
             name="Sandalwood",
             cas_number="8006-87-9",
             concentration=15.0,
@@ -362,7 +366,7 @@ def create_dna_from_brief(brief: Dict[str, Any], name: str) -> OlfactoryDNA:
             cost_per_kg=400.0
         ))
         ingredients.append(Ingredient(
-            id=8,
+            ingredient_id="ing_008",
             name="Cedarwood",
             cas_number="8000-27-9",
             concentration=15.0,
@@ -371,7 +375,7 @@ def create_dna_from_brief(brief: Dict[str, Any], name: str) -> OlfactoryDNA:
         ))
     else:
         ingredients.append(Ingredient(
-            id=9,
+            ingredient_id="ing_009",
             name="Vanilla",
             cas_number="8024-06-4",
             concentration=15.0,
@@ -379,7 +383,7 @@ def create_dna_from_brief(brief: Dict[str, Any], name: str) -> OlfactoryDNA:
             cost_per_kg=200.0
         ))
         ingredients.append(Ingredient(
-            id=10,
+            ingredient_id="ing_010",
             name="Musk",
             cas_number="541-91-3",
             concentration=15.0,
@@ -390,14 +394,25 @@ def create_dna_from_brief(brief: Dict[str, Any], name: str) -> OlfactoryDNA:
     # Create DNA
     dna_id = generate_dna_id(name)
 
+    # Create genotype from ingredients
+    genotype = {
+        "recipe": {
+            ing.ingredient_id: {
+                "name": ing.name,
+                "concentration": ing.concentration,
+                "category": ing.category.value
+            }
+            for ing in ingredients
+        },
+        "brief_summary": str(brief)[:200]
+    }
+
     dna = OlfactoryDNA(
         dna_id=dna_id,
-        name=name,
+        genotype=genotype,
         ingredients=ingredients,
         generation=1,
-        parent_ids=[],
-        mutations=[],
-        created_at=datetime.utcnow()
+        parent_dna_ids=[]
     )
 
     # Auto-normalize will ensure sum = 100%
@@ -534,7 +549,7 @@ async def create_dna(request: DNACreateRequest):
 
         for ing in dna.ingredients:
             ing_dict = {
-                "id": ing.id,
+                "ingredient_id": ing.ingredient_id,
                 "name": ing.name,
                 "cas_number": ing.cas_number,
                 "concentration": ing.concentration,
@@ -555,7 +570,7 @@ async def create_dna(request: DNACreateRequest):
         # Store DNA
         dna_data = {
             "dna_id": dna.dna_id,
-            "name": dna.name,
+            "name": name,
             "description": request.description,
             "ingredients": ingredients_dict,
             "total_cost_per_kg": total_cost if total_cost > 0 else None,
@@ -572,7 +587,7 @@ async def create_dna(request: DNACreateRequest):
         # Return response
         return DNACreateResponse(
             dna_id=dna.dna_id,
-            name=dna.name,
+            name=name,
             description=request.description,
             ingredients=ingredients_dict,
             total_cost_per_kg=total_cost if total_cost > 0 else None,
@@ -631,7 +646,7 @@ async def generate_evolution_options(request: EvolveOptionsRequest):
         ingredients = []
         for ing_dict in dna_data["ingredients"]:
             ingredients.append(Ingredient(
-                id=ing_dict["id"],
+                ingredient_id=ing_dict["ingredient_id"],
                 name=ing_dict["name"],
                 cas_number=ing_dict.get("cas_number"),
                 concentration=ing_dict["concentration"],
@@ -640,9 +655,22 @@ async def generate_evolution_options(request: EvolveOptionsRequest):
                 ifra_limit=ing_dict.get("ifra_limit")
             ))
 
+        # Create genotype from ingredients
+        genotype = {
+            "recipe": {
+                ing.ingredient_id: {
+                    "name": ing.name,
+                    "concentration": ing.concentration,
+                    "category": ing.category.value
+                }
+                for ing in ingredients
+            },
+            "brief_summary": str(dna_data.get("brief", {}))[:200]
+        }
+
         dna = OlfactoryDNA(
             dna_id=request.dna_id,
-            name=dna_data["name"],
+            genotype=genotype,
             ingredients=ingredients
         )
 
@@ -677,7 +705,7 @@ async def generate_evolution_options(request: EvolveOptionsRequest):
                 if session and session["options"]:
                     phenotype_data = session["options"][0]["phenotype"]
                     formula = [
-                        (ing["id"], ing["concentration"])
+                        (ing.get("ingredient_id", ing.get("name")), ing["concentration"])
                         for ing in phenotype_data["adjusted_ingredients"]
                     ]
                     scores = evaluator.evaluate(formula)

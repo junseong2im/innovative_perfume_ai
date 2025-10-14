@@ -1,0 +1,463 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+
+jobs:
+  # ==========================================================================
+  # Lint & Type Check
+  # ==========================================================================
+  lint:
+    name: Lint (Ruff) & Type Check (mypy)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+        pip install mypy ruff
+
+    - name: Run Ruff (Linting)
+      run: |
+        echo "Running Ruff linter..."
+        ruff check fragrance_ai/ app/ tests/ --output-format=github
+
+    - name: Run mypy (Type Checking)
+      run: |
+        echo "Running mypy type checker..."
+        mypy fragrance_ai/ app/ --ignore-missing-imports --no-strict-optional
+
+  # ==========================================================================
+  # Unit Tests
+  # ==========================================================================
+  test:
+    name: Unit Tests (pytest)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+
+    - name: Run pytest
+      run: |
+        echo "Running pytest..."
+        pytest tests/ -v --tb=short --maxfail=5 \
+          --ignore=tests/test_api.py \
+          --cov=fragrance_ai \
+          --cov-report=term-missing \
+          --cov-report=xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false
+
+  # ==========================================================================
+  # Critical Artisan Tests (MANDATORY for PR merge)
+  # ==========================================================================
+  artisan-critical-tests:
+    name: Critical Tests (LLM Ensemble, MOGA Stability, E2E)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+
+    - name: Run test_llm_ensemble.py
+      run: |
+        echo "Running LLM Ensemble tests..."
+        pytest tests/test_llm_ensemble_operation.py -v --tb=short --maxfail=1
+      timeout-minutes: 10
+
+    - name: Run test_moga_stability.py
+      run: |
+        echo "Running MOGA Stability tests..."
+        pytest tests/test_moga_stability.py -v --tb=short --maxfail=1
+      timeout-minutes: 15
+
+    - name: Run test_end_to_end_evolution.py
+      run: |
+        echo "Running End-to-End Evolution tests..."
+        pytest tests/test_end_to_end_evolution.py -v --tb=short --maxfail=1
+      timeout-minutes: 20
+
+  # ==========================================================================
+  # Security Scanning (pip-audit, SBOM)
+  # ==========================================================================
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install pip-audit
+      run: |
+        pip install --upgrade pip
+        pip install pip-audit
+
+    - name: Run pip-audit (Security Vulnerability Scan)
+      run: |
+        echo "Running pip-audit to check for known vulnerabilities..."
+        pip-audit -r requirements.txt --desc --format json --output pip-audit-report.json || true
+        pip-audit -r requirements.txt --desc
+
+    - name: Generate SBOM (Software Bill of Materials)
+      run: |
+        pip install cyclonedx-bom
+        pip install -r requirements.txt
+        cyclonedx-py requirements -r -o sbom.json
+        echo "SBOM generated: sbom.json"
+
+    - name: Upload SBOM as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: sbom
+        path: sbom.json
+
+    - name: Check for critical vulnerabilities
+      run: |
+        echo "Checking for CRITICAL vulnerabilities..."
+        if pip-audit -r requirements.txt --format json | grep -q '"fix_versions"'; then
+          echo "⚠️ Vulnerabilities found with available fixes. Please update dependencies."
+          pip-audit -r requirements.txt --desc
+        fi
+
+  # ==========================================================================
+  # Load Smoke Test (RPS with p95 Latency Check)
+  # ==========================================================================
+  load-smoke-test:
+    name: Load Smoke Test (p95 Latency)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install locust
+
+    - name: Start API server (background)
+      run: |
+        cd $GITHUB_WORKSPACE
+        nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > api.log 2>&1 &
+        sleep 10
+        curl http://localhost:8000/health || (cat api.log && exit 1)
+
+    - name: Run load test (10 RPS, 30 seconds)
+      run: |
+        python scripts/load_smoke_test.py --rps 10 --duration 30 --p95-threshold 2500
+      timeout-minutes: 3
+
+    - name: Check API logs
+      if: always()
+      run: |
+        echo "API Server Logs:"
+        cat api.log || echo "No logs available"
+
+  # ==========================================================================
+  # Smoke Test - Small Sample Inference
+  # ==========================================================================
+  smoke-test:
+    name: Smoke Test (Sample Inference)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run smoke test - LLM inference
+      run: |
+        echo "Running smoke test: LLM inference with small sample..."
+        python -c "
+import sys
+import time
+from fragrance_ai.schemas.models import CreativeBrief
+
+# Test 1: CreativeBrief model instantiation
+print('Test 1: CreativeBrief instantiation...')
+try:
+    brief = CreativeBrief(
+        style='fresh',
+        intensity=0.7,
+        complexity=0.5,
+        notes_preference={'citrus': 0.8, 'floral': 0.3}
+    )
+    print(f'✓ CreativeBrief created: {brief.style}')
+except Exception as e:
+    print(f'✗ Failed: {e}')
+    sys.exit(1)
+
+# Test 2: Import core modules
+print('Test 2: Import core modules...')
+try:
+    from fragrance_ai.training.ppo_trainer_advanced import AdvancedPPOTrainer
+    from fragrance_ai.training.rl_advanced import EntropyScheduler, RewardNormalizer
+    print('✓ RL modules imported successfully')
+except Exception as e:
+    print(f'✗ Failed: {e}')
+    sys.exit(1)
+
+# Test 3: Basic RL environment setup
+print('Test 3: RL environment setup...')
+try:
+    from fragrance_ai.training.ppo_engine import FragranceEnvironment
+    env = FragranceEnvironment(n_ingredients=5)
+    state = env.reset()
+    print(f'✓ Environment created: state_dim={len(state)}')
+except Exception as e:
+    print(f'✗ Failed: {e}')
+    sys.exit(1)
+
+# Test 4: Entropy scheduler
+print('Test 4: Entropy scheduler...')
+try:
+    from fragrance_ai.training.rl_advanced import EntropyScheduler, EntropyScheduleConfig
+    config = EntropyScheduleConfig(initial_entropy=0.01, final_entropy=0.001, decay_steps=100)
+    scheduler = EntropyScheduler(config)
+    entropy = scheduler.step()
+    print(f'✓ Entropy scheduler working: entropy={entropy:.6f}')
+except Exception as e:
+    print(f'✗ Failed: {e}')
+    sys.exit(1)
+
+# Test 5: Reward normalizer
+print('Test 5: Reward normalizer...')
+try:
+    from fragrance_ai.training.rl_advanced import RewardNormalizer, RewardNormalizerConfig
+    config = RewardNormalizerConfig(window_size=10)
+    normalizer = RewardNormalizer(config)
+    for r in [1.0, 2.0, 3.0, 4.0, 5.0]:
+        normalizer.normalize(r)
+    stats = normalizer.get_statistics()
+    print(f'✓ Reward normalizer working: mean={stats[\"mean\"]:.2f}')
+except Exception as e:
+    print(f'✗ Failed: {e}')
+    sys.exit(1)
+
+print('\\n✓ All smoke tests passed!')
+"
+
+    - name: Run smoke test - RL training (mini)
+      run: |
+        echo "Running smoke test: RL mini training..."
+        python -c "
+import sys
+from fragrance_ai.training.ppo_engine import FragranceEnvironment
+from fragrance_ai.training.ppo_trainer_advanced import train_advanced_ppo
+from fragrance_ai.training.rl_advanced import (
+    EntropyScheduleConfig,
+    RewardNormalizerConfig,
+    CheckpointConfig
+)
+
+print('Running mini RL training (10 iterations)...')
+try:
+    env = FragranceEnvironment(n_ingredients=5)
+
+    entropy_config = EntropyScheduleConfig(
+        initial_entropy=0.01,
+        final_entropy=0.001,
+        decay_steps=1000
+    )
+
+    reward_config = RewardNormalizerConfig(
+        window_size=100,
+        clip_range=(-10.0, 10.0)
+    )
+
+    checkpoint_config = CheckpointConfig(
+        checkpoint_dir='./smoke_test_checkpoints',
+        save_interval=5,
+        rollback_on_kl_threshold=0.2
+    )
+
+    trainer = train_advanced_ppo(
+        env=env,
+        n_iterations=10,
+        n_steps_per_iteration=64,
+        n_ppo_epochs=3,
+        entropy_config=entropy_config,
+        reward_config=reward_config,
+        checkpoint_config=checkpoint_config
+    )
+
+    stats = trainer.get_full_statistics()
+    print(f'✓ Mini training completed: {stats[\"episode_count\"]} episodes')
+    print(f'  Final reward: {stats[\"rewards\"][-1]:.2f}')
+    print(f'  Rollbacks: {stats[\"checkpoint\"][\"rollback_count\"]}')
+
+except Exception as e:
+    print(f'✗ Failed: {e}')
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)
+
+print('\\n✓ RL smoke test passed!')
+"
+
+  # ==========================================================================
+  # Docker Build Test
+  # ==========================================================================
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build app image
+      run: |
+        docker build -f docker/Dockerfile.app -t fragrance-ai-app:test .
+
+    - name: Build worker-llm image
+      run: |
+        docker build -f docker/Dockerfile.worker-llm -t fragrance-ai-worker-llm:test .
+
+    - name: Build worker-rl image
+      run: |
+        docker build -f docker/Dockerfile.worker-rl -t fragrance-ai-worker-rl:test .
+
+  # ==========================================================================
+  # Summary
+  # ==========================================================================
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [lint, test, artisan-critical-tests, security, load-smoke-test, smoke-test, docker-build]
+    if: always()
+
+    steps:
+    - name: Check results
+      run: |
+        echo "========================================================"
+        echo "CI Pipeline Summary (Quality Gates)"
+        echo "========================================================"
+        echo "  1. Lint (mypy/ruff):           ${{ needs.lint.result }}"
+        echo "  2. Unit Tests:                 ${{ needs.test.result }}"
+        echo "  3. Critical Artisan Tests:     ${{ needs.artisan-critical-tests.result }}"
+        echo "  4. Security Scan (pip-audit):  ${{ needs.security.result }}"
+        echo "  5. Load Smoke Test (p95):      ${{ needs.load-smoke-test.result }}"
+        echo "  6. Smoke Test (inference):     ${{ needs.smoke-test.result }}"
+        echo "  7. Docker Build:               ${{ needs.docker-build.result }}"
+        echo ""
+
+        # Check mandatory gates
+        FAILED=0
+
+        if [[ "${{ needs.lint.result }}" != "success" ]]; then
+          echo "❌ FAILED: Static analysis (mypy/ruff)"
+          FAILED=1
+        fi
+
+        if [[ "${{ needs.test.result }}" != "success" ]]; then
+          echo "❌ FAILED: Unit tests"
+          FAILED=1
+        fi
+
+        if [[ "${{ needs.artisan-critical-tests.result }}" != "success" ]]; then
+          echo "❌ FAILED: Critical Artisan tests (LLM Ensemble, MOGA Stability, E2E)"
+          FAILED=1
+        fi
+
+        if [[ "${{ needs.security.result }}" != "success" ]]; then
+          echo "❌ FAILED: Security scanning"
+          FAILED=1
+        fi
+
+        if [[ "${{ needs.load-smoke-test.result }}" != "success" ]]; then
+          echo "❌ FAILED: Load smoke test (p95 latency)"
+          FAILED=1
+        fi
+
+        if [[ "${{ needs.smoke-test.result }}" != "success" ]]; then
+          echo "❌ FAILED: Smoke test"
+          FAILED=1
+        fi
+
+        if [[ "${{ needs.docker-build.result }}" != "success" ]]; then
+          echo "❌ FAILED: Docker build"
+          FAILED=1
+        fi
+
+        if [[ $FAILED -eq 1 ]]; then
+          echo ""
+          echo "========================================================"
+          echo "❌ CI PIPELINE FAILED - PR MERGE BLOCKED"
+          echo "========================================================"
+          exit 1
+        fi
+
+        echo "========================================================"
+        echo "✅ ALL QUALITY GATES PASSED - PR READY FOR MERGE"
+        echo "========================================================"

@@ -1,0 +1,10 @@
+{
+  "dna_id": "dna_e56fa746cf91",
+  "brief": {
+    "mood": ["신선함", "상쾌함"],
+    "season": ["spring", "summer"],
+    "intensity": 0.7
+  },
+  "num_options": 3,
+  "algorithm": "REINFORCE"
+}

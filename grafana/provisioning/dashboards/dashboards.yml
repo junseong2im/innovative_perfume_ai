@@ -1,0 +1,16 @@
+# Grafana Dashboard Provisioning Configuration
+# This file automatically loads dashboards from the specified folder
+
+apiVersion: 1
+
+providers:
+  - name: 'LLM Ensemble Dashboards'
+    orgId: 1
+    folder: 'LLM Monitoring'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false

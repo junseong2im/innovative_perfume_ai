@@ -1,0 +1,324 @@
+# Prometheus Alert Rules
+groups:
+  # ==========================================================================
+  # API Alerts
+  # ==========================================================================
+  - name: api_alerts
+    interval: 30s
+    rules:
+      # High API latency (p95 > 2.5s)
+      - alert: HighAPILatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(api_response_seconds_bucket[5m])
+          ) > 2.5
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "API p95 latency exceeded threshold"
+          description: "API p95 latency is {{ $value | humanizeDuration }} (threshold: 2.5s)"
+
+      # High error rate (> 1%)
+      - alert: HighAPIErrorRate
+        expr: |
+          sum(rate(api_requests_total{status=~"5.."}[5m]))
+          / sum(rate(api_requests_total[5m])) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "High API error rate detected"
+          description: "API error rate is {{ $value | humanizePercentage }} (threshold: 1%)"
+
+      # API is down
+      - alert: APIDown
+        expr: up{job="fragrance-ai-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "Fragrance AI API is down"
+          description: "The API has been down for more than 1 minute"
+
+  # ==========================================================================
+  # LLM Alerts
+  # ==========================================================================
+  - name: llm_alerts
+    interval: 30s
+    rules:
+      # High LLM latency (fast mode > 2.5s)
+      - alert: HighLLMLatencyFast
+        expr: |
+          rate(llm_brief_latency_seconds_sum{mode="fast"}[5m])
+          / rate(llm_brief_latency_seconds_count{mode="fast"}[5m]) > 2.5
+        for: 5m
+        labels:
+          severity: warning
+          component: llm
+        annotations:
+          summary: "LLM fast mode latency high"
+          description: "LLM fast mode latency is {{ $value }}s (threshold: 2.5s)"
+
+      # High LLM latency (balanced mode > 3.2s)
+      - alert: HighLLMLatencyBalanced
+        expr: |
+          rate(llm_brief_latency_seconds_sum{mode="balanced"}[5m])
+          / rate(llm_brief_latency_seconds_count{mode="balanced"}[5m]) > 3.2
+        for: 5m
+        labels:
+          severity: warning
+          component: llm
+        annotations:
+          summary: "LLM balanced mode latency high"
+          description: "LLM balanced mode latency is {{ $value }}s (threshold: 3.2s)"
+
+      # High LLM latency (creative mode > 4.5s)
+      - alert: HighLLMLatencyCreative
+        expr: |
+          rate(llm_brief_latency_seconds_sum{mode="creative"}[5m])
+          / rate(llm_brief_latency_seconds_count{mode="creative"}[5m]) > 4.5
+        for: 5m
+        labels:
+          severity: warning
+          component: llm
+        annotations:
+          summary: "LLM creative mode latency high"
+          description: "LLM creative mode latency is {{ $value }}s (threshold: 4.5s)"
+
+      # LLM model errors
+      - alert: LLMModelErrors
+        expr: |
+          rate(llm_model_status_total{status="error"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: llm
+        annotations:
+          summary: "LLM model errors detected"
+          description: "Model {{ $labels.model }} has {{ $value }} errors/sec"
+
+  # ==========================================================================
+  # Circuit Breaker Alerts
+  # ==========================================================================
+  - name: circuit_breaker_alerts
+    interval: 30s
+    rules:
+      # Circuit breaker fallback
+      - alert: CircuitBreakerFallback
+        expr: rate(circuit_breaker_fallback_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          component: circuit_breaker
+        annotations:
+          summary: "Circuit breaker fallback triggered"
+          description: "Service {{ $labels.service }} is using fallback ({{ $labels.fallback_type }})"
+
+      # Circuit breaker downgrade
+      - alert: CircuitBreakerDowngrade
+        expr: rate(circuit_breaker_downgrade_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          component: circuit_breaker
+        annotations:
+          summary: "Circuit breaker downgrade detected"
+          description: "Service {{ $labels.service }} downgraded from {{ $labels.from_tier }} to {{ $labels.to_tier }}"
+
+  # ==========================================================================
+  # Cache Alerts
+  # ==========================================================================
+  - name: cache_alerts
+    interval: 30s
+    rules:
+      # Low cache hit rate (< 30%)
+      - alert: LowCacheHitRate
+        expr: |
+          rate(cache_hits_total[5m])
+          / (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m])) < 0.3
+        for: 10m
+        labels:
+          severity: info
+          component: cache
+        annotations:
+          summary: "Cache hit rate is low"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} (threshold: 30%)"
+
+      # High TTL expiration rate
+      - alert: HighCacheTTLExpiration
+        expr: rate(cache_ttl_expired_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: info
+          component: cache
+        annotations:
+          summary: "High cache TTL expiration rate"
+          description: "Cache {{ $labels.cache_type }} has {{ $value }} expirations/sec"
+
+  # ==========================================================================
+  # RL Alerts
+  # ==========================================================================
+  - name: rl_alerts
+    interval: 30s
+    rules:
+      # RL reward drop
+      - alert: RLRewardDrop
+        expr: rl_reward < 10.0
+        for: 10m
+        labels:
+          severity: warning
+          component: rl
+        annotations:
+          summary: "RL reward dropped below threshold"
+          description: "Algorithm {{ $labels.algorithm }} reward is {{ $value }} (threshold: 10.0)"
+
+      # RL high loss
+      - alert: RLHighLoss
+        expr: |
+          rate(rl_loss_sum[5m])
+          / rate(rl_loss_count[5m]) > 1.0
+        for: 10m
+        labels:
+          severity: warning
+          component: rl
+        annotations:
+          summary: "RL loss is high"
+          description: "Algorithm {{ $labels.algorithm }} loss is {{ $value }}"
+
+  # ==========================================================================
+  # System Alerts
+  # ==========================================================================
+  - name: system_alerts
+    interval: 30s
+    rules:
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: |
+          100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value | humanize }}% on {{ $labels.instance }}"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+          / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value | humanize }}% on {{ $labels.instance }}"
+
+      # Low disk space
+      - alert: LowDiskSpace
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/"}
+          / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is {{ $value | humanize }}% available on {{ $labels.instance }}"
+
+  # ==========================================================================
+  # Security Alerts
+  # ==========================================================================
+  - name: security_alerts
+    interval: 60s
+    rules:
+      # Model integrity check failed
+      - alert: ModelIntegrityCheckFailed
+        expr: security_model_integrity_check_failed_total > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "Model integrity check failed"
+          description: "Model {{ $labels.model_name }} failed SHA256 verification"
+          runbook: "Verify model file has not been corrupted or tampered with. Re-download model from trusted source and re-register checksum."
+
+      # License compliance issue
+      - alert: LicenseComplianceIssue
+        expr: security_license_compliance_failed_total > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "License compliance check failed"
+          description: "Model {{ $labels.model_name }} has license compliance issues"
+          runbook: "Review model license and usage restrictions. Ensure commercial use is permitted."
+
+      # Missing required secrets
+      - alert: MissingRequiredSecrets
+        expr: security_missing_secrets_total > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "Required secrets are missing"
+          description: "{{ $value }} required secrets are not configured"
+          runbook: "Set missing secrets in environment or secrets manager (AWS Secrets Manager, KMS, etc.)"
+
+      # IFRA violation detected
+      - alert: IFRAViolationDetected
+        expr: rate(security_ifra_violations_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "IFRA violations detected in generated formulas"
+          description: "{{ $value }} IFRA violations/sec detected in product category {{ $labels.product_category }}"
+          runbook: "Review generated formulas for IFRA compliance. Check ingredient concentrations against IFRA limits."
+
+      # PII detected in logs
+      - alert: PIIDetectedInLogs
+        expr: rate(security_pii_detected_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "High rate of PII detection in logs"
+          description: "{{ $value }} instances/sec of PII patterns detected in logs"
+          runbook: "Verify PII masking is working correctly. Check log privacy settings."
+
+      # Unauthorized access attempt
+      - alert: UnauthorizedAccessAttempt
+        expr: rate(security_unauthorized_access_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "High rate of unauthorized access attempts"
+          description: "{{ $value }} unauthorized access attempts/sec from {{ $labels.source_ip }}"
+          runbook: "Check access logs for suspicious activity. Consider IP blocking if attack is persistent."
+
+      # Security scan failed
+      - alert: SecurityScanFailed
+        expr: security_scan_failed_total > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "Security compliance scan failed"
+          description: "Pre-deployment security scan failed with {{ $value }} issues"
+          runbook: "Run: python scripts/verify_security_compliance.py --all. Fix issues before deploying."

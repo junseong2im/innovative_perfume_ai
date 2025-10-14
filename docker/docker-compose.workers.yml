@@ -1,0 +1,193 @@
+# Docker Compose for Fragrance AI Workers
+# 3 Services: app (API), worker-llm (LLM Inference), worker-rl (RL Training)
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # API Service (FastAPI)
+  # ============================================================================
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.app
+    container_name: fragrance-ai-app
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/fragrance.db}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - PROMETHEUS_ENABLED=${PROMETHEUS_ENABLED:-true}
+    volumes:
+      - ../data:/app/data
+      - ../logs:/app/logs
+      - ../configs:/app/configs:ro
+    depends_on:
+      - redis
+    networks:
+      - fragrance-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ============================================================================
+  # LLM Worker (Ensemble Inference)
+  # ============================================================================
+  worker-llm:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker-llm
+    container_name: fragrance-ai-worker-llm
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - WORKER_TYPE=llm
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - HF_HOME=/app/cache
+      - TRANSFORMERS_CACHE=/app/cache
+      - WORKER_CONCURRENCY=${LLM_WORKER_CONCURRENCY:-2}
+      - USE_GPU=${USE_GPU:-false}
+    volumes:
+      - ../data:/app/data
+      - ../logs:/app/logs
+      - ../models:/app/models
+      - ../cache:/app/cache
+      - ../configs:/app/configs:ro
+    depends_on:
+      - redis
+    networks:
+      - fragrance-network
+    restart: unless-stopped
+    # Uncomment for GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # ============================================================================
+  # RL Worker (Training)
+  # ============================================================================
+  worker-rl:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker-rl
+    container_name: fragrance-ai-worker-rl
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - WORKER_TYPE=rl
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CHECKPOINT_DIR=/app/checkpoints
+      - TENSORBOARD_DIR=/app/tensorboard
+      - WORKER_CONCURRENCY=${RL_WORKER_CONCURRENCY:-1}
+      - USE_GPU=${USE_GPU:-false}
+    volumes:
+      - ../data:/app/data
+      - ../logs:/app/logs
+      - ../checkpoints:/app/checkpoints
+      - ../tensorboard:/app/tensorboard
+      - ../configs:/app/configs:ro
+    depends_on:
+      - redis
+    networks:
+      - fragrance-network
+    restart: unless-stopped
+    # Uncomment for GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # ============================================================================
+  # Redis (Queue/Cache)
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: fragrance-ai-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - fragrance-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # Prometheus (Optional - Monitoring)
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: fragrance-ai-prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ../grafana/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - fragrance-network
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+    profiles:
+      - monitoring
+
+  # ============================================================================
+  # Grafana (Optional - Visualization)
+  # ============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: fragrance-ai-grafana
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ../grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    networks:
+      - fragrance-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  fragrance-network:
+    driver: bridge
+    name: fragrance-ai-network
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  redis-data:
+    name: fragrance-ai-redis-data
+  prometheus-data:
+    name: fragrance-ai-prometheus-data
+  grafana-data:
+    name: fragrance-ai-grafana-data

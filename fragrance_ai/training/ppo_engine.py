@@ -441,6 +441,25 @@ class PPOTrainer:
         logger.info(f"Checkpoint loaded from {filepath}")
 
 
+class ActionSpace:
+    """Gym-compatible action space"""
+
+    def __init__(self, n: int):
+        self.n = n
+        self.shape = (n,)
+
+    def sample(self) -> int:
+        """Sample random action"""
+        return np.random.randint(0, self.n)
+
+
+class ObservationSpace:
+    """Gym-compatible observation space"""
+
+    def __init__(self, shape: tuple):
+        self.shape = shape
+
+
 class FragranceEnvironment:
     """향수 조합 환경 - 강화학습용"""
 
@@ -450,9 +469,8 @@ class FragranceEnvironment:
         self.action_dim = n_ingredients * 3  # 추가/제거/조정
 
         # Gym-like interface for compatibility
-        from types import SimpleNamespace
-        self.observation_space = SimpleNamespace(shape=(self.state_dim,))
-        self.action_space = SimpleNamespace(n=self.action_dim)
+        self.observation_space = ObservationSpace(shape=(self.state_dim,))
+        self.action_space = ActionSpace(n=self.action_dim)
 
         self.current_formula = None
         self.reset()

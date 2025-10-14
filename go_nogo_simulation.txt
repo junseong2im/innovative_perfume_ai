@@ -1,0 +1,20 @@
+
+
+************************************************************
+Go / No-Go 배포 게이트 시뮬레이션
+************************************************************
+
+============================================================
+시나리오 1: GO (모든 체크 통과)
+============================================================
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\새 폴더 (2)\Newss\demo_go_nogo_gate.py", line 224, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\user\Desktop\새 폴더 (2)\Newss\demo_go_nogo_gate.py", line 205, in main
+    simulate_go_scenario()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\user\Desktop\새 폴더 (2)\Newss\demo_go_nogo_gate.py", line 48, in simulate_go_scenario
+    print(report)
+    ~~~~~^^^^^^^^
+UnicodeEncodeError: 'cp949' codec can't encode character '\u2705' in position 207: illegal multibyte sequence

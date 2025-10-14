@@ -317,10 +317,17 @@ class RLLogger:
         policy_loss: Optional[float] = None,
         **kwargs
     ):
-        """Log RL update metrics"""
+        """
+        Log RL update metrics
+
+        Key fields for Grafana:
+        - rl_update{algo, loss, reward, entropy, clip_frac}
+        """
         metrics = {
             "component": "RL",
-            "algorithm": algorithm,
+            "log_type": "rl_update",
+            "algo": algorithm,  # Short name for dashboard queries
+            "algorithm": algorithm,  # Full name for clarity
             "loss": round(loss, 6),
             "reward": round(reward, 4),
         }
@@ -378,6 +385,96 @@ class RLLogger:
 
 
 # ============================================================================
+# LLM Logging
+# ============================================================================
+
+class LLMLogger:
+    """Logger for LLM operations"""
+
+    def __init__(self):
+        self.logger = ObservabilityLogger("fragrance_ai.llm")
+
+    def log_brief(
+        self,
+        user_text: str,
+        brief: Dict[str, Any],
+        model: str,
+        mode: str,
+        latency_ms: float,
+        cache_hit: bool = False,
+        qwen_ok: Optional[bool] = None,
+        mistral_fix: Optional[bool] = None,
+        hints: Optional[str] = None,
+        elapsed_ms: Optional[float] = None,
+        **kwargs
+    ):
+        """
+        Log LLM brief generation
+
+        Key fields for Grafana:
+        - llm_brief{mode, qwen_ok, mistral_fix, hints, elapsed_ms}
+        """
+        log_data = {
+            "component": "LLM",
+            "log_type": "llm_brief",
+            "model": model,
+            "mode": mode,
+            "latency_ms": round(latency_ms, 2),
+            "elapsed_ms": round(elapsed_ms or latency_ms, 2),  # elapsed_ms for dashboard
+            "cache_hit": cache_hit,
+            "user_text_length": len(user_text),
+            "brief_style": brief.get('style'),
+            "brief_intensity": brief.get('intensity'),
+            "brief_complexity": brief.get('complexity'),
+        }
+
+        # Model status flags for monitoring
+        if qwen_ok is not None:
+            log_data["qwen_ok"] = qwen_ok
+        if mistral_fix is not None:
+            log_data["mistral_fix"] = mistral_fix
+        if hints is not None:
+            log_data["hints"] = hints
+
+        log_data.update(kwargs)
+
+        self.logger.info("LLM brief generated", **log_data)
+
+    def log_validation(
+        self,
+        brief: Dict[str, Any],
+        is_valid: bool,
+        errors: List[str] = None,
+        warnings: List[str] = None,
+        latency_ms: float = 0
+    ):
+        """Log brief validation"""
+        self.logger.info(
+            "Brief validation completed",
+            component="LLM",
+            is_valid=is_valid,
+            error_count=len(errors) if errors else 0,
+            warning_count=len(warnings) if warnings else 0,
+            latency_ms=round(latency_ms, 2)
+        )
+
+    def log_creative_hints(
+        self,
+        brief: Dict[str, Any],
+        hints: List[str],
+        latency_ms: float
+    ):
+        """Log creative hints generation"""
+        self.logger.info(
+            "Creative hints generated",
+            component="LLM",
+            hint_count=len(hints),
+            latency_ms=round(latency_ms, 2),
+            style=brief.get('style')
+        )
+
+
+# ============================================================================
 # Orchestrator Logging
 # ============================================================================
 
@@ -419,17 +516,28 @@ class OrchestratorLogger:
         path: str,
         status_code: int,
         response_time_ms: float,
-        user_agent: Optional[str] = None
+        user_agent: Optional[str] = None,
+        **kwargs
     ):
-        """Log API request"""
+        """
+        Log API request
+
+        Key fields for Grafana:
+        - API: status_code, latency (response_time_ms), p95
+        """
         self.logger.info(
             "API request",
-            component="Orchestrator",
+            component="API",
+            log_type="api_request",
             method=method,
             path=path,
+            endpoint=path,  # Alias for easier querying
             status_code=status_code,
+            status=status_code,  # Alias for easier querying
             response_time_ms=round(response_time_ms, 2),
-            user_agent=user_agent
+            latency_ms=round(response_time_ms, 2),  # Alias for consistency
+            user_agent=user_agent,
+            **kwargs
         )
 
     def log_dna_creation(
@@ -634,6 +742,7 @@ class MetricsCollector:
 # Create global logger instances
 ga_logger = GALogger()
 rl_logger = RLLogger()
+llm_logger = LLMLogger()
 orchestrator_logger = OrchestratorLogger()
 metrics_collector = MetricsCollector()
 
@@ -665,11 +774,13 @@ __all__ = [
     'ObservabilityLogger',
     'GALogger',
     'RLLogger',
+    'LLMLogger',
     'OrchestratorLogger',
 
     # Global instances
     'ga_logger',
     'rl_logger',
+    'llm_logger',
     'orchestrator_logger',
     'metrics_collector',
 

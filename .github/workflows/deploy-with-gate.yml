@@ -1,0 +1,331 @@
+name: Deploy with Go/No-Go Gate
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+      skip_gate:
+        description: 'Skip gate check (emergency only)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  PROMETHEUS_URL: http://prometheus:9090
+  DOCKER_COMPOSE_FILE: docker-compose.production.yml
+
+jobs:
+  # ============================================================================
+  # Go/No-Go Gate Check
+  # ============================================================================
+  gate-check:
+    name: Go/No-Go Gate Check
+    runs-on: ubuntu-latest
+    outputs:
+      gate_status: ${{ steps.gate.outputs.status }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests
+
+      - name: Run deployment gate check
+        id: gate
+        if: ${{ !inputs.skip_gate }}
+        run: |
+          python scripts/check_deployment_gate.py \
+            --strict \
+            --output gate_report.json \
+            --prometheus-url ${{ env.PROMETHEUS_URL }}
+
+          # Capture exit code
+          EXIT_CODE=$?
+
+          # Map exit code to status
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "status=GO" >> $GITHUB_OUTPUT
+            echo "✅ Gate Status: GO - All checks passed"
+          elif [ $EXIT_CODE -eq 1 ]; then
+            echo "status=WARNING" >> $GITHUB_OUTPUT
+            echo "⚠️ Gate Status: WARNING - Review required"
+          else
+            echo "status=NO_GO" >> $GITHUB_OUTPUT
+            echo "❌ Gate Status: NO-GO - Deployment blocked"
+            exit 2
+          fi
+
+      - name: Upload gate report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: gate-report
+          path: gate_report.json
+          retention-days: 30
+
+      - name: Comment gate status on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('gate_report.json', 'utf8'));
+
+            const statusEmoji = {
+              'GO': '🟢',
+              'WARNING': '🟡',
+              'NO_GO': '🔴'
+            };
+
+            const emoji = statusEmoji[report.overall_status] || '⚪';
+
+            let comment = `## ${emoji} Deployment Gate Check\n\n`;
+            comment += `**Status**: ${report.overall_status}\n\n`;
+            comment += `### Summary\n`;
+            comment += `- Total checks: ${report.summary.total}\n`;
+            comment += `- GO: ${report.summary.go}\n`;
+            comment += `- WARNING: ${report.summary.warning}\n`;
+            comment += `- NO-GO: ${report.summary.no_go}\n\n`;
+
+            if (report.overall_status === 'GO') {
+              comment += '✅ All checks passed - Ready for deployment\n';
+            } else if (report.overall_status === 'WARNING') {
+              comment += '⚠️ Some warnings detected - Manual review recommended\n';
+            } else {
+              comment += '❌ Critical issues detected - Deployment blocked\n';
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # ============================================================================
+  # Deploy to Production (only if gate passes)
+  # ============================================================================
+  deploy-production:
+    name: Deploy to Production
+    needs: gate-check
+    if: |
+      needs.gate-check.outputs.gate_status == 'GO' ||
+      inputs.skip_gate == true
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://fragrance-ai.example.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker images
+        run: |
+          docker-compose -f ${{ env.DOCKER_COMPOSE_FILE }} build
+          docker-compose -f ${{ env.DOCKER_COMPOSE_FILE }} push
+
+      - name: Deploy to production
+        run: |
+          # SSH into production server and deploy
+          # Replace with your actual deployment commands
+          echo "Deploying to production..."
+
+          # Example: using docker-compose
+          # docker-compose -f ${{ env.DOCKER_COMPOSE_FILE }} pull
+          # docker-compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d
+
+          # Example: using kubectl for Kubernetes
+          # kubectl apply -f k8s/production/
+          # kubectl rollout status deployment/app
+
+      - name: Wait for health check
+        run: |
+          echo "Waiting for services to be healthy..."
+          sleep 30
+
+          # Health check endpoint
+          curl -f http://localhost:8001/health || exit 1
+
+      - name: Post-deployment verification
+        run: |
+          echo "Running post-deployment checks..."
+
+          # Run smoke tests
+          python scripts/smoke_test_api.py
+
+          # Verify metrics are being collected
+          curl -f ${{ env.PROMETHEUS_URL }}/api/v1/query?query=up
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "✅ Deployment successful!"
+
+          # Add notification integration here (Slack, Discord, etc.)
+          # curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+          #   -H 'Content-Type: application/json' \
+          #   -d '{"text":"✅ Production deployment successful"}'
+
+  # ============================================================================
+  # Manual Review (for WARNING status)
+  # ============================================================================
+  manual-review:
+    name: Manual Review Required
+    needs: gate-check
+    if: needs.gate-check.outputs.gate_status == 'WARNING'
+    runs-on: ubuntu-latest
+    environment:
+      name: production-review
+
+    steps:
+      - name: Download gate report
+        uses: actions/download-artifact@v3
+        with:
+          name: gate-report
+
+      - name: Display warnings
+        run: |
+          echo "⚠️ Deployment gate returned WARNING status"
+          echo "Manual review is required before proceeding"
+          echo ""
+          cat gate_report.json | jq '.checks[] | select(.status == "WARNING")'
+
+      - name: Wait for manual approval
+        run: |
+          echo "Please review the warnings above and approve deployment manually"
+          echo "Deployment will proceed after environment approval"
+
+  # ============================================================================
+  # Deploy after Manual Review
+  # ============================================================================
+  deploy-after-review:
+    name: Deploy After Manual Review
+    needs: [gate-check, manual-review]
+    if: needs.gate-check.outputs.gate_status == 'WARNING'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to production
+        run: |
+          echo "Deploying after manual review..."
+          # Same deployment steps as deploy-production job
+          docker-compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d
+
+  # ============================================================================
+  # Rollback (triggered on failure)
+  # ============================================================================
+  rollback:
+    name: Rollback Deployment
+    needs: [deploy-production]
+    if: failure()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Rollback to previous version
+        run: |
+          echo "❌ Deployment failed - Rolling back..."
+
+          # Rollback command
+          bash scripts/rollback.sh
+
+          # Or using docker-compose
+          # docker-compose -f ${{ env.DOCKER_COMPOSE_FILE }} down
+          # docker-compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d
+
+      - name: Notify rollback
+        run: |
+          echo "⚠️ Rollback completed"
+
+          # Notification integration
+          # curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+          #   -H 'Content-Type: application/json' \
+          #   -d '{"text":"⚠️ Production deployment failed - Rollback completed"}'
+
+  # ============================================================================
+  # Post-deployment Gate Check (verify deployment succeeded)
+  # ============================================================================
+  post-deployment-check:
+    name: Post-Deployment Gate Check
+    needs: [deploy-production]
+    if: success()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests
+
+      - name: Wait for metrics to stabilize
+        run: |
+          echo "Waiting 2 minutes for metrics to stabilize..."
+          sleep 120
+
+      - name: Run post-deployment gate check
+        run: |
+          python scripts/check_deployment_gate.py \
+            --output gate_report_post.json \
+            --prometheus-url ${{ env.PROMETHEUS_URL }}
+
+          EXIT_CODE=$?
+
+          if [ $EXIT_CODE -eq 2 ]; then
+            echo "❌ Post-deployment check failed - Consider rollback"
+            exit 1
+          elif [ $EXIT_CODE -eq 1 ]; then
+            echo "⚠️ Post-deployment check has warnings - Monitor closely"
+          else
+            echo "✅ Post-deployment check passed"
+          fi
+
+      - name: Upload post-deployment report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: gate-report-post-deployment
+          path: gate_report_post.json
+          retention-days: 30

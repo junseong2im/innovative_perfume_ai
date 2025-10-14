@@ -1,0 +1,139 @@
+# Docker Compose for LLM Ensemble Monitoring Stack
+#
+# This stack includes:
+# - Prometheus (metrics collection)
+# - Grafana (visualization)
+# - Fragrance AI API (application)
+#
+# Usage:
+#   docker-compose up -d          # Start all services
+#   docker-compose logs -f        # View logs
+#   docker-compose down           # Stop all services
+#   docker-compose down -v        # Stop and remove volumes
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # Prometheus - Metrics Collection
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: fragrance-ai-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--storage.tsdb.retention.size=50GB'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  # ============================================================================
+  # Grafana - Visualization and Dashboards
+  # ============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: fragrance-ai-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      # Basic configuration
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+
+      # Server configuration
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+
+      # Database configuration (use SQLite for development)
+      - GF_DATABASE_TYPE=sqlite3
+      - GF_DATABASE_PATH=/var/lib/grafana/grafana.db
+
+      # Anonymous access (optional - for public dashboards)
+      # - GF_AUTH_ANONYMOUS_ENABLED=true
+      # - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+
+      # Disable telemetry
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./provisioning:/etc/grafana/provisioning:ro
+      - ./llm_dashboard.json:/etc/grafana/provisioning/dashboards/llm_dashboard.json:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  # ============================================================================
+  # Fragrance AI API (optional - uncomment to run in Docker)
+  # ============================================================================
+  # app:
+  #   build:
+  #     context: ..
+  #     dockerfile: Dockerfile
+  #   container_name: fragrance-ai-api
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - ENVIRONMENT=production
+  #     - LOG_LEVEL=INFO
+  #   command: >
+  #     uvicorn app.main:app
+  #     --host 0.0.0.0
+  #     --port 8000
+  #     --workers 4
+  #   depends_on:
+  #     - prometheus
+  #   restart: unless-stopped
+  #   networks:
+  #     - monitoring
+
+  # ============================================================================
+  # Alertmanager (optional - for alerting)
+  # ============================================================================
+  # alertmanager:
+  #   image: prom/alertmanager:latest
+  #   container_name: fragrance-ai-alertmanager
+  #   ports:
+  #     - "9093:9093"
+  #   volumes:
+  #     - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+  #     - alertmanager-data:/alertmanager
+  #   command:
+  #     - '--config.file=/etc/alertmanager/alertmanager.yml'
+  #     - '--storage.path=/alertmanager'
+  #   restart: unless-stopped
+  #   networks:
+  #     - monitoring
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  monitoring:
+    driver: bridge
+    name: fragrance-ai-monitoring
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  prometheus-data:
+    name: fragrance-ai-prometheus-data
+  grafana-data:
+    name: fragrance-ai-grafana-data
+  # alertmanager-data:
+  #   name: fragrance-ai-alertmanager-data

@@ -264,6 +264,15 @@ class PPOTrainer:
         if len(self.buffer) == 0:
             return {}
 
+        # PPO requires sufficient samples for stable updates
+        # Return buffering status if buffer is too small
+        if len(self.buffer) < batch_size:
+            return {
+                'status': 'buffering',
+                'buffer_size': len(self.buffer),
+                'target_size': batch_size
+            }
+
         # Get data from buffer
         data = self.buffer.get()
         states = data['states'].to(self.device)

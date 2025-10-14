@@ -219,16 +219,16 @@ class CreativeBrief(BaseModel):
     """User requirements and creative direction"""
 
     brief_id: Optional[str] = None
-    user_id: str
+    user_id: str = Field(default="test_user")  # Default for backward compatibility
 
     # Creative direction
-    theme: str = Field(..., min_length=1, max_length=200)
+    theme: str = Field(default="Custom Fragrance", min_length=1, max_length=200)  # Default for backward compatibility
     story: Optional[str] = Field(None, max_length=1000)
     mood_keywords: List[str] = Field(default_factory=list, max_items=10)
 
     # Technical requirements
-    target_category: ProductCategory
-    concentration_type: ConcentrationType
+    target_category: ProductCategory = Field(default=ProductCategory.EAU_DE_PARFUM)  # Default for backward compatibility
+    concentration_type: ConcentrationType = Field(default=ConcentrationType.EAU_DE_PARFUM)  # Default for backward compatibility
 
     # Desired characteristics (0-1 scale)
     desired_intensity: float = Field(0.5, ge=0.0, le=1.0)
@@ -239,6 +239,16 @@ class CreativeBrief(BaseModel):
     warmth: float = Field(0.5, ge=0.0, le=1.0)  # 0=cool, 1=warm
     sweetness: float = Field(0.5, ge=0.0, le=1.0)
     freshness: float = Field(0.5, ge=0.0, le=1.0)
+
+    # Backward compatibility fields (deprecated, use theme and desired_intensity instead)
+    style: Optional[str] = None  # Maps to theme
+    intensity: Optional[float] = Field(None, ge=0.0, le=1.0)  # Maps to desired_intensity
+    notes_preference: Optional[Dict[str, float]] = None  # Preference weights for note categories
+    product_category: Optional[str] = None  # Old field name for target_category
+    target_profile: Optional[str] = None  # Additional profiling info
+    mood: Optional[List[str]] = None  # Maps to mood_keywords
+    season: Optional[List[str]] = None  # Seasonal preferences
+    constraints: Optional[Dict[str, Any]] = None  # Additional constraints
 
     # Constraints
     max_cost_per_kg: Optional[float] = Field(None, ge=0.0)

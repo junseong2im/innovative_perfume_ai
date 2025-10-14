@@ -1,0 +1,750 @@
+{
+  "dashboard": {
+    "title": "Fragrance AI - 운영 대시보드",
+    "tags": ["fragrance-ai", "operations", "llm", "rl", "api"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "LLM Brief 생성 건수 (모드별)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(llm_brief_total{status=\"success\"}[5m])",
+            "legendFormat": "{{mode}} (성공)",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(llm_brief_total{status=\"failure\"}[5m])",
+            "legendFormat": "{{mode}} (실패)",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {"mode": "palette-classic"}
+          }
+        },
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "list", "placement": "bottom"}
+        }
+      },
+      {
+        "id": 2,
+        "title": "LLM Brief 수정 건수 (타입별)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(llm_brief_repairs_total[5m])",
+            "legendFormat": "{{mode}}: {{repair_type}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "LLM Brief 지연 (p95)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(llm_brief_latency_seconds_bucket[5m]))",
+            "legendFormat": "{{mode}} (p95)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 2.5, "color": "yellow"},
+                {"value": 4.5, "color": "red"}
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "fast (p95)"},
+              "properties": [
+                {"id": "thresholds", "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": null, "color": "green"},
+                    {"value": 2.5, "color": "red"}
+                  ]
+                }}
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "balanced (p95)"},
+              "properties": [
+                {"id": "thresholds", "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": null, "color": "green"},
+                    {"value": 3.2, "color": "red"}
+                  ]
+                }}
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "creative (p95)"},
+              "properties": [
+                {"id": "thresholds", "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": null, "color": "green"},
+                    {"value": 4.5, "color": "red"}
+                  ]
+                }}
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 4,
+        "title": "LLM Brief 지연 (p99)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, rate(llm_brief_latency_seconds_bucket[5m]))",
+            "legendFormat": "{{mode}} (p99)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "RL Loss (정책/가치/총합)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "rl_loss{loss_type=\"policy_loss\"}",
+            "legendFormat": "정책 손실",
+            "refId": "A"
+          },
+          {
+            "expr": "rl_loss{loss_type=\"value_loss\"}",
+            "legendFormat": "가치 손실",
+            "refId": "B"
+          },
+          {
+            "expr": "rl_loss{loss_type=\"total_loss\"}",
+            "legendFormat": "총 손실",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "RL 평균 보상",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "rl_reward",
+            "legendFormat": "{{algorithm}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "palette-classic"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 10, "color": "yellow"},
+                {"value": 20, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "RL 엔트로피",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "rl_entropy",
+            "legendFormat": "{{algorithm}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "RL Clip Fraction (PPO)",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 24},
+        "targets": [
+          {
+            "expr": "rl_clip_fraction{algorithm=\"ppo\"}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 0.3, "color": "yellow"},
+                {"value": 0.5, "color": "red"}
+              ]
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 9,
+        "title": "RL KL Divergence",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 24},
+        "targets": [
+          {
+            "expr": "rl_kl_divergence",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 4,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 0.03, "color": "red"}
+              ]
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 10,
+        "title": "API 요청 건수 (엔드포인트별)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+        "targets": [
+          {
+            "expr": "rate(api_request_total{status=\"2xx\"}[5m])",
+            "legendFormat": "{{endpoint}} (성공)",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(api_request_total{status=~\"4xx|5xx\"}[5m])",
+            "legendFormat": "{{endpoint}} (에러)",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "API p95 지연 (엔드포인트별)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(api_request_latency_seconds_bucket[5m]))",
+            "legendFormat": "{{endpoint}} (p95)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 2.5, "color": "yellow"},
+                {"value": 5.0, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 12,
+        "title": "API p99 지연 (엔드포인트별)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, rate(api_request_latency_seconds_bucket[5m]))",
+            "legendFormat": "{{endpoint}} (p99)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 13,
+        "title": "LLM 모델별 성공/실패",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 48},
+        "targets": [
+          {
+            "expr": "rate(llm_model_status_total{status=\"ok\"}[5m])",
+            "legendFormat": "{{model}} (성공)",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(llm_model_status_total{status=\"error\"}[5m])",
+            "legendFormat": "{{model}} (에러)",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(llm_model_status_total{status=\"fix\"}[5m])",
+            "legendFormat": "mistral (수정)",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 14,
+        "title": "서킷브레이커 폴백 건수",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 48},
+        "targets": [
+          {
+            "expr": "rate(circuit_breaker_fallback_total[5m])",
+            "legendFormat": "{{service}}: {{fallback_type}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 15,
+        "title": "서킷브레이커 다운그레이드",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 56},
+        "targets": [
+          {
+            "expr": "rate(circuit_breaker_downgrade_total[5m])",
+            "legendFormat": "{{service}}: {{from_tier}}→{{to_tier}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 16,
+        "title": "캐시 히트/미스 & TTL 만료",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 56},
+        "targets": [
+          {
+            "expr": "rate(llm_cache_hits_total[5m])",
+            "legendFormat": "Cache Hit",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(llm_cache_misses_total[5m])",
+            "legendFormat": "Cache Miss",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(cache_ttl_expired_total[5m])",
+            "legendFormat": "TTL Expired: {{cache_type}}",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 17,
+        "title": "시스템 요약",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 64},
+        "targets": [
+          {
+            "expr": "sum by (mode) (rate(llm_brief_total[5m]))",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum by (mode, le) (rate(llm_brief_latency_seconds_bucket[5m])))",
+            "format": "table",
+            "instant": true,
+            "refId": "B"
+          },
+          {
+            "expr": "sum by (endpoint) (rate(api_request_total[5m]))",
+            "format": "table",
+            "instant": true,
+            "refId": "C"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "merge"
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "sortBy": [
+            {
+              "displayName": "Value #A",
+              "desc": true
+            }
+          ]
+        }
+      },
+      {
+        "id": 18,
+        "title": "Schema Fix Count (Mistral 수정 건수)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 72},
+        "targets": [
+          {
+            "expr": "rate(llm_schema_fix_count_total[5m])",
+            "legendFormat": "{{mode}}: {{original_model}}→Mistral",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {"mode": "palette-classic"}
+          }
+        },
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "list", "placement": "bottom"}
+        }
+      },
+      {
+        "id": 19,
+        "title": "Creative Hints 길이 (과도/부족 검출)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 72},
+        "targets": [
+          {
+            "expr": "llm_creative_hints_len",
+            "legendFormat": "{{mode}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "palette-classic"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "yellow"},
+                {"value": 50, "color": "green"},
+                {"value": 500, "color": "yellow"},
+                {"value": 1000, "color": "red"}
+              ]
+            }
+          }
+        },
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "list", "placement": "bottom"}
+        }
+      },
+      {
+        "id": 20,
+        "title": "RL Reward 이동평균 (10/50/100)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 80},
+        "targets": [
+          {
+            "expr": "rl_reward_ma{window=\"10\"}",
+            "legendFormat": "{{algorithm}} (MA-10)",
+            "refId": "A"
+          },
+          {
+            "expr": "rl_reward_ma{window=\"50\"}",
+            "legendFormat": "{{algorithm}} (MA-50)",
+            "refId": "B"
+          },
+          {
+            "expr": "rl_reward_ma{window=\"100\"}",
+            "legendFormat": "{{algorithm}} (MA-100)",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "palette-classic"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 10, "color": "yellow"},
+                {"value": 20, "color": "green"}
+              ]
+            }
+          }
+        },
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "list", "placement": "bottom"}
+        }
+      },
+      {
+        "id": 21,
+        "title": "RL 옵션 생성 실패율 (0% 유지 목표)",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 80},
+        "targets": [
+          {
+            "expr": "rl_option_generation_failure_rate",
+            "legendFormat": "{{algorithm}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "decimals": 2,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 0.01, "color": "yellow"},
+                {"value": 0.05, "color": "red"}
+              ]
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value",
+          "textMode": "value_and_name"
+        }
+      },
+      {
+        "id": 22,
+        "title": "캐시 히트율 (목표: ≥60% for Fast/Balanced)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 88},
+        "targets": [
+          {
+            "expr": "cache_hit_rate{mode=\"fast\", cache_type=\"llm\"}",
+            "legendFormat": "Fast",
+            "refId": "A"
+          },
+          {
+            "expr": "cache_hit_rate{mode=\"balanced\", cache_type=\"llm\"}",
+            "legendFormat": "Balanced",
+            "refId": "B"
+          },
+          {
+            "expr": "cache_hit_rate{mode=\"creative\", cache_type=\"llm\"}",
+            "legendFormat": "Creative (no target)",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1,
+            "color": {"mode": "palette-classic"}
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Fast"},
+              "properties": [
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      {"value": null, "color": "red"},
+                      {"value": 0.60, "color": "green"}
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "Balanced"},
+              "properties": [
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      {"value": null, "color": "red"},
+                      {"value": 0.60, "color": "green"}
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "list", "placement": "bottom"}
+        }
+      },
+      {
+        "id": 23,
+        "title": "배포 게이트 상태 (Go/No-Go)",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 88},
+        "targets": [
+          {
+            "expr": "(\n  (sum(rate(llm_schema_fix_count_total[30m])) / sum(rate(llm_brief_total[30m])) <= 0) and\n  (sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) < 0.005) and\n  (histogram_quantile(0.95, rate(llm_brief_latency_seconds_bucket{mode=\"fast\"}[5m])) < 2.5) and\n  (histogram_quantile(0.95, rate(llm_brief_latency_seconds_bucket{mode=\"balanced\"}[5m])) < 3.2) and\n  (histogram_quantile(0.95, rate(llm_brief_latency_seconds_bucket{mode=\"creative\"}[5m])) < 4.5)\n)",
+            "legendFormat": "Gate Status",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "mappings": [
+              {"type": "value", "value": 0, "text": "NO-GO 🔴"},
+              {"type": "value", "value": 1, "text": "GO 🟢"},
+              {"type": "range", "from": 0, "to": 0.99, "text": "NO-GO 🔴"},
+              {"type": "range", "from": 1, "to": 10, "text": "GO 🟢"}
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            }
+          }
+        },
+        "options": {
+          "graphMode": "none",
+          "colorMode": "background",
+          "textMode": "value"
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "datasource",
+          "type": "datasource",
+          "query": "prometheus",
+          "current": {
+            "text": "Prometheus",
+            "value": "Prometheus"
+          }
+        },
+        {
+          "name": "mode",
+          "type": "query",
+          "query": "label_values(llm_brief_total, mode)",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "multi": true,
+          "includeAll": true
+        },
+        {
+          "name": "endpoint",
+          "type": "query",
+          "query": "label_values(api_request_total, endpoint)",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "multi": true,
+          "includeAll": true
+        }
+      ]
+    },
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    }
+  }
+}

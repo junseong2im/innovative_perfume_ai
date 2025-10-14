@@ -1,6 +1,8 @@
 # fragrance_ai/utils/units.py
 
-from typing import Dict, Optional, Union
+from __future__ import annotations
+
+from typing import Dict, Optional, Union, Tuple
 from dataclasses import dataclass
 from enum import Enum
 

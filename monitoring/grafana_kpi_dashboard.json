@@ -1,0 +1,565 @@
+{
+  "dashboard": {
+    "title": "Fragrance AI - Quality KPI Dashboard",
+    "description": "품질 KPI 모니터링 대시보드: 스키마 준수율, API 레이턴시, RL 학습 효과",
+    "tags": ["fragrance-ai", "kpi", "quality"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "KPI 1: Schema Compliance Rate (스키마 준수율)",
+        "type": "stat",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 24,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "schema_compliance_rate{mode=\"fast\"}",
+            "legendFormat": "Fast Mode",
+            "refId": "A"
+          },
+          {
+            "expr": "schema_compliance_rate{mode=\"balanced\"}",
+            "legendFormat": "Balanced Mode",
+            "refId": "B"
+          },
+          {
+            "expr": "schema_compliance_rate{mode=\"creative\"}",
+            "legendFormat": "Creative Mode",
+            "refId": "C"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "orientation": "horizontal",
+          "textMode": "value_and_name",
+          "colorMode": "background",
+          "graphMode": "none",
+          "justifyMode": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": 0,
+                  "color": "red"
+                },
+                {
+                  "value": 0.95,
+                  "color": "yellow"
+                },
+                {
+                  "value": 0.99,
+                  "color": "green"
+                }
+              ]
+            }
+          }
+        },
+        "description": "Target: 100% compliance for all modes"
+      },
+      {
+        "id": 2,
+        "title": "KPI 2: API p95 Latency by Mode (API p95 레이턴시)",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 4,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(api_request_latency_seconds_bucket{mode=\"fast\"}[5m])) by (le))",
+            "legendFormat": "Fast (target: ≤2.5s)",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(api_request_latency_seconds_bucket{mode=\"balanced\"}[5m])) by (le))",
+            "legendFormat": "Balanced (target: ≤3.2s)",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(api_request_latency_seconds_bucket{mode=\"creative\"}[5m])) by (le))",
+            "legendFormat": "Creative (target: ≤4.5s)",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Latency (seconds)"
+          }
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "description": "p95 latency targets: Fast ≤2.5s, Balanced ≤3.2s, Creative ≤4.5s",
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [2.5],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "avg"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "Fast mode p95 latency alert",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 3,
+        "title": "API Latency Distribution (레이턴시 분포)",
+        "type": "heatmap",
+        "gridPos": {
+          "x": 12,
+          "y": 4,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(api_request_latency_seconds_bucket[5m])) by (le, mode)",
+            "legendFormat": "{{mode}}",
+            "refId": "A"
+          }
+        ],
+        "dataFormat": "tsbuckets",
+        "yAxis": {
+          "format": "s"
+        },
+        "cards": {
+          "cardPadding": 2
+        },
+        "color": {
+          "mode": "spectrum",
+          "colorScheme": "interpolateSpectral",
+          "exponent": 0.5
+        }
+      },
+      {
+        "id": 4,
+        "title": "KPI 3: RL Learning - Episode Reward (에피소드 보상)",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 12,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(rl_episode_reward_sum{algorithm=\"PPO\"}[5m]) / rate(rl_episode_reward_count{algorithm=\"PPO\"}[5m])",
+            "legendFormat": "PPO - Average Reward",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(rl_episode_reward_sum{algorithm=\"REINFORCE\"}[5m]) / rate(rl_episode_reward_count{algorithm=\"REINFORCE\"}[5m])",
+            "legendFormat": "REINFORCE - Average Reward",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "short",
+            "label": "Average Reward"
+          }
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "description": "RL episode average reward over time. Expected: increasing trend after 50 steps"
+      },
+      {
+        "id": 5,
+        "title": "RL Policy Entropy (정책 엔트로피)",
+        "type": "graph",
+        "gridPos": {
+          "x": 12,
+          "y": 12,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rl_policy_entropy{algorithm=\"PPO\"}",
+            "legendFormat": "PPO Entropy",
+            "refId": "A"
+          },
+          {
+            "expr": "rl_policy_entropy{algorithm=\"REINFORCE\"}",
+            "legendFormat": "REINFORCE Entropy",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "short",
+            "label": "Entropy",
+            "min": 0
+          }
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "description": "Policy entropy (exploration measure). Expected: decreasing over time as policy converges"
+      },
+      {
+        "id": 6,
+        "title": "RL Preferred Action Probability (선호 액션 확률)",
+        "type": "gauge",
+        "gridPos": {
+          "x": 0,
+          "y": 20,
+          "w": 12,
+          "h": 6
+        },
+        "targets": [
+          {
+            "expr": "rl_preferred_action_probability{algorithm=\"PPO\"}",
+            "legendFormat": "PPO",
+            "refId": "A"
+          },
+          {
+            "expr": "rl_preferred_action_probability{algorithm=\"REINFORCE\"}",
+            "legendFormat": "REINFORCE",
+            "refId": "B"
+          }
+        ],
+        "options": {
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": 0,
+                  "color": "red"
+                },
+                {
+                  "value": 0.3,
+                  "color": "yellow"
+                },
+                {
+                  "value": 0.5,
+                  "color": "green"
+                }
+              ]
+            }
+          }
+        },
+        "description": "Probability of selecting the most preferred action. Target: > 50% after 50 steps"
+      },
+      {
+        "id": 7,
+        "title": "RL Learning Steps (학습 스텝)",
+        "type": "stat",
+        "gridPos": {
+          "x": 12,
+          "y": 20,
+          "w": 12,
+          "h": 6
+        },
+        "targets": [
+          {
+            "expr": "rl_learning_steps_total{algorithm=\"PPO\"}",
+            "legendFormat": "PPO Steps",
+            "refId": "A"
+          },
+          {
+            "expr": "rl_learning_steps_total{algorithm=\"REINFORCE\"}",
+            "legendFormat": "REINFORCE Steps",
+            "refId": "B"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "orientation": "horizontal",
+          "textMode": "value_and_name",
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": 0,
+                  "color": "blue"
+                },
+                {
+                  "value": 50,
+                  "color": "green"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Schema Validation Breakdown (스키마 검증 상세)",
+        "type": "piechart",
+        "gridPos": {
+          "x": 0,
+          "y": 26,
+          "w": 8,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum by (mode, status) (schema_validation_total)",
+            "legendFormat": "{{mode}} - {{status}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "pieType": "pie",
+          "displayLabels": ["name", "percent"],
+          "legend": {
+            "displayMode": "table",
+            "placement": "right"
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "API Request Rate by Mode (모드별 요청 속도)",
+        "type": "graph",
+        "gridPos": {
+          "x": 8,
+          "y": 26,
+          "w": 8,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(api_request_latency_seconds_count{mode=\"fast\"}[5m]))",
+            "legendFormat": "Fast Mode",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(api_request_latency_seconds_count{mode=\"balanced\"}[5m]))",
+            "legendFormat": "Balanced Mode",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(rate(api_request_latency_seconds_count{mode=\"creative\"}[5m]))",
+            "legendFormat": "Creative Mode",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "reqps",
+            "label": "Requests per second"
+          }
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "stack": true
+      },
+      {
+        "id": 10,
+        "title": "KPI Compliance Summary (KPI 준수 요약)",
+        "type": "table",
+        "gridPos": {
+          "x": 16,
+          "y": 26,
+          "w": 8,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "schema_compliance_rate",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(api_request_latency_seconds_bucket[5m])) by (le, mode))",
+            "format": "table",
+            "instant": true,
+            "refId": "B"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true
+              },
+              "indexByName": {
+                "mode": 0,
+                "Value": 1
+              }
+            }
+          }
+        ],
+        "options": {
+          "showHeader": true
+        },
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value"
+              },
+              "properties": [
+                {
+                  "id": "custom.displayMode",
+                  "value": "color-background"
+                },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "red"
+                      },
+                      {
+                        "value": 0.95,
+                        "color": "yellow"
+                      },
+                      {
+                        "value": 0.99,
+                        "color": "green"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "allValue": null,
+          "current": {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          },
+          "datasource": "Prometheus",
+          "definition": "label_values(api_request_latency_seconds_bucket, mode)",
+          "hide": 0,
+          "includeAll": true,
+          "label": "Mode",
+          "multi": true,
+          "name": "mode",
+          "options": [],
+          "query": "label_values(api_request_latency_seconds_bucket, mode)",
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 0,
+          "tagValuesQuery": "",
+          "tags": [],
+          "tagsQuery": "",
+          "type": "query",
+          "useTags": false
+        },
+        {
+          "allValue": null,
+          "current": {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          },
+          "datasource": "Prometheus",
+          "definition": "label_values(rl_episode_reward_bucket, algorithm)",
+          "hide": 0,
+          "includeAll": true,
+          "label": "Algorithm",
+          "multi": true,
+          "name": "algorithm",
+          "options": [],
+          "query": "label_values(rl_episode_reward_bucket, algorithm)",
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 0,
+          "type": "query"
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "ALERTS{alertname=\"FastModeLatencyHigh\"}",
+          "iconColor": "red",
+          "name": "Latency Alerts",
+          "step": "60s",
+          "tagKeys": "mode",
+          "textFormat": "{{alertname}}: {{mode}}",
+          "titleFormat": "Alert"
+        }
+      ]
+    },
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+    }
+  }
+}

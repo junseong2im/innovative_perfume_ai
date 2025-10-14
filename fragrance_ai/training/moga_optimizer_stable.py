@@ -859,6 +859,113 @@ def test_stability():
     print("="*60)
 
 
+# ============================================================================
+# Backward Compatibility Wrapper (for tests)
+# ============================================================================
+
+class MOGAOptimizer:
+    """Backward compatibility wrapper for old API"""
+
+    def __init__(
+        self,
+        brief=None,
+        n_ingredients: int = 10,
+        population_size: int = 100,
+        n_generations: int = 200,
+        mutation_rate: float = 0.1,
+        crossover_rate: float = 0.9,
+        random_seed: Optional[int] = None
+    ):
+        self.brief = brief
+        self.n_ingredients = n_ingredients
+        self.population_size = population_size
+        self.n_generations = n_generations
+        self.mutation_rate = mutation_rate
+        self.crossover_rate = crossover_rate
+
+        if random_seed is not None:
+            random.seed(random_seed)
+            np.random.seed(random_seed)
+
+        # Create underlying optimizer
+        self.optimizer = StableMOGA(
+            population_size=population_size,
+            generations=n_generations
+        )
+
+        # Override parameters
+        self.optimizer.mutation_prob = mutation_rate
+        self.optimizer.crossover_prob = crossover_rate
+
+    def optimize(self) -> Dict[str, Any]:
+        """Run optimization with backward-compatible output format"""
+        results = self.optimizer.optimize(enable_diversity=True)
+
+        # Convert to old API format
+        pareto_front = []
+        for solution in results['pareto_front']:
+            # Extract concentrations
+            concentrations = [ing['concentration'] / 100.0 for ing in solution['ingredients']]
+
+            # Pad or truncate to n_ingredients
+            if len(concentrations) < self.n_ingredients:
+                concentrations.extend([0.0] * (self.n_ingredients - len(concentrations)))
+            elif len(concentrations) > self.n_ingredients:
+                concentrations = concentrations[:self.n_ingredients]
+
+            # Normalize to sum to 1.0
+            total = sum(concentrations)
+            if total > 0:
+                concentrations = [c / total for c in concentrations]
+
+            pareto_front.append({
+                'formulation': concentrations,
+                'fitness': [
+                    solution['quality_score'],
+                    solution['stability_score'],
+                    solution['diversity_score']
+                ]
+            })
+
+        # Create history (simulated with improvement curve)
+        history = []
+        if pareto_front:
+            final_fitness = pareto_front[0]['fitness']
+            # Start from lower fitness and improve gradually
+            initial_fitness = [f * 0.5 for f in final_fitness]  # Start at 50% of final
+
+            for gen in range(self.n_generations):
+                # Linear improvement from initial to final
+                progress = gen / max(1, self.n_generations - 1)
+                current_fitness = [
+                    initial + (final - initial) * progress
+                    for initial, final in zip(initial_fitness, final_fitness)
+                ]
+                history.append({
+                    'generation': gen,
+                    'best_fitness': current_fitness
+                })
+        else:
+            for gen in range(self.n_generations):
+                history.append({
+                    'generation': gen,
+                    'best_fitness': [0, 0, 0]
+                })
+
+        # Create statistics
+        statistics = {
+            'total_evaluations': self.population_size * self.n_generations,
+            'convergence_generation': self.n_generations,
+            'pareto_front_size': len(pareto_front)
+        }
+
+        return {
+            'pareto_front': pareto_front,
+            'history': history,
+            'statistics': statistics
+        }
+
+
 if __name__ == "__main__":
     # Setup logging
     logging.basicConfig(

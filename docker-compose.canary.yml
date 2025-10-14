@@ -1,0 +1,394 @@
+# ============================================================================
+# Canary Deployment Docker Compose Configuration
+# Fragrance AI - Production + Canary Services for Progressive Rollout
+# ============================================================================
+#
+# This configuration extends docker-compose.production.yml with canary services
+# for safe progressive deployment with 1% → 5% → 25% → 100% traffic rollout.
+#
+# Usage:
+#   # Start canary deployment infrastructure:
+#   docker-compose -f docker-compose.production.yml -f docker-compose.canary.yml up -d
+#
+#   # Run canary deployment:
+#   python scripts/canary_deployment.py --version v0.2.0
+#
+#   # Update traffic weights manually:
+#   ./scripts/update_nginx_weights.sh 5  # 5% canary traffic
+#
+#   # View canary logs:
+#   docker-compose -f docker-compose.canary.yml logs -f app-canary
+#
+#   # Stop canary services:
+#   docker-compose -f docker-compose.canary.yml down
+#
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # FastAPI Application - Canary Version
+  # ==========================================================================
+  app-canary:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.app
+      args:
+        PYTHON_VERSION: "3.11"
+        BUILD_DATE: "${BUILD_DATE:-}"
+        VCS_REF: "${VCS_REF:-}"
+        VERSION: "${CANARY_VERSION:-latest}"
+    image: fragrance-ai-app:${CANARY_VERSION:-canary}
+    container_name: fragrance-ai-app-canary
+    environment:
+      # Application
+      - APP_ENV=production
+      - VERSION=${CANARY_VERSION:-canary}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - WORKERS=${APP_WORKERS:-4}
+      - DEPLOYMENT_TYPE=canary
+
+      # Database
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-fragrance_user}:${POSTGRES_PASSWORD:-changeme_in_production}@postgres:5432/${POSTGRES_DB:-fragrance_ai}
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-20}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-10}
+
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+      - CACHE_TTL=${CACHE_TTL:-3600}
+
+      # Monitoring (with canary labels)
+      - PROMETHEUS_ENABLED=true
+      - PROMETHEUS_PORT=9090
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=production-canary
+
+      # Security
+      - SECRET_KEY=${SECRET_KEY:-changeme_in_production}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
+
+      # LLM Ensemble (ENABLED for canary)
+      - USE_LLM_ENSEMBLE=${USE_LLM_ENSEMBLE:-true}
+      - LLM_ENSEMBLE_MODELS=gpt-3.5-turbo,claude-3-haiku,gemini-pro
+      - LLM_ENSEMBLE_VOTING=weighted
+    volumes:
+      - ./data:/app/data:ro
+      - ./configs:/app/configs:ro
+      - app-canary-logs:/app/logs
+    ports:
+      - "${CANARY_API_PORT:-8001}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - fragrance-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    labels:
+      - "com.fragrance-ai.deployment=canary"
+      - "com.fragrance-ai.version=${CANARY_VERSION:-canary}"
+
+  # ==========================================================================
+  # LLM Inference Worker - Canary Version (Optional)
+  # ==========================================================================
+  worker-llm-canary:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker-llm
+      args:
+        PYTHON_VERSION: "3.11"
+        BUILD_DATE: "${BUILD_DATE:-}"
+        VCS_REF: "${VCS_REF:-}"
+        VERSION: "${CANARY_VERSION:-latest}"
+    image: fragrance-ai-worker-llm:${CANARY_VERSION:-canary}
+    environment:
+      # Worker Settings
+      - APP_ENV=production
+      - WORKER_TYPE=llm
+      - WORKER_NAME=${HOSTNAME:-worker-llm-canary}
+      - WORKER_CONCURRENCY=${LLM_WORKER_CONCURRENCY:-2}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DEPLOYMENT_TYPE=canary
+
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+
+      # Model Cache
+      - HF_HOME=/app/cache
+      - TRANSFORMERS_CACHE=/app/cache
+      - TORCH_HOME=/app/cache
+      - HF_DATASETS_CACHE=/app/cache/datasets
+
+      # LLM Settings
+      - USE_GPU=${USE_GPU:-false}
+      - MAX_BATCH_SIZE=${LLM_MAX_BATCH_SIZE:-8}
+      - MAX_SEQUENCE_LENGTH=${LLM_MAX_SEQ_LENGTH:-512}
+      - MODEL_CACHE_SIZE=${LLM_CACHE_SIZE:-1000}
+
+      # LLM Ensemble (ENABLED for canary workers)
+      - USE_LLM_ENSEMBLE=true
+
+      # Performance
+      - OMP_NUM_THREADS=4
+      - MKL_NUM_THREADS=4
+    volumes:
+      - ./data:/app/data:ro
+      - ./configs:/app/configs:ro
+      - llm-cache:/app/cache
+      - llm-models:/app/models
+      - worker-llm-canary-logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - fragrance-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'celery.*worker' || exit 1"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 180s
+    deploy:
+      replicas: ${LLM_WORKER_CANARY_REPLICAS:-1}
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 180s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    labels:
+      - "com.fragrance-ai.deployment=canary"
+      - "com.fragrance-ai.worker=llm"
+      - "com.fragrance-ai.version=${CANARY_VERSION:-canary}"
+    profiles:
+      - canary-workers
+
+  # ==========================================================================
+  # RL Training Worker - Canary Version (Optional)
+  # ==========================================================================
+  worker-rl-canary:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker-rl
+      args:
+        PYTHON_VERSION: "3.11"
+        BUILD_DATE: "${BUILD_DATE:-}"
+        VCS_REF: "${VCS_REF:-}"
+        VERSION: "${CANARY_VERSION:-latest}"
+    image: fragrance-ai-worker-rl:${CANARY_VERSION:-canary}
+    environment:
+      # Worker Settings
+      - APP_ENV=production
+      - WORKER_TYPE=rl
+      - WORKER_NAME=${HOSTNAME:-worker-rl-canary}
+      - WORKER_CONCURRENCY=${RL_WORKER_CONCURRENCY:-1}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DEPLOYMENT_TYPE=canary
+
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+
+      # RL Training
+      - CHECKPOINT_DIR=/app/checkpoints/canary
+      - TENSORBOARD_DIR=/app/tensorboard/canary
+      - USE_GPU=${USE_GPU:-false}
+      - TRAINING_BATCH_SIZE=${RL_BATCH_SIZE:-64}
+      - CHECKPOINT_INTERVAL=${RL_CHECKPOINT_INTERVAL:-100}
+
+      # Performance
+      - OMP_NUM_THREADS=4
+      - MKL_NUM_THREADS=4
+    volumes:
+      - ./data:/app/data
+      - ./configs:/app/configs:ro
+      - rl-checkpoints:/app/checkpoints
+      - rl-tensorboard:/app/tensorboard
+      - worker-rl-canary-logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - fragrance-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'celery.*worker' || exit 1"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 180s
+    deploy:
+      replicas: ${RL_WORKER_CANARY_REPLICAS:-0}
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 180s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    labels:
+      - "com.fragrance-ai.deployment=canary"
+      - "com.fragrance-ai.worker=rl"
+      - "com.fragrance-ai.version=${CANARY_VERSION:-canary}"
+    profiles:
+      - canary-workers
+
+  # ==========================================================================
+  # NGINX Load Balancer - Canary Enabled
+  # ==========================================================================
+  nginx:
+    volumes:
+      # Override with canary-enabled configuration
+      - ./nginx/nginx.canary.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx-logs:/var/log/nginx
+    depends_on:
+      - app
+      - app-canary
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+      - "${NGINX_MONITOR_PORT:-8080}:8080"
+
+# ============================================================================
+# Networks (reuse from production)
+# ============================================================================
+networks:
+  fragrance-network:
+    external: true
+    name: fragrance-ai-production
+
+# ============================================================================
+# Additional Volumes for Canary Services
+# ============================================================================
+volumes:
+  app-canary-logs:
+    name: fragrance-ai-app-canary-logs
+    driver: local
+  worker-llm-canary-logs:
+    name: fragrance-ai-worker-llm-canary-logs
+    driver: local
+  worker-rl-canary-logs:
+    name: fragrance-ai-worker-rl-canary-logs
+    driver: local
+  nginx-logs:
+    name: fragrance-ai-nginx-logs
+    driver: local
+
+# ============================================================================
+# Canary Deployment Notes
+# ============================================================================
+#
+# Environment Variables (.env file):
+#   - CANARY_VERSION: Canary version tag (REQUIRED, e.g., v0.2.0)
+#   - CANARY_API_PORT: Canary API port (default: 8001)
+#   - USE_LLM_ENSEMBLE: Enable LLM ensemble for canary (default: true)
+#   - LLM_WORKER_CANARY_REPLICAS: Number of canary LLM workers (default: 1)
+#   - RL_WORKER_CANARY_REPLICAS: Number of canary RL workers (default: 0)
+#
+# Deployment Process:
+#   1. Set CANARY_VERSION in .env file
+#   2. Start canary infrastructure:
+#      docker-compose -f docker-compose.production.yml -f docker-compose.canary.yml up -d app-canary
+#
+#   3. Run automated canary deployment:
+#      python scripts/canary_deployment.py --version ${CANARY_VERSION}
+#
+#   4. Monitor metrics during each stage (1%, 5%, 25%, 100%)
+#
+#   5. Automatic rollback on failure, or proceed to next stage on success
+#
+# Manual Traffic Control:
+#   # Set 5% canary traffic
+#   ./scripts/update_nginx_weights.sh 5
+#
+#   # Set 25% canary traffic
+#   ./scripts/update_nginx_weights.sh 25
+#
+#   # Promote to production (100% canary)
+#   ./scripts/update_nginx_weights.sh 100
+#
+# Monitoring:
+#   # Canary logs
+#   docker-compose -f docker-compose.canary.yml logs -f app-canary
+#
+#   # NGINX canary access logs
+#   docker exec fragrance-ai-nginx tail -f /var/log/nginx/canary.log
+#
+#   # Production vs Canary metrics comparison
+#   curl http://localhost:8000/metrics/production  # Production
+#   curl http://localhost:8001/metrics             # Canary
+#
+# Rollback:
+#   # Stop canary services
+#   docker-compose -f docker-compose.canary.yml stop app-canary
+#
+#   # Reset traffic to 100% production
+#   ./scripts/update_nginx_weights.sh 0
+#
+#   # Remove canary services
+#   docker-compose -f docker-compose.canary.yml down
+#
+# Promotion (Canary → Production):
+#   # After successful canary (100% traffic to canary)
+#   1. Tag canary version as stable production version
+#   2. Update production services to canary version
+#   3. Remove canary services
+#   4. Reset NGINX to standard configuration
+#
+# ============================================================================

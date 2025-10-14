@@ -1,0 +1,223 @@
+# Fragrance AI - Recommended Parameter Settings
+# MOGA and RLHF initial values optimized for production
+
+# =============================================================================
+# MOGA (Multi-Objective Genetic Algorithm) Parameters
+# =============================================================================
+
+moga:
+  # Population settings
+  population_size: 50
+  n_generations: 20
+
+  # Novelty weight (dynamic based on creative hints)
+  novelty_weight:
+    base: 0.1
+    per_hint_increment: 0.05
+    # Formula: novelty_weight = base + 0.05 * len(creative_hints)
+    # Example:
+    #   - 0 hints: 0.1
+    #   - 2 hints: 0.1 + 0.05*2 = 0.2
+    #   - 5 hints: 0.1 + 0.05*5 = 0.35
+    max: 0.5  # Cap at 0.5 to prevent over-exploration
+
+  # Mutation sigma (standard deviation)
+  mutation_sigma:
+    base: 0.12  # Default for balanced/fast modes
+    creative_bonus: 0.02  # Add 0.02 in creative mode
+    # Formula:
+    #   - Balanced/Fast mode: 0.12
+    #   - Creative mode: 0.12 + 0.02 = 0.14
+    min: 0.05
+    max: 0.20
+
+  # Crossover rate
+  crossover_rate: 0.8
+
+  # Elite preservation
+  elite_fraction: 0.1  # Keep top 10%
+
+  # Pareto front size
+  pareto_size: 10  # Return top 10 diverse solutions
+
+# =============================================================================
+# RLHF (Reinforcement Learning from Human Feedback) - PPO
+# =============================================================================
+
+rlhf:
+  ppo:
+    # Core PPO parameters
+    clip_eps: 0.2  # Clipping epsilon for policy loss
+
+    # Entropy coefficient (with cosine decay)
+    entropy_coef:
+      initial: 0.01
+      final: 0.001
+      decay_schedule: "cosine"
+      decay_steps: 10000
+      # Formula: entropy_coef(t) = final + 0.5 * (initial - final) * (1 + cos(π * t / decay_steps))
+
+    # Value function coefficient
+    value_coef: 0.5
+
+    # Gradient clipping
+    max_grad_norm: 0.5
+
+    # Learning rate
+    learning_rate: 3.0e-4
+
+    # Training batch settings
+    batch_size: 64
+    n_epochs: 10
+
+    # Advantage estimation
+    gae_lambda: 0.95
+    gamma: 0.99
+
+    # Rollout settings
+    n_steps: 2048  # Steps per rollout
+
+# =============================================================================
+# Reward Normalization
+# =============================================================================
+
+reward_normalization:
+  # Enable reward normalization
+  enabled: true
+
+  # Window size for moving statistics
+  window_size: 1000  # Last 1k steps
+
+  # Update mean and std online
+  update_mean_std: true
+
+  # Numerical stability
+  epsilon: 1.0e-8
+
+  # Clip normalized rewards
+  clip_range: 10.0  # Clip to [-10, 10]
+
+# =============================================================================
+# Mode-Specific Overrides
+# =============================================================================
+
+mode_overrides:
+  fast:
+    moga:
+      population_size: 30  # Smaller for speed
+      n_generations: 15
+      novelty_weight:
+        base: 0.08  # Less exploration
+      mutation_sigma:
+        base: 0.10  # Less variation
+
+    rlhf:
+      ppo:
+        batch_size: 32  # Smaller batches
+        n_steps: 1024  # Fewer steps per rollout
+
+  balanced:
+    # Use default values (no overrides)
+    moga: {}
+    rlhf: {}
+
+  creative:
+    moga:
+      population_size: 70  # Larger for more diversity
+      n_generations: 30
+      novelty_weight:
+        base: 0.15  # More exploration
+      mutation_sigma:
+        base: 0.14  # More variation (0.12 + 0.02)
+
+    rlhf:
+      ppo:
+        batch_size: 128  # Larger batches
+        n_steps: 4096  # More steps per rollout
+        entropy_coef:
+          initial: 0.015  # Start with more exploration
+
+# =============================================================================
+# Advanced Features (RL Advanced)
+# =============================================================================
+
+rl_advanced:
+  # Entropy Annealing
+  entropy_scheduler:
+    enabled: true
+    schedule_type: "cosine"  # linear, cosine, exponential
+    initial_entropy: 0.01
+    final_entropy: 0.001
+    decay_steps: 10000
+
+  # Reward Normalizer
+  reward_normalizer:
+    enabled: true
+    window_size: 1000
+    update_mean_std: true
+    epsilon: 1.0e-8
+    clip_range: 10.0
+
+  # Checkpoint Manager
+  checkpoint_manager:
+    enabled: true
+    save_interval: 100  # Save every 100 steps
+    max_checkpoints: 5  # Keep last 5 checkpoints
+
+    # Rollback conditions
+    rollback_on_kl_threshold: 0.03  # KL divergence threshold
+    rollback_on_loss_increase: 2.0  # Loss increase multiplier
+    rollback_on_reward_drop: 0.3  # Reward drop threshold
+
+# =============================================================================
+# Experiment Tracking
+# =============================================================================
+
+experiment:
+  # Logging
+  log_interval: 10  # Log every 10 steps
+
+  # Evaluation
+  eval_interval: 100  # Evaluate every 100 steps
+  eval_episodes: 5  # Number of evaluation episodes
+
+  # Checkpointing
+  checkpoint_interval: 500  # Save checkpoint every 500 steps
+
+  # Early stopping
+  early_stopping:
+    enabled: true
+    patience: 1000  # Stop if no improvement for 1000 steps
+    min_delta: 0.01  # Minimum improvement threshold
+
+# =============================================================================
+# Notes
+# =============================================================================
+
+# MOGA Novelty Weight:
+#   - Base value: 0.1 (10% weight on novelty)
+#   - Increments by 0.05 for each creative hint in the brief
+#   - Example: "I want something unique with floral and woody notes"
+#     → 2 hints (floral, woody) → novelty_weight = 0.1 + 0.05*2 = 0.2
+#   - This encourages exploration when user explicitly asks for creativity
+
+# MOGA Mutation Sigma:
+#   - Base value: 0.12 (12% standard deviation)
+#   - Creative mode: 0.14 (12% + 2% bonus)
+#   - Controls the magnitude of random mutations
+#   - Higher values = more exploration, lower values = more exploitation
+
+# PPO Clip Epsilon:
+#   - Standard value: 0.2
+#   - Prevents too large policy updates
+#   - Ensures stable learning
+
+# PPO Entropy Coefficient:
+#   - Starts at 0.01 (1% entropy regularization)
+#   - Decays to 0.001 using cosine schedule
+#   - Encourages exploration early, exploitation later
+
+# Reward Normalization:
+#   - Uses last 1000 steps for moving statistics
+#   - Stabilizes training across different reward scales
+#   - Essential for PPO convergence

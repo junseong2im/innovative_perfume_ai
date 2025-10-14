@@ -1,5 +1,88 @@
 # LLM Ensemble Configuration
 # 3-Model Pipeline: Qwen → Mistral → Llama
+# Environment-specific profiles: development, staging, production
+
+# =============================================================================
+# Environment Profiles
+# =============================================================================
+
+# Development Profile (Optimized for local development)
+development:
+  use_gpu: false
+  enable_quantization: false
+  max_parallel_requests: 1
+  batch_size: 1
+  qwen:
+    load_in_4bit: false
+    device_map: "cpu"
+    max_new_tokens: 256
+    timeout_s: 30
+  mistral:
+    enabled: false  # Disable to save memory in dev
+  llama:
+    enabled: false  # Disable to save memory in dev
+  cache:
+    enabled: true
+    max_size: 50
+    ttl_seconds: 1800
+  logging:
+    log_level: "DEBUG"
+    log_llm_events: true
+    log_validation_events: true
+
+# Staging Profile (Test with real hardware)
+staging:
+  use_gpu: true
+  enable_quantization: true
+  max_parallel_requests: 4
+  batch_size: 2
+  qwen:
+    load_in_4bit: true
+    device_map: "auto"
+    max_new_tokens: 512
+    timeout_s: 15
+  mistral:
+    enabled: true
+    load_in_4bit: true
+  llama:
+    enabled: true
+    load_in_4bit: true
+  cache:
+    enabled: true
+    max_size: 200
+    ttl_seconds: 3600
+  logging:
+    log_level: "INFO"
+    log_llm_events: true
+
+# Production Profile (High performance)
+production:
+  use_gpu: true
+  enable_quantization: false  # Full precision for best quality
+  max_parallel_requests: 16
+  batch_size: 4
+  qwen:
+    load_in_4bit: false
+    device_map: "auto"
+    max_new_tokens: 1024
+    timeout_s: 10
+  mistral:
+    enabled: true
+    load_in_4bit: false
+  llama:
+    enabled: true
+    load_in_4bit: false
+  cache:
+    enabled: true
+    max_size: 1000
+    ttl_seconds: 7200
+  logging:
+    log_level: "WARNING"
+    log_llm_events: false  # Reduce logging overhead
+
+# =============================================================================
+# Default Configuration (Base settings)
+# =============================================================================
 
 # Router settings for mode detection
 router:

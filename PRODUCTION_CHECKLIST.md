@@ -1,9 +1,39 @@
 # ✅ Production Deployment Checklist
 
 ## 🔐 Security
+
+### Secrets Management
 - [ ] Generate new SECRET_KEY (minimum 64 characters)
 - [ ] Generate new JWT_SECRET_KEY
 - [ ] Change all default passwords
+- [ ] Configure secrets manager (AWS Secrets Manager / KMS / HashiCorp Vault)
+- [ ] Validate all required secrets: `python -m fragrance_ai.security.secrets_manager --validate`
+- [ ] Ensure no secrets in git repository (check with `git log --all -S 'SECRET_KEY'`)
+- [ ] Set SECRETS_PROVIDER environment variable (env / aws_secrets_manager / aws_kms)
+
+### Model Security
+- [ ] Register all LLM models with SHA256 checksums
+  ```bash
+  python -m fragrance_ai.security.model_integrity --register qwen models/Qwen2.5-7B-Instruct Apache-2.0
+  python -m fragrance_ai.security.model_integrity --register mistral models/Mistral-7B-Instruct-v0.3 Apache-2.0
+  python -m fragrance_ai.security.model_integrity --register llama models/Meta-Llama-3-8B-Instruct Llama-3-Community
+  ```
+- [ ] Verify model integrity: `python -m fragrance_ai.security.model_integrity --verify-all`
+- [ ] Check license compliance: `python -m fragrance_ai.security.license_checker --models Qwen/Qwen2.5-7B-Instruct mistralai/Mistral-7B-Instruct-v0.3 meta-llama/Meta-Llama-3-8B-Instruct`
+- [ ] Generate SBOM: `python scripts/verify_security_compliance.py --sbom sbom.json`
+
+### Privacy & Compliance
+- [ ] Configure PII masking level (HASH_ONLY recommended for production)
+  ```python
+  from fragrance_ai.security.pii_masking import configure_privacy, LogLevel
+  configure_privacy(log_level=LogLevel.HASH_ONLY, sampling_rate=0.01)
+  ```
+- [ ] Verify PII patterns are masked in logs
+- [ ] Enable IFRA validation in all formula generation endpoints
+- [ ] Test IFRA compliance: `pytest tests/test_ifra.py -v`
+- [ ] Review allergen limits for target markets
+
+### Network Security
 - [ ] Configure SSL certificates
 - [ ] Set up firewall rules (only open necessary ports)
 - [ ] Enable rate limiting
@@ -11,6 +41,19 @@
 - [ ] Disable DEBUG mode
 - [ ] Remove or secure all test endpoints
 - [ ] Enable audit logging
+- [ ] Configure security headers (HSTS, CSP, X-Frame-Options)
+
+### Security Scanning
+- [ ] Run comprehensive security compliance check:
+  ```bash
+  python scripts/verify_security_compliance.py --all --report compliance_report.md
+  ```
+- [ ] Run security smoke test:
+  ```bash
+  python smoke_test_security.py
+  ```
+- [ ] Check for known vulnerabilities: `pip-audit` or `safety check`
+- [ ] Verify no exposed secrets: `trufflehog` or `gitleaks`
 
 ## 🗄️ Database
 - [ ] Change default PostgreSQL password

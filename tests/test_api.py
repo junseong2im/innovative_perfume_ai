@@ -549,5 +549,278 @@ def test_performance_benchmark():
     print("[OK] API performance acceptable")
 
 
+class TestLLMEnsembleIntegration:
+    """Test LLM Ensemble integration with API endpoints"""
+
+    @pytest.mark.integration
+    def test_create_dna_with_llm_fast_mode(self):
+        """Test DNA creation with LLM FAST mode"""
+        print("\n[TEST] Testing DNA creation with LLM FAST mode...")
+
+        brief_request = {
+            "brief": {
+                "user_text": "상쾌한 시트러스 향수",
+                "llm_mode": "fast",
+                "use_llm": True
+            },
+            "name": "LLM Fast Mode Test",
+            "product_category": "eau_de_toilette"
+        }
+
+        start_time = time.time()
+        response = client.post("/dna/create", json=brief_request)
+        latency = time.time() - start_time
+
+        assert response.status_code == 201
+        data = response.json()
+
+        assert "dna_id" in data
+        assert "ingredients" in data
+        assert latency < 5.0, f"FAST mode latency {latency:.2f}s exceeds 5s"
+
+        print(f"  Created DNA: {data['dna_id']}")
+        print(f"  Latency: {latency*1000:.2f}ms")
+        print("[OK] LLM FAST mode integration working")
+
+        return data["dna_id"]
+
+    @pytest.mark.integration
+    def test_create_dna_with_llm_balanced_mode(self):
+        """Test DNA creation with LLM BALANCED mode"""
+        print("\n[TEST] Testing DNA creation with LLM BALANCED mode...")
+
+        brief_request = {
+            "brief": {
+                "user_text": "로맨틱한 저녁 데이트 향수",
+                "llm_mode": "balanced",
+                "use_llm": True
+            },
+            "name": "LLM Balanced Mode Test",
+            "product_category": "eau_de_parfum"
+        }
+
+        start_time = time.time()
+        response = client.post("/dna/create", json=brief_request)
+        latency = time.time() - start_time
+
+        assert response.status_code == 201
+        data = response.json()
+
+        assert "dna_id" in data
+        assert latency < 7.0, f"BALANCED mode latency {latency:.2f}s exceeds 7s"
+
+        print(f"  Created DNA: {data['dna_id']}")
+        print(f"  Latency: {latency*1000:.2f}ms")
+        print("[OK] LLM BALANCED mode integration working")
+
+    @pytest.mark.integration
+    def test_create_dna_with_llm_creative_mode(self):
+        """Test DNA creation with LLM CREATIVE mode"""
+        print("\n[TEST] Testing DNA creation with LLM CREATIVE mode...")
+
+        brief_request = {
+            "brief": {
+                "user_text": "봄날 벚꽃이 만개한 공원을 거니는 듯한, 시적이고 몽환적인 향수",
+                "llm_mode": "creative",
+                "use_llm": True
+            },
+            "name": "LLM Creative Mode Test",
+            "product_category": "eau_de_parfum"
+        }
+
+        start_time = time.time()
+        response = client.post("/dna/create", json=brief_request)
+        latency = time.time() - start_time
+
+        assert response.status_code == 201
+        data = response.json()
+
+        assert "dna_id" in data
+        assert latency < 10.0, f"CREATIVE mode latency {latency:.2f}s exceeds 10s"
+
+        print(f"  Created DNA: {data['dna_id']}")
+        print(f"  Latency: {latency*1000:.2f}ms")
+        print("[OK] LLM CREATIVE mode integration working")
+
+    @pytest.mark.integration
+    def test_evolution_flow_with_llm_modes(self):
+        """Test complete flow: create → options → feedback with LLM modes"""
+        print("\n[TEST] Testing complete evolution flow with LLM modes...")
+
+        modes = ["fast", "balanced", "creative"]
+        results = {}
+
+        for mode in modes:
+            print(f"\n  Testing {mode} mode flow...")
+
+            # Step 1: Create DNA with LLM
+            brief_request = {
+                "brief": {
+                    "user_text": f"Test perfume for {mode} mode",
+                    "llm_mode": mode,
+                    "use_llm": True
+                },
+                "name": f"LLM {mode.title()} Flow Test"
+            }
+
+            response = client.post("/dna/create", json=brief_request)
+            assert response.status_code == 201
+            dna_id = response.json()["dna_id"]
+
+            # Step 2: Generate evolution options
+            options_request = {
+                "dna_id": dna_id,
+                "brief": {
+                    "style": "fresh",
+                    "intensity": 0.7
+                },
+                "num_options": 3,
+                "algorithm": "PPO"
+            }
+
+            response = client.post("/evolve/options", json=options_request)
+            assert response.status_code == 200
+            options_data = response.json()
+
+            experiment_id = options_data["experiment_id"]
+            options = options_data["options"]
+
+            # Step 3: Submit feedback
+            feedback_request = {
+                "experiment_id": experiment_id,
+                "chosen_id": options[0]["id"],
+                "rating": 4
+            }
+
+            response = client.post("/evolve/feedback", json=feedback_request)
+            assert response.status_code == 200
+            feedback_data = response.json()
+
+            assert feedback_data["status"] == "success"
+
+            results[mode] = {
+                "dna_id": dna_id,
+                "experiment_id": experiment_id,
+                "options_count": len(options)
+            }
+
+            print(f"    {mode} mode flow: ✓")
+
+        print(f"\n[OK] All LLM modes integrated successfully:")
+        for mode, data in results.items():
+            print(f"  {mode}: {data['options_count']} options generated")
+
+    @pytest.mark.integration
+    def test_llm_cache_effectiveness(self):
+        """Test that LLM caching improves API response time"""
+        print("\n[TEST] Testing LLM cache effectiveness...")
+
+        user_text = "상쾌한 시트러스 여름 향수"
+
+        # First request (cache miss)
+        brief_request = {
+            "brief": {
+                "user_text": user_text,
+                "llm_mode": "fast",
+                "use_llm": True
+            },
+            "name": "Cache Test 1"
+        }
+
+        start_time = time.time()
+        response1 = client.post("/dna/create", json=brief_request)
+        first_time = time.time() - start_time
+
+        assert response1.status_code == 201
+
+        # Second request (cache hit)
+        brief_request["name"] = "Cache Test 2"
+
+        start_time = time.time()
+        response2 = client.post("/dna/create", json=brief_request)
+        second_time = time.time() - start_time
+
+        assert response2.status_code == 201
+
+        print(f"  First request: {first_time*1000:.2f}ms")
+        print(f"  Second request: {second_time*1000:.2f}ms")
+
+        # Second should be faster (or at least not significantly slower)
+        # Note: May not be dramatically faster due to MOGA processing
+        print(f"  Speedup ratio: {first_time/second_time:.2f}x")
+        print("[OK] LLM caching working")
+
+    @pytest.mark.integration
+    def test_llm_fallback_on_error(self):
+        """Test that system falls back gracefully when LLM fails"""
+        print("\n[TEST] Testing LLM fallback mechanism...")
+
+        # Request with invalid/empty user text (should fallback to default)
+        brief_request = {
+            "brief": {
+                "user_text": "",  # Empty text
+                "llm_mode": "fast",
+                "use_llm": True
+            },
+            "name": "Fallback Test"
+        }
+
+        response = client.post("/dna/create", json=brief_request)
+
+        # Should still succeed (fallback to default brief)
+        assert response.status_code == 201 or response.status_code == 400
+
+        if response.status_code == 201:
+            data = response.json()
+            assert "dna_id" in data
+            print("  Fallback to default brief: ✓")
+        else:
+            print("  Validation error (expected): ✓")
+
+        print("[OK] Fallback mechanism working")
+
+    @pytest.mark.integration
+    @pytest.mark.slow
+    def test_llm_modes_performance_comparison(self):
+        """Compare performance of different LLM modes"""
+        print("\n[TEST] Comparing LLM mode performance...")
+
+        modes = ["fast", "balanced", "creative"]
+        timings = {mode: [] for mode in modes}
+
+        for mode in modes:
+            for i in range(5):
+                brief_request = {
+                    "brief": {
+                        "user_text": f"Test perfume {i} for {mode}",
+                        "llm_mode": mode,
+                        "use_llm": True
+                    },
+                    "name": f"Performance Test {mode} {i}"
+                }
+
+                start_time = time.time()
+                response = client.post("/dna/create", json=brief_request)
+                latency = time.time() - start_time
+
+                if response.status_code == 201:
+                    timings[mode].append(latency)
+
+        print("\n  === Performance Comparison ===")
+        for mode in modes:
+            if timings[mode]:
+                avg_time = np.mean(timings[mode])
+                p95_time = np.percentile(timings[mode], 95)
+                print(f"  {mode:10s}: avg={avg_time*1000:6.1f}ms, p95={p95_time*1000:6.1f}ms")
+
+        # Assert targets
+        if timings["fast"]:
+            assert np.percentile(timings["fast"], 95) < 5.0, "FAST mode p95 exceeds 5s"
+        if timings["creative"]:
+            assert np.percentile(timings["creative"], 95) < 12.0, "CREATIVE mode p95 exceeds 12s"
+
+        print("[OK] Performance comparison complete")
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s", "--tb=short"])

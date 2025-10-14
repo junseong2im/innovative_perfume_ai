@@ -1,0 +1,88 @@
+# ============================================================================
+# NGINX Upstream Configuration Template
+# Traffic routing for canary deployment
+# ============================================================================
+#
+# This template supports weighted traffic distribution between production
+# and canary versions for safe progressive rollout.
+#
+# Variables:
+#   CANARY_WEIGHT: 0-100 (percentage of traffic to canary)
+#   PRODUCTION_WEIGHT: 100-CANARY_WEIGHT (remaining traffic to production)
+#
+# ============================================================================
+
+# Application backend with weighted traffic distribution
+upstream app_backend {
+    # Production version (stable)
+    server app:8000 weight=${PRODUCTION_WEIGHT} max_fails=3 fail_timeout=30s;
+
+    # Canary version (new release)
+    server app-canary:8001 weight=${CANARY_WEIGHT} max_fails=3 fail_timeout=30s;
+
+    # Connection pooling
+    keepalive 32;
+    keepalive_requests 100;
+    keepalive_timeout 60s;
+}
+
+# LLM worker backend (for direct worker access if needed)
+upstream llm_worker_backend {
+    # Production LLM workers
+    server worker-llm:5555 weight=${PRODUCTION_WEIGHT} max_fails=2 fail_timeout=30s;
+
+    # Canary LLM workers (if separate)
+    server worker-llm-canary:5556 weight=${CANARY_WEIGHT} max_fails=2 fail_timeout=30s;
+
+    keepalive 16;
+}
+
+# RL worker backend (for direct worker access if needed)
+upstream rl_worker_backend {
+    # Production RL workers
+    server worker-rl:5557 weight=${PRODUCTION_WEIGHT} max_fails=2 fail_timeout=30s;
+
+    # Canary RL workers (if separate)
+    server worker-rl-canary:5558 weight=${CANARY_WEIGHT} max_fails=2 fail_timeout=30s;
+
+    keepalive 8;
+}
+
+# Health check upstream (always check both versions)
+upstream health_check {
+    server app:8000 max_fails=1 fail_timeout=10s;
+    server app-canary:8001 max_fails=1 fail_timeout=10s backup;
+}
+
+# ============================================================================
+# Weighted Load Balancing Configuration
+# ============================================================================
+#
+# Weight calculation:
+#   - weight=0: No traffic
+#   - weight=1: 1% traffic (if other is weight=99)
+#   - weight=5: 5% traffic (if other is weight=95)
+#   - weight=25: 25% traffic (if other is weight=75)
+#   - weight=100: 100% traffic (if other is weight=0)
+#
+# NGINX distributes requests proportionally based on weights.
+#
+# Example stages:
+#   Stage 0 (Production only):   PRODUCTION_WEIGHT=100, CANARY_WEIGHT=0
+#   Stage 1 (1% canary):          PRODUCTION_WEIGHT=99,  CANARY_WEIGHT=1
+#   Stage 2 (5% canary):          PRODUCTION_WEIGHT=95,  CANARY_WEIGHT=5
+#   Stage 3 (25% canary):         PRODUCTION_WEIGHT=75,  CANARY_WEIGHT=25
+#   Stage 4 (100% canary):        PRODUCTION_WEIGHT=0,   CANARY_WEIGHT=100
+#
+# ============================================================================
+
+# Log format for canary tracking
+log_format canary_log '$remote_addr - $remote_user [$time_local] '
+                      '"$request" $status $body_bytes_sent '
+                      '"$http_referer" "$http_user_agent" '
+                      'upstream=$upstream_addr '
+                      'upstream_response_time=$upstream_response_time '
+                      'version=$upstream_http_x_version';
+
+# Access log with canary tracking
+access_log /var/log/nginx/canary_access.log canary_log;
