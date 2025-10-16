@@ -6,11 +6,12 @@ Handles generate_variations -> user_feedback -> policy_update flow
 
 import json
 import torch
+import numpy as np
 import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
-from fragrance_ai.training.rlhf_complete import RLHFEngine
+from fragrance_ai.training.rl_policy import get_rl_policy, RLPolicy
 from fragrance_ai.schemas.domain_models import (
     OlfactoryDNA, ScentPhenotype, CreativeBrief, UserChoice
 )
@@ -27,7 +28,7 @@ class RLHFOrchestrator:
 
     def __init__(
         self,
-        state_dim: int = 20,
+        state_dim: int = 256,
         action_dim: int = 12,
         algorithm: str = "PPO",
         dataset_manager: Optional[DatasetManager] = None,
@@ -37,19 +38,23 @@ class RLHFOrchestrator:
         Initialize RLHF orchestrator
 
         Args:
-            state_dim: Dimension of state representation
+            state_dim: Dimension of state representation (default 256)
             action_dim: Number of possible variation actions
             algorithm: "REINFORCE" or "PPO"
             dataset_manager: Optional dataset manager for logging
             **rlhf_kwargs: Additional RLHF parameters
         """
-        # Initialize RLHF engine
-        self.rl_engine = RLHFEngine(
+        # Initialize RL Policy (new unified interface)
+        self.rl_policy = get_rl_policy(
+            algo=algorithm,
             state_dim=state_dim,
             action_dim=action_dim,
-            algorithm=algorithm,
             **rlhf_kwargs
         )
+
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+        self.algorithm = algorithm
 
         # Dataset management
         self.dataset_manager = dataset_manager or DatasetManager()
@@ -64,53 +69,103 @@ class RLHFOrchestrator:
             "increase_complexity", "simplify", "boost_longevity", "lighten_sillage"
         ]
 
-        logger.info(f"Initialized RLHF orchestrator with {algorithm}")
+        logger.info(f"Initialized RLHF orchestrator with {algorithm}, state_dim={state_dim}")
 
     def encode_state(
         self,
         dna: OlfactoryDNA,
         brief: CreativeBrief
-    ) -> torch.Tensor:
+    ) -> np.ndarray:
         """
-        Encode DNA and brief into state vector
+        Encode DNA and brief into state vector (256-dim)
+
+        State composition:
+        - DNA features: 20 dims (top/heart/base balance, complexity, etc.)
+        - Brief features: 16 dims (intensity, masculinity, etc.)
+        - Ingredient embeddings: 200 dims (encoded ingredient vector)
+        - Padding: 20 dims
 
         Args:
             dna: Current fragrance DNA
             brief: Creative brief with requirements
 
         Returns:
-            State tensor
+            State vector (np.float32[256])
         """
         state_vector = []
 
-        # DNA features
+        # DNA features (20 dims)
         if dna.category_balance:
             state_vector.extend([
                 dna.category_balance.get('top', 0) / 100,
                 dna.category_balance.get('heart', 0) / 100,
                 dna.category_balance.get('base', 0) / 100
             ])
+        else:
+            state_vector.extend([0.0, 0.0, 0.0])
 
-        # Add complexity score
         state_vector.append(dna.complexity_score or 0.5)
 
-        # Brief features
+        # Add ingredient counts by category
+        top_count = sum(1 for ing in dna.ingredients if ing.category.value == "top")
+        heart_count = sum(1 for ing in dna.ingredients if ing.category.value == "heart")
+        base_count = sum(1 for ing in dna.ingredients if ing.category.value == "base")
+        total_count = len(dna.ingredients)
+
+        state_vector.extend([
+            top_count / max(total_count, 1),
+            heart_count / max(total_count, 1),
+            base_count / max(total_count, 1),
+            total_count / 50.0  # normalize by max expected ingredients
+        ])
+
+        # Pad DNA features to 20
+        while len(state_vector) < 20:
+            state_vector.append(0.0)
+
+        # Brief features (16 dims)
         state_vector.extend([
             brief.desired_intensity,
             brief.masculinity,
             brief.complexity,
             brief.longevity,
             brief.sillage,
-            brief.warmth,
-            brief.freshness,
-            brief.sweetness
+            getattr(brief, 'warmth', 0.5),
+            getattr(brief, 'freshness', 0.5),
+            getattr(brief, 'sweetness', 0.5),
+            getattr(brief, 'spiciness', 0.0),
+            getattr(brief, 'woodiness', 0.0),
+            getattr(brief, 'florality', 0.0),
+            getattr(brief, 'fruitiness', 0.0),
+            getattr(brief, 'aquatic', 0.0),
+            getattr(brief, 'oriental', 0.0),
+            getattr(brief, 'green', 0.0),
+            getattr(brief, 'gourmand', 0.0)
         ])
 
-        # Pad to state dimension
-        while len(state_vector) < self.rl_engine.agent.state_dim:
+        # Ingredient embeddings (200 dims)
+        # Simple encoding: one-hot-like for top 200 most common ingredients
+        # For now, use concentration-based encoding
+        ingredient_vector = [0.0] * 200
+        for i, ing in enumerate(dna.ingredients[:20]):  # Top 20 ingredients
+            if i < 20:
+                base_idx = i * 10
+                ingredient_vector[base_idx] = ing.concentration / 100.0
+                # Add category one-hot
+                if ing.category.value == "top":
+                    ingredient_vector[base_idx + 1] = 1.0
+                elif ing.category.value == "heart":
+                    ingredient_vector[base_idx + 2] = 1.0
+                elif ing.category.value == "base":
+                    ingredient_vector[base_idx + 3] = 1.0
+
+        state_vector.extend(ingredient_vector)
+
+        # Padding to 256
+        while len(state_vector) < self.state_dim:
             state_vector.append(0.0)
 
-        return torch.tensor(state_vector[:self.rl_engine.agent.state_dim]).unsqueeze(0).float()
+        return np.array(state_vector[:self.state_dim], dtype=np.float32)
 
     def apply_action(
         self,
@@ -216,45 +271,34 @@ class RLHFOrchestrator:
         # Encode state
         state = self.encode_state(dna, brief)
 
-        # Generate actions using RL engine
+        # Generate actions using RL policy
+        rl_result = self.rl_policy.select_actions(state, num_options)
+
+        # Apply actions to create phenotypes
         options = []
-        saved_actions = []
+        for i, rl_option in enumerate(rl_result["options"]):
+            action_id = rl_option["action_id"]
+            log_prob = rl_option["log_prob"]
 
-        # Get action probabilities
-        if hasattr(self.rl_engine.agent, 'policy_net'):
-            with torch.no_grad():
-                probs = self.rl_engine.agent.policy_net(state)
-                dist = torch.distributions.Categorical(probs)
+            # Apply action to create phenotype
+            phenotype = self.apply_action(dna, action_id)
 
-                # Sample actions
-                for i in range(num_options):
-                    action = dist.sample()
-                    log_prob = dist.log_prob(action)
-
-                    # Apply action to create phenotype
-                    phenotype = self.apply_action(dna, action.item())
-
-                    option = {
-                        "id": phenotype.phenotype_id,
-                        "phenotype": phenotype,
-                        "action": action.item(),
-                        "action_name": self.action_names[action.item() % len(self.action_names)],
-                        "log_prob": log_prob.item(),
-                        "description": phenotype.description
-                    }
-                    options.append(option)
-                    saved_actions.append((action, log_prob))
+            option = {
+                "id": rl_option["id"],
+                "phenotype": phenotype,
+                "action": action_id,
+                "action_name": self.action_names[action_id % len(self.action_names)],
+                "log_prob": log_prob,
+                "description": phenotype.description
+            }
+            options.append(option)
 
         # Store in session for later update
-        session["last_state"] = state
-        session["last_saved_actions"] = saved_actions
+        session["last_state"] = state.tolist()  # Convert numpy to list for JSON serialization
+        session["last_saved_actions"] = rl_result["saved_actions"]
         session["last_options"] = options
         session["dna_id"] = dna.dna_id
         session["brief_id"] = brief.brief_id
-
-        # Save to RL engine
-        self.rl_engine.agent.last_state = state
-        self.rl_engine.agent.last_saved_actions = saved_actions
 
         # Log generation
         logger.info(json.dumps({
@@ -316,11 +360,23 @@ class RLHFOrchestrator:
 
         session = self.active_sessions[user_id]
 
+        # Prepare data for RL policy update
+        state_array = np.array(session.get("last_state"), dtype=np.float32)
+
+        # Build options list in the format expected by rl_policy
+        rl_options = []
+        for opt in session.get("last_options", []):
+            rl_options.append({
+                "id": opt["id"],
+                "action_id": opt["action"],
+                "log_prob": opt["log_prob"]
+            })
+
         # Update policy with feedback
-        update_result = self.rl_engine.update_policy_with_feedback(
+        update_result = self.rl_policy.update_policy_with_feedback(
             chosen_id=chosen_phenotype_id,
-            options=session.get("last_options", []),
-            state=session.get("last_state"),
+            options=rl_options,
+            state=state_array,
             saved_actions=session.get("last_saved_actions"),
             rating=rating
         )
@@ -338,8 +394,8 @@ class RLHFOrchestrator:
             iteration_number=session["iteration"]
         )
 
-        # Convert state to list for storage
-        state_vector = session["last_state"].squeeze().tolist() if session.get("last_state") is not None else None
+        # State vector already in list format
+        state_vector = session.get("last_state")
 
         self.dataset_manager.log_interaction(
             choice=choice,
