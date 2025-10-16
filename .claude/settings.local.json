@@ -101,7 +101,15 @@
       "Bash(pytest:*)",
       "Bash(chcp:*)",
       "Bash(more)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(powershell:*)",
+      "Bash(nvidia-smi:*)",
+      "Bash(pip uninstall:*)",
+      "Bash(pip3 install:*)",
+      "WebFetch(domain:www.fragrantica.com)",
+      "WebFetch(domain:ifrafragrance.org)",
+      "WebSearch",
+      "WebFetch(domain:www.parfumo.com)"
     ],
     "deny": [],
     "ask": []
