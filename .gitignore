@@ -1,12 +1,19 @@
-# Byte-compiled / optimized / DLL files
+# Environment variables (중요 정보 보호)
+.env
+.env.*
+!.env.example
+!.env.production.template
+
+# Database files (실제 데이터 보호)
+*.db
+*.sqlite
+*.sqlite3
+
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -20,259 +27,50 @@ parts/
 sdist/
 var/
 wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
+# Claude Code local settings
+.claude/settings.local.json
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
+# Logs
 *.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
-
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# 🔐 SECURITY - Environment variables and secrets
-.env
-.env.local
-.env.*.local
-.env.production
-.env.staging
-.env.development
-
-# Secret files
-secrets/
-*.key
-*.pem
-*.crt
-*.p12
-*.pfx
-
-# AWS credentials
-.aws/
-
-# API keys
-api_keys.txt
-*.api_key
-
-# 🗄️ Database files
-*.db
-*.sqlite
-*.sqlite3
-fragrance_ai.db
-*.db-journal
-
-# 🤖 ML Models and data
-models/
-checkpoints/
-*.pt
-*.pth
-*.bin
-*.safetensors
-data/training/
-data/evaluation/
-data/cache/
-*.pkl
-*.pickle
-
-# 📊 Logs and monitoring
 logs/
-*.log
-*.log.*
-log/
 
-# 📈 Monitoring data
-prometheus_data/
-grafana_data/
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# 🐳 Docker
-.docker/
-docker-compose.override.yml
-
-# 💾 Cache directories
-.cache/
-cache/
-.chromadb/
-
-# 📁 OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# 🔧 IDE and editor files
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# 📦 Node modules (if any)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# OS
+.DS_Store
+Thumbs.db
 
-# 📱 Mobile development
-*.mobileprovision
-*.p12
+# Demo files (로컬 테스트용)
+demo_*.html
 
-# 🧪 Temporary files
-tmp/
-temp/
-.tmp/
+# Data directories (실제 데이터)
+data/chroma_db/
+data/*.db
 
-# 🎯 Specific to this project
-fragrance_ai/data/
-wandb/
-.wandb/
-mlruns/
+# ML models (학습된 모델 - 용량 큰 파일)
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+models/downloaded/
+fragrance_ai/models/checkpoints/
 
-# 🔧 Configuration overrides
-config.local.yaml
-config.local.yml
-settings.local.json
-
-# 🎪 Jupyter notebook checkpoints
-.ipynb_checkpoints/
-
-# 🏗️ Build artifacts
-build/
-dist/
-*.egg-info/
-
-# 🔄 Backup files
-*.bak
-*.backup
-*.old
-
-# 🎨 Frontend build (if any)
-/frontend/build
-/frontend/dist
-/frontend/node_modules
-
-# 🚀 Deployment
-.terraform/
-terraform.tfstate*
-.ansible/
-
-# 📊 Performance profiling
-*.prof
-*.profile
-
-# 🎭 Test fixtures
-test_fixtures/
-fixtures/
-
-# 📋 Documentation build
-docs/_build/
-site/
-
-# 🔍 IDE specific
-.vscode/settings.json
-.vscode/tasks.json
-.vscode/launch.json
-.vscode/extensions.json
-
-# Legacy code test files
-legacy_code/test_*
-legacy_code/demo_*
-legacy_code/temp_*
-legacy_code/tmp_*
-legacy_code/frontend_old/node_modules/
-
-# Commerce Next.js
-commerce/.next/
-commerce/out/
-commerce/node_modules/
-
-# Keep example files
-!.env.example
-!config.example.yaml
-!docker-compose.example.yml
-# 🔑 Oracle Cloud and SSH keys
-*.oci
-oracle_cloud_config/
-ssh_keys/
-id_rsa*
-id_ecdsa*
-id_ed25519*
-
-# 🌐 Cloud deployment configs
-.terraform/
-terraform.tfstate*
-terraform.tfvars
-*.tfplan
-nul
+# Temporary files
+*.tmp
+*.temp
+.cache/
